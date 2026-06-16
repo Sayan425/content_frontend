@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html class="dark" lang="en" style="">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Studio AI - Profile Selection</title>
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Tailwind Config -->
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#d0bcff",
+                        "surface-dim": "#131313",
+                        "surface-container-highest": "#353534",
+                        "surface-bright": "#393939",
+                        "surface": "#131313",
+                        "surface-container-high": "#2a2a2a",
+                        "on-background": "#e5e2e1",
+                        "on-surface-variant": "#cbc3d7",
+                        "surface-container": "#201f1f",
+                        "surface-container-low": "#1c1b1b",
+                        "background": "#131313",
+                        "on-primary": "#3c0091",
+                        "secondary": "#4cd7f6",
+                        "on-surface": "#e5e2e1",
+                        "surface-container-lowest": "#0e0e0e",
+                        "primary-container": "#a078ff"
+                    },
+                    "spacing": {
+                        "container-margin": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "label-caps": ["Geist"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-md": ["Inter"],
+                        "mono-label": ["Geist"],
+                        "headline-xl": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "mono-label": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-image: radial-gradient(circle at center, rgba(52, 0, 128, 0.15) 0%, #131313 70%);
+            background-color: #131313;
+        }
+        .avatar-ring {
+            transition: box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .group:hover .avatar-ring {
+            box-shadow: 0 0 24px rgba(208, 188, 255, 0.2);
+            border-color: #d0bcff;
+        }
+    </style>
+</head>
+<body class="w-full min-h-screen text-on-surface flex flex-col items-center justify-center relative overflow-x-hidden font-body-md antialiased selection:bg-primary selection:text-on-primary">
+    <!-- Atmospheric background elements -->
+    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/5 blur-[120px] rounded-full pointer-events-none"></div>
+    
+    <!-- Logout Button -->
+    <button id="btn-logout" class="fixed top-6 right-6 px-4 py-2 rounded border border-white/10 text-on-surface-variant hover:text-white hover:border-white/30 transition-colors z-20 bg-background/50 backdrop-blur-sm">Logout</button>
+
+    <div class="z-10 flex flex-col items-center w-full max-w-[1440px] px-container-margin min-h-screen justify-center py-24">
+        <!-- Brand / Logo -->
+        <div class="text-center mb-8">
+            <h1 class="font-headline-xl text-headline-xl text-primary font-light tracking-[0.2em] uppercase">Studio AI</h1>
+        </div>
+        
+        <!-- Heading -->
+        <h2 class="font-headline-lg text-headline-lg text-on-surface mb-12 text-center font-light">Select an Avatar</h2>
+        <p class="text-on-surface-variant text-body-md text-center -mt-8 mb-16 opacity-80">Choose the avatar you want to create a video for.</p>
+        
+        <!-- Profiles Grid -->
+        <div id="avatars-container" class="flex flex-wrap justify-center gap-12 md:gap-16">
+            <!-- Loading State -->
+            <div id="loading-state" class="text-on-surface-variant text-center animate-pulse">Loading avatars...</div>
+
+            <!-- Add New Action (Always visible, moving this to be appended later in JS) -->
+        </div>
+    </div>
+
+    <!-- Create Avatar Modal -->
+    <div id="create-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-background/80 backdrop-blur-md" id="modal-backdrop"></div>
+        <div class="relative w-full max-w-md bg-surface-container-high/40 bg-gradient-to-br from-white/5 to-transparent backdrop-blur-3xl border border-white/20 rounded-3xl p-8 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.2)] transform scale-95 opacity-0 transition-all duration-300" id="modal-content">
+            <h3 class="text-headline-lg font-headline-lg text-primary mb-6 drop-shadow-md">Create New Avatar</h3>
+            <form id="create-avatar-form" class="flex flex-col gap-4">
+                <div class="flex flex-col gap-2 relative">
+                    <label class="text-label-caps font-label-caps text-on-surface uppercase tracking-wider flex items-center gap-1 w-max group cursor-help">
+                        Avatar Name <span class="text-error">*</span>
+                        <span class="material-symbols-outlined text-[14px] text-on-surface-variant ml-1 opacity-70 group-hover:opacity-100 transition-opacity">info</span>
+                        <div class="absolute left-0 top-full mt-1 hidden group-hover:block w-[240px] bg-surface-container-highest border border-white/10 text-on-surface text-[11px] p-2.5 rounded shadow-xl z-50 normal-case tracking-normal">
+                            What would you like to name your avatar?
+                        </div>
+                    </label>
+                    <input type="text" id="avatar-name" class="w-full bg-white/5 border border-white/10 backdrop-blur-md rounded-xl p-3 text-on-surface focus:border-primary focus:bg-white/10 outline-none transition-all shadow-inner" required>
+                </div>
+                <div class="flex flex-col gap-2 relative">
+                    <label class="text-label-caps font-label-caps text-on-surface uppercase tracking-wider flex items-center gap-1 w-max group cursor-help">
+                        Primary Look <span class="text-error">*</span>
+                        <span class="material-symbols-outlined text-[14px] text-on-surface-variant ml-1 opacity-70 group-hover:opacity-100 transition-opacity">info</span>
+                        <div class="absolute left-0 top-full mt-1 hidden group-hover:block w-[240px] bg-surface-container-highest border border-white/10 text-on-surface text-[11px] p-2.5 rounded shadow-xl z-50 normal-case tracking-normal">
+                            For better results provide the base look at 1080p.
+                        </div>
+                    </label>
+                    <input type="file" id="avatar-image" accept=".jpg,.jpeg,.png" class="w-full text-on-surface-variant text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" required>
+                </div>
+                <div class="flex flex-col gap-2 relative">
+                    <label class="text-label-caps font-label-caps text-on-surface uppercase tracking-wider flex items-center gap-1 w-max group cursor-help">
+                        Sample Voice <span class="text-error">*</span>
+                        <span class="material-symbols-outlined text-[14px] text-on-surface-variant ml-1 opacity-70 group-hover:opacity-100 transition-opacity">info</span>
+                        <div class="absolute left-0 top-full mt-1 hidden group-hover:block w-[240px] bg-surface-container-highest border border-white/10 text-on-surface text-[11px] p-2.5 rounded shadow-xl z-50 normal-case tracking-normal">
+                            For better results provide an MP3 with at least 10-15 seconds of audio.
+                        </div>
+                    </label>
+                    <input type="file" id="avatar-voice" accept=".mp3" class="w-full text-on-surface-variant text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" required>
+                </div>
+                <div class="flex flex-col gap-2 relative">
+                    <label class="text-label-caps font-label-caps text-on-surface uppercase tracking-wider flex items-center gap-1 w-max group cursor-help">
+                        Sample Voice Text <span class="text-error">*</span>
+                        <span class="material-symbols-outlined text-[14px] text-on-surface-variant ml-1 opacity-70 group-hover:opacity-100 transition-opacity">info</span>
+                        <div class="absolute left-0 top-full mt-1 hidden group-hover:block w-[240px] bg-surface-container-highest border border-white/10 text-on-surface text-[11px] p-2.5 rounded shadow-xl z-50 normal-case tracking-normal">
+                            The text should actually match with the sample voice to get accurate voiceovers.
+                        </div>
+                    </label>
+                    <textarea id="avatar-voice-text" rows="3" class="w-full bg-white/5 border border-white/10 backdrop-blur-md rounded-xl p-3 text-on-surface focus:border-primary focus:bg-white/10 outline-none transition-all shadow-inner" required></textarea>
+                </div>
+                
+                <div id="create-avatar-error" class="hidden text-error text-sm bg-error/10 border border-error/20 p-3 rounded-lg flex items-start gap-2">
+                    <span class="material-symbols-outlined text-[18px] shrink-0 mt-0.5">error</span>
+                    <p id="create-avatar-error-text"></p>
+                </div>
+                <div id="create-avatar-success" class="hidden text-[#4caf50] text-sm bg-[#4caf50]/10 border border-[#4caf50]/20 p-3 rounded-lg flex items-start gap-2">
+                    <span class="material-symbols-outlined text-[18px] shrink-0 mt-0.5">check_circle</span>
+                    <p id="create-avatar-success-text"></p>
+                </div>
+
+                <div class="flex justify-end gap-4 mt-4">
+                    <button type="button" id="btn-cancel-modal" class="px-4 py-2 rounded text-on-surface-variant hover:text-on-surface transition-colors">Cancel</button>
+                    <button type="submit" id="btn-submit-modal" class="px-6 py-2 rounded bg-primary text-on-primary font-semibold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(208,188,255,0.3)]">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="/dashboard.js"></script>
+</body>
+</html>

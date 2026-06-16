@@ -1,0 +1,274 @@
+<style>
+/* Collapsed state styles */
+#app-sidebar.sidebar-collapsed {
+    width: 80px;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+/* Smooth text hiding */
+.sidebar-text {
+    transition: max-width 0.3s ease, opacity 0.2s ease, margin 0.3s ease, transform 0.3s ease;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    transform: translateX(0);
+}
+#app-sidebar.sidebar-collapsed .sidebar-text {
+    max-width: 0 !important;
+    opacity: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    transform: translateX(-10px) !important;
+}
+
+/* Smooth gap removal */
+#app-sidebar .nav-item > .flex,
+#app-sidebar .avatar-button > .flex {
+    transition: gap 0.3s ease;
+}
+#app-sidebar.sidebar-collapsed .nav-item > .flex,
+#app-sidebar.sidebar-collapsed .avatar-button > .flex {
+    gap: 0 !important;
+}
+
+/* Hide tree line */
+.tree-line {
+    transition: opacity 0.2s ease;
+}
+#app-sidebar.sidebar-collapsed .tree-line {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+/* Smooth center alignment via padding */
+.nav-item, .avatar-button {
+    transition: padding 0.3s ease;
+}
+#app-sidebar.sidebar-collapsed .nav-item {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+}
+#app-sidebar.sidebar-collapsed .avatar-button {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+}
+#app-sidebar.sidebar-collapsed .tools-header {
+    text-align: center;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Popout styles */
+#app-sidebar.sidebar-collapsed .submenu-container {
+    position: absolute;
+    left: 70px;
+    top: 0;
+    width: 180px;
+    background: #1e1e1e;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    z-index: 100;
+    display: none;
+}
+#app-sidebar.sidebar-collapsed .submenu-container .sidebar-text {
+    display: inline !important;
+    opacity: 1 !important;
+    max-width: 200px !important;
+    transform: none !important;
+}
+#app-sidebar.sidebar-collapsed .submenu-container.force-flex {
+    display: flex !important;
+}
+#app-sidebar.sidebar-collapsed .collapsed-spacer {
+    display: block !important;
+}
+
+/* Avatar Dropdown Popout */
+#app-sidebar.sidebar-collapsed #avatar-dropdown {
+    top: 0 !important;
+    left: 70px !important;
+    width: 220px !important;
+    margin-top: 0 !important;
+    background: #1e1e1e !important;
+}
+
+/* Create New Video Button Styles */
+#btn-new-video {
+    transition: all 0.3s ease, gap 0.3s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 100%;
+}
+#app-sidebar.sidebar-collapsed #btn-new-video {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 12px !important;
+    padding: 0 !important;
+    margin: 0 auto 24px auto !important;
+    gap: 0 !important;
+}
+
+/* Correct icon centering */
+#app-sidebar.sidebar-collapsed .nav-item {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+}
+
+/* Active styles */
+.sidebar-link.active {
+    color: #d0bcff !important;
+    background-color: rgba(208, 188, 255, 0.1) !important;
+}
+.sidebar-link.active .sidebar-text {
+    font-weight: 600 !important;
+}
+.sidebar-link.active .material-symbols-outlined:not(.arrow-icon) {
+    font-variation-settings: 'FILL' 1 !important;
+}
+#app-sidebar:not(.sidebar-collapsed) .sidebar-link.active .arrow-icon {
+    opacity: 1 !important;
+}
+</style>
+
+<nav id="app-sidebar" class="fixed left-0 top-0 h-screen w-[240px] bg-surface/80 backdrop-blur-xl border-r border-white/10 shadow-2xl flex flex-col p-gutter gap-unit z-20 transition-all duration-300 overflow-visible">
+<button id="btn-toggle-sidebar" class="absolute -right-3 top-8 w-6 h-6 bg-surface-container-high border border-white/10 rounded-full flex items-center justify-center text-on-surface hover:text-primary transition-colors shadow-lg z-50 focus:outline-none">
+<span id="sidebar-toggle-icon" class="material-symbols-outlined text-[14px]">chevron_left</span>
+</button>
+<!-- Header: Profile Switcher -->
+<div class="mb-6 mt-2 relative">
+<button onclick="document.getElementById('avatar-dropdown').classList.toggle('hidden')" class="avatar-button w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors duration-200 border border-transparent hover:border-white/10 group cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg overflow-hidden border border-white/20 shadow-md flex-shrink-0">
+<img id="sidebar-avatar-img" alt="Avatar Profile" class="w-full h-full object-cover" src="https://via.placeholder.com/40" />
+</div>
+<div class="flex flex-col items-start overflow-hidden sidebar-text">
+<span id="sidebar-avatar-name" class="text-sm font-bold text-on-surface truncate max-w-[140px]">Loading...</span>
+<span class="text-[11px] text-on-surface-variant truncate">Switch Avatar</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors sidebar-text">unfold_more</span>
+</button>
+<!-- Avatar Dropdown -->
+<div id="avatar-dropdown" class="hidden absolute top-full left-0 w-full mt-1 bg-surface-container border border-white/10 rounded-lg shadow-xl z-50 flex flex-col overflow-hidden max-h-[300px] overflow-y-auto">
+<div id="avatar-dropdown-list" class="flex flex-col">
+<!-- Avatars will be injected here -->
+</div>
+<a href="/dashboard.html?create_avatar=true" class="w-full text-left px-3 py-2 text-[13px] text-primary hover:bg-white/5 transition-colors border-t border-white/10 flex items-center gap-2 font-medium">
+<span class="material-symbols-outlined text-[16px]">add_circle</span>
+Create New Avatar
+</a>
+</div>
+</div>
+<!-- New Project CTA -->
+<button id="btn-new-video" class="w-full flex items-center justify-center gap-2 bg-inverse-primary text-white text-sm font-medium py-2.5 px-4 rounded-lg shadow-[0_8px_16px_rgba(109,59,215,0.2)] hover:bg-primary hover:text-on-primary transition-all duration-200 mb-6 group active:scale-95">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                <span class="sidebar-text">Create New Video</span>
+            </button>
+<!-- Main Navigation Group -->
+<div class="flex flex-col gap-1 mb-2">
+<!-- Home -->
+<a id="nav-home" class="sidebar-link nav-item flex items-center justify-between px-3 py-2 rounded-lg text-on-surface-variant text-sm hover:bg-white/5 hover:text-secondary transition-colors duration-200 group active:scale-95" href="javascript:void(0)">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] group-hover:fill">home</span>
+<span class="sidebar-text">Home</span>
+</div>
+<span class="material-symbols-outlined text-[14px] sidebar-text text-primary opacity-0 transition-opacity arrow-icon">chevron_right</span>
+</a>
+<!-- Dashboard -->
+<a id="nav-dashboard" class="sidebar-link nav-item flex items-center justify-between px-3 py-2 rounded-lg text-on-surface-variant text-sm hover:bg-white/5 hover:text-secondary transition-colors duration-200 group active:scale-95" href="javascript:void(0)">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] group-hover:fill">dashboard</span>
+<span class="sidebar-text">Dashboard</span>
+</div>
+<span class="material-symbols-outlined text-[14px] sidebar-text text-primary opacity-0 transition-opacity arrow-icon">chevron_right</span>
+</a>
+<!-- Your Workspace (Flat) -->
+<div class="mt-1 group-popout relative">
+<div id="workspace-nav-item" class="nav-item w-full flex items-center justify-between px-3 py-2 text-on-surface-variant font-bold text-sm cursor-pointer hover:bg-white/5 rounded-lg transition-colors duration-200">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] fill">workspaces</span>
+<span class="sidebar-text">Your Workspace</span>
+</div>
+</div>
+<div class="collapsed-spacer hidden h-[132px]"></div>
+<!-- Workspace Sub-items -->
+<div id="workspace-submenu" class="submenu-container flex flex-col gap-1 mt-1 pl-[30px] pr-2 relative transition-all duration-300">
+<div class="absolute left-[17px] top-0 bottom-4 w-px bg-white/10 tree-line"></div>
+<a id="nav-completed-videos" class="sidebar-link relative flex items-center justify-between py-1.5 px-3 text-on-surface-variant text-[13px] hover:bg-white/5 hover:text-on-surface transition-colors rounded-lg group active:scale-95" href="javascript:void(0)">
+    <div class="absolute left-[-13px] top-1/2 w-[13px] h-px bg-white/10 tree-line"></div>
+    <span class="sidebar-text">Completed Videos</span>
+    <span class="material-symbols-outlined text-[14px] sidebar-text text-primary opacity-0 transition-opacity arrow-icon">chevron_right</span>
+</a>
+<a id="nav-edit-queue" class="sidebar-link relative flex items-center justify-between py-1.5 px-3 text-on-surface-variant text-[13px] hover:bg-white/5 hover:text-on-surface transition-colors rounded-lg group active:scale-95" href="javascript:void(0)">
+    <div class="absolute left-[-13px] top-1/2 w-[13px] h-px bg-white/10 tree-line"></div>
+    <span class="sidebar-text">Edit Queue</span>
+    <span class="material-symbols-outlined text-[14px] sidebar-text text-primary opacity-0 transition-opacity arrow-icon">chevron_right</span>
+</a>
+<a class="sidebar-link relative flex items-center justify-between py-1.5 px-3 text-on-surface-variant text-[13px] hover:bg-white/5 hover:text-on-surface transition-colors rounded-lg group active:scale-95" href="javascript:void(0)">
+    <div class="absolute left-[-13px] top-1/2 w-[13px] h-px bg-white/10 tree-line"></div>
+    <span class="sidebar-text">In Production</span>
+    <span class="material-symbols-outlined text-[14px] sidebar-text text-primary opacity-0 transition-opacity arrow-icon">chevron_right</span>
+</a>
+<a class="sidebar-link relative flex items-center justify-between py-1.5 px-3 text-on-surface-variant text-[13px] hover:bg-white/5 hover:text-on-surface transition-colors rounded-lg group active:scale-95" href="javascript:void(0)">
+    <div class="absolute left-[-13px] top-1/2 w-[13px] h-px bg-white/10 tree-line"></div>
+    <span class="sidebar-text">Script Vault</span>
+    <span class="material-symbols-outlined text-[14px] sidebar-text text-primary opacity-0 transition-opacity arrow-icon">chevron_right</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Tools Section Header -->
+<div class="px-3 mb-1 mt-1 tools-header">
+<span class="text-[10px] text-outline uppercase tracking-wider font-bold">Tools</span>
+</div>
+<!-- Tools Navigation Group -->
+<div class="flex flex-col gap-1 flex-grow">
+<!-- Idea Labs -->
+<a id="nav-idea-labs" class="sidebar-link nav-item flex items-center justify-between px-3 py-2 rounded-lg text-on-surface-variant text-sm hover:bg-white/5 hover:text-secondary transition-colors duration-200 group active:scale-95 mt-1" href="javascript:void(0)">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] group-hover:fill">science</span>
+<span class="sidebar-text">Idea Labs</span>
+</div>
+<span class="material-symbols-outlined text-[14px] sidebar-text text-primary opacity-0 transition-opacity arrow-icon">chevron_right</span>
+</a>
+<!-- Script Room -->
+<a id="nav-script-room" class="sidebar-link nav-item flex items-center justify-between px-3 py-2 rounded-lg text-on-surface-variant text-sm hover:bg-white/5 hover:text-secondary transition-colors duration-200 group active:scale-95 mt-1" href="javascript:void(0)">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] group-hover:fill">description</span>
+<span class="sidebar-text">Script Room</span>
+</div>
+<span class="material-symbols-outlined text-[14px] sidebar-text text-primary opacity-0 transition-opacity arrow-icon">chevron_right</span>
+</a>
+<!-- Avatar Studio -->
+<a class="sidebar-link nav-item flex items-center justify-between px-3 py-2 rounded-lg text-on-surface-variant text-sm hover:bg-white/5 hover:text-secondary transition-colors duration-200 group active:scale-95" href="javascript:void(0)">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] group-hover:fill">face</span>
+<span class="sidebar-text">Avatar Studio</span>
+</div>
+<span class="material-symbols-outlined text-[14px] sidebar-text text-primary opacity-0 transition-opacity arrow-icon">chevron_right</span>
+</a>
+<!-- Edit Suite -->
+<a class="sidebar-link nav-item flex items-center justify-between px-3 py-2 rounded-lg text-on-surface-variant text-sm hover:bg-white/5 hover:text-secondary transition-colors duration-200 group active:scale-95" href="javascript:void(0)">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] group-hover:fill">movie_edit</span>
+<span class="sidebar-text">Edit Suite</span>
+</div>
+<span class="material-symbols-outlined text-[14px] sidebar-text text-primary opacity-0 transition-opacity arrow-icon">chevron_right</span>
+</a>
+</div>
+<!-- Footer Navigation Group -->
+<div class="mt-auto pt-3 border-t border-white/5 flex flex-col gap-1 pb-1">
+<a class="sidebar-link nav-item flex items-center justify-between px-3 py-2 rounded-lg text-on-surface-variant text-sm hover:bg-white/5 hover:text-secondary transition-colors duration-200 group active:scale-95" href="javascript:void(0)">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] group-hover:fill">settings</span>
+<span class="sidebar-text">Profile Settings</span>
+</div>
+<span class="material-symbols-outlined text-[14px] sidebar-text text-primary opacity-0 transition-opacity arrow-icon">chevron_right</span>
+</a>
+</div>
+</nav>
