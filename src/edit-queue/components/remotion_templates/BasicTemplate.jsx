@@ -1,5 +1,6 @@
 import React from 'react';
 import { AbsoluteFill, OffthreadVideo, Video, Audio, interpolate, useCurrentFrame, useVideoConfig, Img, spring, Sequence } from 'remotion';
+import { DynamicGraphicRenderer } from '../motion_graphics/DynamicGraphicRenderer';
 import { Subtitles } from '../Subtitles';
 import { StaticText } from '../motion_graphics/StaticText';
 import { resolveAssetUrl } from '../../utils/assetResolver';
@@ -57,8 +58,9 @@ const ImageOverlayInternal = ({ src, startFrame, durationInFrames, index, positi
 
     const defaultRotation = (index % 2 === 0 ? 3 : -3) + (index % 3);
     const finalRotation = position?.rotation !== undefined ? position.rotation : defaultRotation;
-    const baseScaleRaw = position?.scale !== undefined ? position.scale : 1;
-    const baseScale = baseScaleRaw > 10 ? baseScaleRaw / 100 : baseScaleRaw;
+    const parsedScale = parseFloat(position?.scale);
+    const baseScaleRaw = !isNaN(parsedScale) ? parsedScale : 100;
+    const baseScale = baseScaleRaw / 100;
     
     const userOpacityRaw = opacityVal !== undefined ? opacityVal : 1;
     const userOpacity = userOpacityRaw > 1 ? userOpacityRaw / 100 : userOpacityRaw;
@@ -138,20 +140,22 @@ const ImageOverlayInternal = ({ src, startFrame, durationInFrames, index, positi
     else if (borderPreset === 'polaroid_modern') containerStyle = { backgroundColor: 'white', padding: '15px 15px 45px 15px', boxShadow: '0 15px 35px rgba(0,0,0,0.1)', borderRadius: '8px' };
     else containerStyle = { backgroundColor: 'white', padding: '20px 20px 60px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', border: '1px solid #ddd' };
 
+    const isAbsolute = position?.x !== undefined || position?.y !== undefined;
+
     return (
         <AbsoluteFill style={{ 
             display: 'flex', 
-            justifyContent: position?.x !== undefined || position?.y !== undefined ? 'flex-start' : 'center', 
-            alignItems: position?.x !== undefined || position?.y !== undefined ? 'flex-start' : 'center',
+            justifyContent: isAbsolute ? 'flex-start' : 'center', 
+            alignItems: isAbsolute ? 'flex-start' : 'center',
             opacity: currentOpacity,
             filter: blurAmt > 0 ? `blur(${blurAmt}px)` : 'none'
         }}>
             <div style={{
-                position: position?.x !== undefined || position?.y !== undefined ? 'absolute' : 'relative',
+                position: isAbsolute ? 'absolute' : 'relative',
                 left: position?.x !== undefined ? position.x : 'auto',
                 top: position?.y !== undefined ? position.y : 'auto',
                 width: '75%',
-                transform: `scale(${currentScale}) rotate(${finalRotation + extraRotation}deg) rotateY(${flipRotation}deg) translateX(${translateX}px) translateY(${translateY}px)`,
+                transform: `${isAbsolute ? 'translate(-50%, -50%) ' : ''}scale(${currentScale}) rotate(${finalRotation + extraRotation}deg) rotateY(${flipRotation}deg) translateX(${translateX}px) translateY(${translateY}px)`,
                 ...containerStyle
             }}>
                 {(!borderPreset || borderPreset === 'photographic') && (
@@ -187,27 +191,30 @@ const VideoOverlayAnimated = ({ src, durationInFrames, index, position }) => {
 
     const defaultRotation = (index % 2 === 0 ? 3 : -3) + (index % 3);
     const finalRotation = position?.rotation !== undefined ? position.rotation : defaultRotation;
-    const baseScaleRaw = position?.scale !== undefined ? position.scale : 1;
-    const baseScale = baseScaleRaw > 10 ? baseScaleRaw / 100 : baseScaleRaw;
+    const parsedScale = parseFloat(position?.scale);
+    const baseScaleRaw = !isNaN(parsedScale) ? parsedScale : 100;
+    const baseScale = baseScaleRaw / 100;
 
     const userOpacityRaw = position?.opacity !== undefined ? position.opacity : 1;
     const userOpacity = userOpacityRaw > 1 ? userOpacityRaw / 100 : userOpacityRaw;
 
     const finalScale = springEntry * baseScale;
 
+    const isAbsolute = position?.x !== undefined || position?.y !== undefined;
+
     return (
         <AbsoluteFill style={{ 
             display: 'flex', 
-            justifyContent: position?.x !== undefined || position?.y !== undefined ? 'flex-start' : 'center', 
-            alignItems: position?.x !== undefined || position?.y !== undefined ? 'flex-start' : 'center',
+            justifyContent: isAbsolute ? 'flex-start' : 'center', 
+            alignItems: isAbsolute ? 'flex-start' : 'center',
             opacity 
         }}>
             <div style={{
-                position: position?.x !== undefined || position?.y !== undefined ? 'absolute' : 'relative',
+                position: isAbsolute ? 'absolute' : 'relative',
                 left: position?.x !== undefined ? position.x : 'auto',
                 top: position?.y !== undefined ? position.y : 'auto',
                 width: '75%',
-                transform: `scale(${finalScale}) rotate(${finalRotation}deg)`,
+                transform: `${isAbsolute ? 'translate(-50%, -50%) ' : ''}scale(${finalScale}) rotate(${finalRotation}deg)`,
                 backgroundColor: 'white',
                 padding: '20px 20px 60px 20px',
                 boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
@@ -332,12 +339,12 @@ export const BasicTemplate = ({ config }) => {
                         >
                             <div style={{ 
                                 position: 'absolute', 
-                                left: overlay.position?.x !== undefined ? overlay.position.x : '0',
+                                left: overlay.position?.x !== undefined ? overlay.position.x : '50%',
                                 top: overlay.position?.y !== undefined ? overlay.position.y : TEMPLATE_DEFAULTS.textOverlayTop, 
                                 width: overlay.position?.x !== undefined ? 'auto' : '100%',
                                 display: 'flex',
                                 justifyContent: overlay.position?.x !== undefined ? 'flex-start' : 'center',
-                                transform: `scale(${overlay.position?.scale !== undefined ? overlay.position.scale : 1}) rotate(${overlay.position?.rotation || 0}deg)`,
+                                transform: `${overlay.position?.x !== undefined || overlay.position?.y !== undefined ? 'translate(-50%, -50%) ' : ''}scale(${!isNaN(parseFloat(overlay.position?.scale)) ? parseFloat(overlay.position.scale) / 100 : 1}) rotate(${overlay.position?.rotation || 0}deg)`,
                                 padding: overlay.position?.x !== undefined ? '0' : '0 50px'
                             }}>
                                 <StaticText 
@@ -346,6 +353,18 @@ export const BasicTemplate = ({ config }) => {
                                     fontSize={TEMPLATE_DEFAULTS.textOverlaySize}
                                 />
                             </div>
+                        </Sequence>
+                    );
+                }
+
+                if (overlay.type === 'MotionGraphic') {
+                    return (
+                        <Sequence key={`overlay-${index}`} from={startFrame} durationInFrames={durationFrames}>
+                            <DynamicGraphicRenderer
+                                code={overlay.props.code}
+                                durationInFrames={durationFrames}
+                                position={overlay.position}
+                            />
                         </Sequence>
                     );
                 }

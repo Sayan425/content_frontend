@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { AbsoluteFill, Video, Audio, interpolate, useCurrentFrame, useVideoConfig, Img, Sequence } from 'remotion';
+import { DynamicGraphicRenderer } from '../motion_graphics/DynamicGraphicRenderer';
 import { Subtitles } from '../Subtitles';
 import { StaticText } from '../motion_graphics/StaticText';
 import { resolveAssetUrl } from '../../utils/assetResolver';
@@ -51,7 +52,8 @@ const ImageOverlayInternal = ({ src, startFrame, durationInFrames, index, positi
 
     const opacity = interpolate(relativeFrame, [0, 15, durationInFrames - 15, durationInFrames], [0, 1, 1, 0]);
 
-    const finalScale = baseScale * (position?.scale !== undefined ? position.scale : 1);
+    const parsedScale = parseFloat(position?.scale);
+    const finalScale = baseScale * (!isNaN(parsedScale) ? parsedScale / 100 : 1);
     const finalRotation = position?.rotation !== undefined ? position.rotation : 0;
 
     return (
@@ -129,20 +131,44 @@ export const TransparentTemplate = ({ config }) => {
             )}
 
             {config.overlays && config.overlays.map((overlay, index) => {
-                if (overlay.type !== 'Text') return null;
                 const startFrame = overlay.startInSeconds * fps;
                 const durationFrames = (overlay.durationInSeconds || 5) * fps;
-                return (
-                    <Sequence key={`text-${index}`} from={startFrame} durationInFrames={durationFrames}>
-                        <div style={{ position: 'absolute', top: TEMPLATE_DEFAULTS.textOverlayTop, width: '100%', display: 'flex', justifyContent: 'center', padding: '0 50px' }}>
-                            <StaticText 
-                                text={overlay.props.text} 
-                                styleVariation={config.textOverlayStyle || TEMPLATE_DEFAULTS.textOverlayStyle}
-                                fontSize={TEMPLATE_DEFAULTS.textOverlaySize}
+                if (overlay.type === 'Text') {
+                    return (
+                        <Sequence key={`text-${index}`} from={startFrame} durationInFrames={durationFrames}>
+                            <div style={{ 
+                                    position: 'absolute', 
+                                    left: overlay.position?.x !== undefined ? overlay.position.x : '50%',
+                                    top: overlay.position?.y !== undefined ? overlay.position.y : TEMPLATE_DEFAULTS.textOverlayTop, 
+                                    width: overlay.position?.x !== undefined ? 'auto' : '100%',
+                                    display: 'flex',
+                                    justifyContent: overlay.position?.x !== undefined ? 'flex-start' : 'center',
+                                    transform: `${overlay.position?.x !== undefined || overlay.position?.y !== undefined ? 'translate(-50%, -50%) ' : ''}scale(${!isNaN(parseFloat(overlay.position?.scale)) ? parseFloat(overlay.position.scale) / 100 : 1}) rotate(${overlay.position?.rotation || 0}deg)`,
+                                    padding: overlay.position?.x !== undefined ? '0' : '0 50px'
+                                }}>
+                                <StaticText 
+                                    text={overlay.props.text} 
+                                    styleVariation={config.textOverlayStyle || TEMPLATE_DEFAULTS.textOverlayStyle}
+                                    fontSize={TEMPLATE_DEFAULTS.textOverlaySize}
+                                />
+                            </div>
+                        </Sequence>
+                    );
+                }
+
+                if (overlay.type === 'MotionGraphic') {
+                    return (
+                        <Sequence key={`overlay-${index}`} from={startFrame} durationInFrames={durationFrames}>
+                            <DynamicGraphicRenderer
+                                code={overlay.props.code}
+                                durationInFrames={durationFrames}
+                                position={overlay.position}
                             />
-                        </div>
-                    </Sequence>
-                );
+                        </Sequence>
+                    );
+                }
+
+                return null;
             })}
         </AbsoluteFill>
     );

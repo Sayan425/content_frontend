@@ -53,6 +53,42 @@ export function PhoneMockup({ config, setConfig, editId }) {
         }
       }
 
+      if (!manifestData.overlays) {
+        manifestData.overlays = [];
+      }
+      
+      const hasMotionGraphic = manifestData.overlays.some(o => o.type === 'MotionGraphic');
+      if (!hasMotionGraphic) {
+        manifestData.overlays.push({
+          type: 'MotionGraphic',
+          startInSeconds: 1,
+          durationInSeconds: 10,
+          position: { x: 50, y: 50, scale: 100, rotation: 0 },
+          props: {
+            prompt: 'A glowing AI text that scales up with a spring animation and bounces up and down smoothly.',
+            code: `
+              const scale = spring({
+                fps,
+                frame,
+                config: { damping: 10, stiffness: 100 }
+              });
+              const yOffset = Math.sin(frame / 10) * 50;
+              return (
+                <div style={{
+                  color: '#00ffff',
+                  fontSize: '120px',
+                  fontWeight: 'bold',
+                  textShadow: '0 0 40px rgba(0, 255, 255, 0.8)',
+                  transform: \`scale(\${scale}) translateY(\${yOffset}px)\`
+                }}>
+                  AI
+                </div>
+              );
+            `
+          }
+        });
+      }
+
       setConfig(manifestData);
       setLoading(false);
       

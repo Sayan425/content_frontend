@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { generateMotionGraphicCode } from '../utils/groqClient';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabase';
 
@@ -33,20 +34,23 @@ const TextInput = ({ label, value, onChange, placeholder }) => (
   </div>
 );
 
-const NumberInput = ({ label, value, onChange, min, max, step }) => (
-  <div className="flex flex-col gap-2 mb-4">
-    <label className="text-sm font-medium text-on-surface-variant">{label}</label>
-    <input
-      type="number"
-      min={min}
-      max={max}
-      step={step}
-      value={value !== undefined ? value : ''}
-      onChange={e => onChange(parseFloat(e.target.value))}
-      className="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-    />
-  </div>
-);
+const NumberInput = ({ label, value, onChange, min, max, step }) => {
+  const displayValue = typeof value === 'number' ? parseFloat(value.toFixed(2)) : (value !== undefined ? value : '');
+  return (
+    <div className="flex flex-col gap-2 mb-4">
+      <label className="text-sm font-medium text-on-surface-variant">{label}</label>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={displayValue}
+        onChange={e => onChange(parseFloat(e.target.value))}
+        className="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+      />
+    </div>
+  );
+};
 
 const RangeInput = ({ label, value, onChange, min, max, step }) => (
   <div className="flex flex-col gap-2 mb-4">
@@ -157,10 +161,14 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                     onChange={handleSelectOverlay}
                     options={[
                         { value: '', label: 'Select an overlay...' },
-                        ...overlays.map((o, i) => ({
-                            value: i.toString(),
-                            label: `${o.type} (${o.startInSeconds}s - ${o.startInSeconds + o.durationInSeconds}s)`
-                        }))
+                        ...overlays.map((o, i) => {
+                            const start = typeof o.startInSeconds === 'number' ? o.startInSeconds : 0;
+                            const duration = typeof o.durationInSeconds === 'number' ? o.durationInSeconds : 0;
+                            return {
+                                value: i.toString(),
+                                label: `${o.type} (${parseFloat(start.toFixed(2))}s - ${parseFloat((start + duration).toFixed(2))}s)`
+                            };
+                        })
                     ]}
                 />
             </section>
@@ -181,6 +189,36 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     onChange={v => updateOverlayProp('text', v)}
                                     placeholder="Enter text..."
                                 />
+                            </>
+                        ) : selectedOverlay.type === 'MotionGraphic' ? (
+                            <>
+                                <h4 className="text-on-surface font-semibold mb-4 text-sm flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-[18px]">smart_toy</span>
+                                    AI Motion Graphic
+                                </h4>
+                                <div className="flex flex-col gap-3">
+                                    <textarea
+                                        className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-primary transition-colors min-h-[80px]"
+                                        placeholder="E.g., A bouncing glowing circle..."
+                                        value={selectedOverlay.props?.prompt || ''}
+                                        onChange={e => updateOverlay('props.prompt', e.target.value)}
+                                    />
+                                    <button 
+                                        className="w-full bg-primary text-on-primary font-bold py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                                        onClick={async () => {
+                                            try {
+                                                const currentCode = selectedOverlay.props?.code || '';
+                                                const newCode = await generateMotionGraphicCode(selectedOverlay.props?.prompt, currentCode);
+                                                updateOverlay('props.code', newCode);
+                                            } catch (err) {
+                                                alert("Failed to generate code: " + err.message);
+                                            }
+                                        }}
+                                    >
+                                        <span className="material-symbols-outlined">magic_button</span>
+                                        Generate Graphic
+                                    </button>
+                                </div>
                             </>
                         ) : (
                             <>
@@ -532,51 +570,58 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                         </div>
                     </section>
 
-                    {/* Animations & Styles */}
-                    <section className="bg-surface p-4 rounded-xl border border-white/5 shadow-sm">
-                        <h4 className="text-on-surface font-semibold mb-4 text-sm flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary text-[18px]">animation</span>
-                            Animations & Styles
-                        </h4>
-                        <SelectInput
-                            label="In Animation"
-                            value={selectedOverlay.animationIn || 'none'}
-                            onChange={v => updateOverlay('animationIn', v)}
-                            options={['none', 'fade', 'pop', 'slide_left', 'slide_right', 'slide_up', 'slide_down', 'zoom_in', 'spin_in', 'drop_down', 'blur_in', 'flip_in']}
-                        />
-                        <SelectInput
-                            label="Out Animation"
-                            value={selectedOverlay.animationOut || 'none'}
-                            onChange={v => updateOverlay('animationOut', v)}
-                            options={['none', 'fade', 'pop', 'slide_left', 'slide_right', 'slide_up', 'slide_down', 'zoom_out', 'spin_out', 'fly_away', 'blur_out', 'flip_out']}
-                        />
-                        <SelectInput
-                            label="Border Preset"
-                            value={selectedOverlay.borderPreset || 'none'}
-                            onChange={v => updateOverlay('borderPreset', v)}
-                            options={[
-                                { value: 'none', label: 'None' },
-                                { value: 'photographic', label: 'Photographic (Classic)' },
-                                { value: 'polaroid_modern', label: 'Polaroid (Modern)' },
-                                { value: 'neon', label: 'Neon Glow' },
-                                { value: 'cyberpunk', label: 'Cyberpunk Red' },
-                                { value: 'cinematic', label: 'Cinematic Minimalist' },
-                                { value: 'minimal_shadow', label: 'Minimal Drop Shadow' },
-                                { value: 'glass', label: 'Soft Glass' },
-                                { value: 'gold_frame', label: 'Luxurious Gold' },
-                                { value: 'comic_book', label: 'Comic Book Halftone' },
-                                { value: 'retro_vhs', label: 'Retro VHS Glitch' }
-                            ]}
-                        />
-                        <RangeInput
-                            label="Opacity (%)"
-                            value={selectedOverlay.opacity !== undefined ? selectedOverlay.opacity : 100}
-                            onChange={v => updateOverlay('opacity', v)}
-                            min={0}
-                            max={100}
-                            step={1}
-                        />
-                    </section>
+                    {selectedOverlay.type !== 'MotionGraphic' && (
+                        <section className="bg-surface p-4 rounded-xl border border-white/5 shadow-sm">
+                            <h4 className="text-on-surface font-semibold mb-4 text-sm flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary text-[18px]">animation</span>
+                                Animations & Styles
+                            </h4>
+                            <SelectInput
+                                label="In Animation"
+                                value={selectedOverlay.animationIn || 'none'}
+                                onChange={v => updateOverlay('animationIn', v)}
+                                options={['none', 'fade', 'pop', 'slide_left', 'slide_right', 'slide_up', 'slide_down', 'zoom_in', 'spin_in', 'drop_down', 'blur_in', 'flip_in'].map(val => ({
+                                    value: val,
+                                    label: val === 'none' ? 'None' : val.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+                                }))}
+                            />
+                            <SelectInput
+                                label="Out Animation"
+                                value={selectedOverlay.animationOut || 'none'}
+                                onChange={v => updateOverlay('animationOut', v)}
+                                options={['none', 'fade', 'pop', 'slide_left', 'slide_right', 'slide_up', 'slide_down', 'zoom_out', 'spin_out', 'fly_away', 'blur_out', 'flip_out'].map(val => ({
+                                    value: val,
+                                    label: val === 'none' ? 'None' : val.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+                                }))}
+                            />
+                            <SelectInput
+                                label="Border Preset"
+                                value={selectedOverlay.borderPreset || 'none'}
+                                onChange={v => updateOverlay('borderPreset', v)}
+                                options={[
+                                    { value: 'none', label: 'None' },
+                                    { value: 'photographic', label: 'Photographic (Classic)' },
+                                    { value: 'polaroid_modern', label: 'Polaroid (Modern)' },
+                                    { value: 'neon', label: 'Neon Glow' },
+                                    { value: 'cyberpunk', label: 'Cyberpunk Red' },
+                                    { value: 'cinematic', label: 'Cinematic Minimalist' },
+                                    { value: 'minimal_shadow', label: 'Minimal Drop Shadow' },
+                                    { value: 'glass', label: 'Soft Glass' },
+                                    { value: 'gold_frame', label: 'Luxurious Gold' },
+                                    { value: 'comic_book', label: 'Comic Book Halftone' },
+                                    { value: 'retro_vhs', label: 'Retro VHS Glitch' }
+                                ]}
+                            />
+                            <RangeInput
+                                label="Opacity (%)"
+                                value={selectedOverlay.opacity !== undefined ? selectedOverlay.opacity : 100}
+                                onChange={v => updateOverlay('opacity', v)}
+                                min={0}
+                                max={100}
+                                step={1}
+                            />
+                        </section>
+                    )}
 
                     {/* Spatial Controls */}
                     <section className="bg-surface p-4 rounded-xl border border-white/5 shadow-sm">

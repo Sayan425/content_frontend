@@ -1,5 +1,6 @@
 import React from 'react';
-import { AbsoluteFill, OffthreadVideo, Audio, interpolate, useCurrentFrame, useVideoConfig, Img } from 'remotion';
+import { AbsoluteFill, OffthreadVideo, Audio, interpolate, useCurrentFrame, useVideoConfig, Img, Sequence } from 'remotion';
+import { DynamicGraphicRenderer } from '../motion_graphics/DynamicGraphicRenderer';
 import { Subtitles } from '../Subtitles';
 import { resolveAssetUrl } from '../../utils/assetResolver';
 
@@ -76,7 +77,8 @@ const ImageOverlayInternal = ({ src, startFrame, durationInFrames, position }) =
         { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
     );
 
-    const finalScale = scale * (position?.scale !== undefined ? position.scale : 1);
+    const parsedScale = parseFloat(position?.scale);
+    const finalScale = scale * (!isNaN(parsedScale) ? parsedScale / 100 : 1);
     const finalRotation = position?.rotation !== undefined ? position.rotation : 0;
 
     return (
@@ -200,6 +202,18 @@ export const SplitScreenTemplate = ({ config }) => {
                             durationInFrames={durationFrames}
                             position={overlay.position}
                         />
+                    );
+                }
+
+                if (overlay.type === 'MotionGraphic') {
+                    return (
+                        <Sequence key={`overlay-${index}`} from={startFrame} durationInFrames={durationFrames}>
+                            <DynamicGraphicRenderer
+                                code={overlay.props.code}
+                                durationInFrames={durationFrames}
+                                position={overlay.position}
+                            />
+                        </Sequence>
                     );
                 }
 

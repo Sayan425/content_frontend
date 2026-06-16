@@ -1,5 +1,6 @@
 import React from 'react';
 import { AbsoluteFill, OffthreadVideo, Audio, interpolate, useCurrentFrame, useVideoConfig, Img, Sequence } from 'remotion';
+import { DynamicGraphicRenderer } from '../motion_graphics/DynamicGraphicRenderer';
 import { Subtitles } from '../Subtitles';
 import { StaticText } from '../motion_graphics/StaticText';
 import { resolveAssetUrl } from '../../utils/assetResolver';
@@ -104,7 +105,8 @@ const ImageOverlayInternal = ({ src, startFrame, durationInFrames, position, ani
         }
     }
 
-    const finalScale = baseScale * (position?.scale !== undefined ? position.scale : 1);
+    const parsedScale = parseFloat(position?.scale);
+    const finalScale = baseScale * (!isNaN(parsedScale) ? parsedScale / 100 : 1);
     const finalRotation = position?.rotation !== undefined ? position.rotation : 0;
     const borderStyles = getBorderStyles(borderPreset);
 
@@ -202,12 +204,12 @@ export const FullScreenOverlayTemplate = ({ config }) => {
                         >
                             <div style={{ 
                                 position: 'absolute', 
-                                left: overlay.position?.x !== undefined ? overlay.position.x : '0',
+                                left: overlay.position?.x !== undefined ? overlay.position.x : '50%',
                                 top: overlay.position?.y !== undefined ? overlay.position.y : TEMPLATE_DEFAULTS.textOverlayTop, 
                                 width: overlay.position?.x !== undefined ? 'auto' : '100%',
                                 display: 'flex',
                                 justifyContent: overlay.position?.x !== undefined ? 'flex-start' : 'center',
-                                transform: `scale(${overlay.position?.scale !== undefined ? overlay.position.scale : 1}) rotate(${overlay.position?.rotation || 0}deg)`,
+                                transform: `${overlay.position?.x !== undefined || overlay.position?.y !== undefined ? 'translate(-50%, -50%) ' : ''}scale(${!isNaN(parseFloat(overlay.position?.scale)) ? parseFloat(overlay.position.scale) / 100 : 1}) rotate(${overlay.position?.rotation || 0}deg)`,
                                 padding: overlay.position?.x !== undefined ? '0' : '0 50px'
                             }}>
                                 <StaticText 
@@ -216,6 +218,18 @@ export const FullScreenOverlayTemplate = ({ config }) => {
                                     fontSize={TEMPLATE_DEFAULTS.textOverlaySize}
                                 />
                             </div>
+                        </Sequence>
+                    );
+                }
+
+                if (overlay.type === 'MotionGraphic') {
+                    return (
+                        <Sequence key={`overlay-${index}`} from={startFrame} durationInFrames={durationFrames}>
+                            <DynamicGraphicRenderer
+                                code={overlay.props.code}
+                                durationInFrames={durationFrames}
+                                position={overlay.position}
+                            />
                         </Sequence>
                     );
                 }
