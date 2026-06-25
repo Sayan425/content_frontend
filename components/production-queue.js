@@ -98,6 +98,30 @@ export function initProductionQueue() {
         });
     }
 
+    // Handle URL parameters for direct actions
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'upload_voiceover') {
+        // We cannot programmatically click a file input asynchronously due to browser security.
+        // We create a fullscreen overlay to capture a user click.
+        const overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer';
+        overlay.innerHTML = `
+            <div class="text-center flex flex-col items-center">
+                <div class="w-24 h-24 rounded-full bg-[#4cd7f6]/20 flex items-center justify-center mb-6 animate-pulse">
+                    <span class="material-symbols-outlined text-[48px] text-[#4cd7f6]">mic_external_on</span>
+                </div>
+                <h2 class="text-3xl font-bold text-white mb-3">Upload Your Voiceover</h2>
+                <p class="text-white/70 text-lg">Click anywhere to select your audio file</p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        
+        overlay.addEventListener('click', () => {
+            if (customVoiceoverInput) customVoiceoverInput.click();
+            overlay.remove();
+        });
+    }
+
     const modalTransparentWarning = document.getElementById('modal-transparent-warning');
     const btnCloseTransparentWarning = document.getElementById('btn-close-transparent-warning');
 

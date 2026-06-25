@@ -89,6 +89,14 @@ export function initScriptRoom() {
         btnCreateScratch.addEventListener('click', openTopicModal);
     }
 
+    // Handle URL parameters for direct actions
+    const actionUrlParams = new URLSearchParams(window.location.search);
+    if (actionUrlParams.get('action') === 'start_scratch') {
+        setTimeout(() => {
+            if (btnCreateScratch) btnCreateScratch.click();
+        }, 500);
+    }
+
     if (closeTopicModalBtn) {
         closeTopicModalBtn.addEventListener('click', closeTopicModal);
     }

@@ -148,6 +148,61 @@ export async function loadSidebar(containerId = 'sidebar-container') {
         }
     });
 
+    // 7.5 Create New Video Modal Logic
+    const btnNewVideo = document.getElementById('btn-new-video');
+    const createVideoModal = document.getElementById('create-video-modal');
+    const closeCreateVideoBtn = document.getElementById('close-create-video');
+    const createVideoModalContent = document.getElementById('create-video-modal-content');
+
+    if (btnNewVideo && createVideoModal) {
+        const openCreateVideoModal = () => {
+            createVideoModal.classList.remove('hidden');
+            createVideoModal.classList.add('flex');
+            // Trigger animation
+            void createVideoModal.offsetWidth;
+            createVideoModal.classList.remove('opacity-0');
+            createVideoModalContent?.classList.remove('scale-95');
+        };
+
+        const closeCreateVideoModal = () => {
+            createVideoModal.classList.add('opacity-0');
+            createVideoModalContent?.classList.add('scale-95');
+            setTimeout(() => {
+                createVideoModal.classList.add('hidden');
+                createVideoModal.classList.remove('flex');
+            }, 300);
+        };
+
+        btnNewVideo.addEventListener('click', openCreateVideoModal);
+        
+        if (closeCreateVideoBtn) {
+            closeCreateVideoBtn.addEventListener('click', closeCreateVideoModal);
+        }
+
+        // Close on backdrop click
+        createVideoModal.addEventListener('click', (e) => {
+            if (e.target === createVideoModal) {
+                closeCreateVideoModal();
+            }
+        });
+
+        // 7.6 Create Video Option Routing
+        const btnCreateFromText = document.getElementById('btn-create-from-text');
+        const btnCreateFromVoice = document.getElementById('btn-create-from-voice');
+        
+        if (btnCreateFromText) {
+            btnCreateFromText.addEventListener('click', () => {
+                window.location.href = '/script-room?action=start_scratch';
+            });
+        }
+        
+        if (btnCreateFromVoice) {
+            btnCreateFromVoice.addEventListener('click', () => {
+                window.location.href = '/avatar-studio?action=upload_voiceover';
+            });
+        }
+    }
+
     // 8. Programmatically update link URLs to use new routing: /tool-name/[content_id]
     // Since we don't always have a content_id, we will link to /tool-name to open the tool generically.
     const currentAvatarId = localStorage.getItem('activeAvatarId');
