@@ -81,7 +81,7 @@ export function OverlayManualControls({ selectedOverlayId, overlays, setConfig, 
         const { data: eqData } = await supabase
             .from('edit_queue')
             .select('manifest')
-            .eq('edit_id', editId)
+            .eq('content_id', editId)
             .single();
 
         if (eqData && eqData.manifest) {
@@ -101,7 +101,7 @@ export function OverlayManualControls({ selectedOverlayId, overlays, setConfig, 
                     await supabase
                         .from('edit_queue')
                         .update({ manifest: manifest })
-                        .eq('edit_id', editId);
+                        .eq('content_id', editId);
                 }
             }
         }

@@ -1,4 +1,13 @@
 <style>
+/* ContentEditable Placeholder Trick */
+#script-output-textarea:empty::before {
+    content: attr(data-placeholder);
+    color: rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    white-space: pre-wrap;
+    display: block;
+}
+
 /* Glassmorphism Utilities */
 .glass-panel {
     background-color: rgba(19, 19, 19, 0.7); /* surface color with opacity */
@@ -240,8 +249,8 @@ void main() {
             
             <!-- Area for the Board (No longer scrollable internally) -->
             <div class="relative z-10 flex-1 w-full p-8 md:p-10">
-                <!-- Cards Container (Masonry Grid) -->
-                <div id="saved-ideas-board" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-10 pb-10">
+                <!-- Cards Container (Standard Grid) -->
+                <div id="saved-ideas-board" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 pb-10">
                     <!-- Loading state -->
                     <div class="w-full flex flex-col items-center justify-center text-on-surface-variant py-20" style="column-span: all;">
                         <span class="material-symbols-outlined animate-spin mb-4 text-[40px] text-primary/50">autorenew</span> 
@@ -296,28 +305,28 @@ void main() {
             </button>
         </div>
         
-        <div id="generator-progress-header" class="mb-4 flex flex-col gap-1 text-sm">
-            <div>
-                <span class="text-white/50">Topic: </span>
-                <span id="takes-topic-display" class="font-bold font-headline-sm text-primary"></span>
+        <div id="generator-progress-header" class="mb-4 flex flex-col gap-1 text-sm w-full overflow-hidden">
+            <div class="flex flex-row items-start gap-2 w-full">
+                <span class="text-white/50 shrink-0">Topic: </span>
+                <span id="takes-topic-display" class="font-bold font-headline-sm text-primary truncate min-w-0"></span>
             </div>
-            <div id="structures-take-display-container" class="hidden">
-                <span class="text-white/50">Take: </span>
-                <span id="structures-take-display" class="font-bold font-headline-sm text-secondary"></span>
+            <div id="structures-take-display-container" class="hidden flex flex-row items-start gap-2 w-full">
+                <span class="text-white/50 shrink-0">Take: </span>
+                <span id="structures-take-display" class="font-bold font-headline-sm text-secondary truncate min-w-0"></span>
             </div>
-            <div id="hooks-structure-display-container" class="hidden">
-                <span class="text-white/50">Format: </span>
-                <span id="hooks-structure-display" class="font-bold font-headline-sm text-white"></span>
+            <div id="hooks-structure-display-container" class="hidden flex flex-row items-start gap-2 w-full">
+                <span class="text-white/50 shrink-0">Format: </span>
+                <span id="hooks-structure-display" class="font-bold font-headline-sm text-[#ffb2b7] truncate min-w-0"></span>
             </div>
             <!-- Persona Step Hook Display -->
-            <div id="persona-hook-display-container" class="hidden">
-                <span class="text-white/50">Hook: </span>
-                <span id="persona-hook-display" class="font-bold font-headline-sm text-white italic"></span>
+            <div id="persona-hook-display-container" class="hidden flex flex-row items-start gap-2 w-full">
+                <span class="text-white/50 shrink-0">Hook: </span>
+                <div id="persona-hook-display" class="font-bold font-headline-sm text-[#00f2fe] italic cursor-pointer truncate transition-all duration-300 min-w-0" title="Click to expand/collapse"></div>
             </div>
             <!-- Script Step Persona Display -->
-            <div id="script-persona-display-container" class="hidden">
-                <span class="text-white/50">Persona: </span>
-                <span id="script-persona-display" class="font-bold font-headline-sm text-white"></span>
+            <div id="script-persona-display-container" class="hidden flex flex-row items-start gap-2 w-full">
+                <span class="text-white/50 shrink-0">Persona: </span>
+                <span id="script-persona-display" class="font-bold font-headline-sm text-[#E7E9EA] truncate min-w-0"></span>
             </div>
         </div>
 
@@ -381,14 +390,14 @@ void main() {
                     Input Call-To-Action <span class="text-white/40 text-xs font-normal ml-2">(Optional)</span>
                 </h4>
                 <div class="flex flex-col gap-3">
-                    <input type="text" id="custom-cta-input" class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-primary/50 focus:outline-none transition-colors placeholder:text-white/30" placeholder="e.g. Follow for more content like this..." />
+                    <input type="text" id="custom-cta-input" maxlength="300" class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-primary/50 focus:outline-none transition-colors placeholder:text-white/30" placeholder="e.g. Follow for more content like this..." />
                 </div>
             </div>
         </div>
 
         <!-- Custom Input State -->
         <div id="takes-custom-state" class="hidden py-4">
-            <textarea id="takes-custom-input" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white focus:border-primary/50 focus:outline-none transition-colors placeholder:text-white/30 h-[120px] resize-none" placeholder="Write your own interesting take..."></textarea>
+            <textarea id="takes-custom-input" maxlength="1000" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white focus:border-primary/50 focus:outline-none transition-colors placeholder:text-white/30 h-[120px] resize-none" placeholder="Write your own interesting take..."></textarea>
         </div>
 
         <!-- Script Loading State -->
@@ -404,7 +413,7 @@ void main() {
             </div>
             
             <div class="relative w-full">
-                <div id="script-output-textarea" contenteditable="true" class="w-full bg-black/40 border border-white/10 rounded-xl p-5 pr-14 text-white/90 text-[15px] leading-relaxed overflow-y-auto custom-scrollbar h-[350px] whitespace-pre-wrap font-body-md shadow-inner focus:border-primary/50 focus:outline-none transition-all cursor-text"></div>
+                <div id="script-output-textarea" contenteditable="true" data-placeholder="Write or paste your custom script here.&#10;&#10;Make sure the script is compatible with text-to-speech. For the TTS model, please ensure:&#10;- The script contains no spelling errors.&#10;- Use proper punctuation for emphasis.&#10;- Ensure the script contains no numbers or abbreviations. Spell them out, for example &quot;one&quot; instead of 1, for the TTS model." style="color: #ffffff !important;" class="w-full bg-black/40 border border-white/10 rounded-xl p-5 pr-14 text-white text-[15px] leading-relaxed overflow-y-auto custom-scrollbar h-[350px] whitespace-pre-wrap font-body-md shadow-inner focus:border-primary/50 focus:outline-none transition-all cursor-text"></div>
                 <button id="btn-copy-script" class="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors flex items-center justify-center backdrop-blur-sm" title="Copy to Clipboard">
                     <span class="material-symbols-outlined text-[16px]">content_copy</span>
                 </button>
@@ -419,14 +428,71 @@ void main() {
                     <span class="material-symbols-outlined text-[16px]">refresh</span>
                     Regenerate
                 </button>
-                <button id="btn-write-custom" class="px-4 py-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[16px]">edit</span>
-                    Write your own
-                </button>
             </div>
             <button id="btn-confirm-selection" class="px-6 py-2 rounded-lg bg-primary hover:bg-primary-hover text-on-primary font-bold text-sm transition-colors shadow-[0_0_15px_rgba(255,178,183,0.3)] disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                Continue
+                Write Your Own
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Create New Script Topic Modal -->
+<div id="modal-create-script-topic" class="fixed inset-0 z-[80] hidden bg-black/80 backdrop-blur-md flex items-center justify-center opacity-0 transition-opacity duration-300">
+    <div class="glass-panel p-6 rounded-[24px] w-full max-w-[480px] border border-white/10 shadow-2xl relative transform scale-95 transition-transform duration-300">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="font-headline-sm text-white font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">edit_document</span>
+                <span>Create New Script</span>
+            </h3>
+            <button id="close-topic-modal" class="text-on-surface-variant hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-full p-1.5 flex items-center justify-center" title="Close">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div>
+                <label for="new-script-topic" class="block text-xs font-mono-label text-white/50 uppercase tracking-widest mb-2">What topic do you want to create a video on?</label>
+                <textarea id="new-script-topic" maxlength="500" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white focus:border-primary/50 focus:outline-none transition-colors placeholder:text-white/30 h-[100px] resize-none" placeholder="e.g. 3 hidden habits that are secretly ruining your sleep quality..."></textarea>
+            </div>
+            
+            <div class="flex justify-end gap-3 pt-2">
+                <button id="btn-cancel-topic" class="px-5 py-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Write Manually
+                </button>
+                <button id="btn-submit-topic" class="px-6 py-2 rounded-lg bg-primary hover:bg-primary/80 text-on-primary font-bold text-sm transition-colors shadow-[0_0_15px_rgba(208,188,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Write with AI
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Saved Scripts List Modal -->
+<div id="modal-saved-scripts" class="fixed inset-0 z-[80] hidden bg-black/80 backdrop-blur-md flex items-center justify-center opacity-0 transition-opacity duration-300">
+    <div class="glass-panel p-6 rounded-[24px] w-full max-w-[650px] max-h-[90vh] flex flex-col border border-white/10 shadow-2xl relative transform scale-95 transition-transform duration-300">
+        <div class="flex justify-between items-center mb-6 shrink-0">
+            <h3 class="font-headline-sm text-white font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary">folder_open</span>
+                <span>Saved Scripts</span>
+            </h3>
+            <button id="close-saved-scripts-modal" class="text-on-surface-variant hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-full p-1.5 flex items-center justify-center" title="Close">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+        
+        <!-- Search bar for filtering saved scripts by topic/persona -->
+        <div class="mb-4 relative shrink-0">
+            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-[18px]">search</span>
+            <input type="text" id="search-saved-scripts" class="w-full bg-black/40 border border-white/10 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-primary/50 focus:outline-none transition-colors" placeholder="Search scripts by topic or persona..." />
+        </div>
+
+        <!-- Scripts List container -->
+        <div id="saved-scripts-list" class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4 min-h-[300px]">
+            <!-- Loading state / items injected here -->
+            <div class="flex flex-col items-center justify-center py-20">
+                <span class="material-symbols-outlined animate-spin text-white/50 text-[32px] mb-2">autorenew</span>
+                <span class="text-white/50 text-sm">Loading scripts...</span>
+            </div>
         </div>
     </div>
 </div>

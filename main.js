@@ -134,13 +134,26 @@ signupForm.addEventListener('submit', async (e) => {
     return;
   }
 
+  const selectedRole = document.querySelector('input[name="signup-role"]:checked')?.value || 'creator';
+
   const originalText = btnSignupSubmit.textContent;
   btnSignupSubmit.textContent = 'Creating Account...';
   btnSignupSubmit.disabled = true;
 
   try {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        data: { role: selectedRole }
+      }
+    });
     if (error) throw error;
+    
+    if (data?.user) {
+      await supabase.from('users').update({ role: selectedRole }).eq('user_id', data.user.id);
+    }
+
     showToast('Sign up successful! Please check your email.', 'success');
     showView(viewLogin);
     signupForm.reset();

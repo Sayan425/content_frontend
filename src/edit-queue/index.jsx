@@ -1,17 +1,23 @@
 import React, { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { EditQueueApp } from './EditQueueApp';
-import { loadSidebar } from '../../components/sidebar.js';
 
-function Root() {
-  useEffect(() => {
-    // Load the vanilla JS sidebar into the sidebar-container
-    loadSidebar('sidebar-container');
-  }, []);
+let currentRoot = null;
 
-  return <EditQueueApp />;
+export function mountEditQueue(containerId = 'react-root') {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (currentRoot) {
+    currentRoot.unmount();
+  }
+
+  currentRoot = createRoot(container);
+  currentRoot.render(<EditQueueApp />);
 }
 
-const container = document.getElementById('react-root');
-const root = createRoot(container);
-root.render(<Root />);
+// Support for standalone loading if react-root exists and we're not using the mount function directly
+if (document.getElementById('react-root') && !window.__EDIT_QUEUE_MOUNTED__) {
+  window.__EDIT_QUEUE_MOUNTED__ = true;
+  mountEditQueue('react-root');
+}

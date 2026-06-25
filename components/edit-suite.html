@@ -1,0 +1,113 @@
+<style>
+/* Glassmorphism Utilities */
+.glass-panel {
+    background-color: rgba(19, 19, 19, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
+}
+
+.glass-panel-hover:hover {
+    background-color: rgba(19, 19, 19, 0.85);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+</style>
+
+<!-- STITCH_SHADER_START:ANIMATION_23 class="fixed inset-0 w-full h-full -z-10" -->
+<div class="fixed inset-0 w-full h-full -z-10" style="display:block;">
+<canvas id="shader-canvas-ANIMATION_23" style="display:block;width:100%;height:100%" width="1280" height="1024"></canvas>
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-ANIMATION_23');
+  function syncSize() {
+    const w = canvas.clientWidth  || 1280;
+    const h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+  }
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(syncSize).observe(canvas);
+  syncSize();
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position; varying vec2 v_texCoord; void main() { v_texCoord = a_position * 0.5 + 0.5; gl_Position = vec4(a_position, 0.0, 1.0); }`;
+  const fs = `precision highp float; varying vec2 v_texCoord; uniform float u_time; uniform vec2 u_resolution; uniform vec2 u_mouse; float noise(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); } void main() { vec2 uv = v_texCoord; vec2 mouse = u_mouse / u_resolution; float t = u_time * 0.2; vec2 p = uv * 2.0 - 1.0; p.x *= u_resolution.x / u_resolution.y; float color = 0.0; color += sin(p.x * 2.0 + t + sin(p.y * 3.0 + t)); color += sin(p.y * 1.5 - t + cos(p.x * 2.5 + t)); float dist = distance(uv, mouse); float glow = smoothstep(0.4, 0.0, dist) * 0.3; vec3 col1 = vec3(0.07, 0.07, 0.07); vec3 col2 = vec3(0.54, 0.36, 0.96) * 0.15; vec3 finalCol = mix(col1, col2, color * 0.5 + 0.5); float grain = noise(uv * u_time) * 0.05; finalCol += grain; finalCol += glow * vec3(0.54, 0.36, 0.96); gl_FragColor = vec4(finalCol, 1.0); }`;
+  function cs(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+  const prog = gl.createProgram(); gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs)); gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(prog); gl.useProgram(prog);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position'); gl.enableVertexAttribArray(pos); gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time'); const uRes = gl.getUniformLocation(prog, 'u_resolution'); const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+  let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+  window.addEventListener('mousemove', (event) => { const rect = canvas.getBoundingClientRect(); if (rect.width && rect.height) { mouse.x = ((event.clientX - rect.left) / rect.width) * canvas.width; mouse.y = (1.0 - (event.clientY - rect.top) / rect.height) * canvas.height; } });
+  function render(t) { if (typeof ResizeObserver === 'undefined') syncSize(); gl.viewport(0, 0, canvas.width, canvas.height); if (uTime) gl.uniform1f(uTime, t * 0.001); if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height); if (uMouse) gl.uniform2f(uMouse, mouse.x, mouse.y); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); requestAnimationFrame(render); }
+  render(0);
+})();
+</script>
+</div>
+<!-- STITCH_SHADER_END:ANIMATION_23 -->
+
+<div class="flex-1 relative z-10 w-full max-w-7xl mx-auto space-y-12 pt-2 pb-12">
+    <!-- Hero Section -->
+    <header class="mb-8">
+        <h2 class="text-primary font-mono-label text-xs uppercase tracking-widest opacity-80 font-semibold flex items-center gap-2">
+            <span class="material-symbols-outlined text-[14px]">movie_edit</span>
+            Edit Suite <span class="text-white/30 text-xs">|</span> Your AI-powered editor
+        </h2>
+    </header>
+
+    <div class="flex flex-col gap-10 relative w-full">
+        
+        <!-- Section 1: Videos Awaiting Editing -->
+        <section class="glass-panel rounded-xl p-6 relative overflow-hidden shadow-xl border border-white/10 w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-headline-sm text-lg text-white flex items-center gap-2 font-bold">
+                    <span class="material-symbols-outlined text-secondary text-[20px]">movie_edit</span>
+                    Videos Awaiting Editing
+                </h3>
+            </div>
+            
+            <div id="awaiting-editing-container" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar w-full min-h-[160px]">
+                <!-- Loading State -->
+                <div class="flex flex-col items-center justify-center w-full text-white/50 py-8">
+                    <span class="material-symbols-outlined animate-spin text-[32px] mb-2">autorenew</span>
+                    <span class="text-sm">Fetching videos...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Completed Videos -->
+        <section class="glass-panel rounded-xl p-6 relative overflow-hidden shadow-xl border border-white/10 w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-headline-sm text-lg text-white flex items-center gap-2 font-bold">
+                    <span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+                    Completed Videos
+                </h3>
+            </div>
+            
+            <div id="completed-videos-container" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar w-full min-h-[160px]">
+                <!-- Loading State -->
+                <div class="flex flex-col items-center justify-center w-full text-white/50 py-8">
+                    <span class="material-symbols-outlined animate-spin text-[32px] mb-2">autorenew</span>
+                    <span class="text-sm">Fetching videos...</span>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>

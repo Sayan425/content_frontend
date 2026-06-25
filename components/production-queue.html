@@ -1,0 +1,506 @@
+<style>
+/* Glassmorphism Utilities */
+.glass-panel {
+    background-color: rgba(19, 19, 19, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
+}
+
+.glass-panel-hover:hover {
+    background-color: rgba(19, 19, 19, 0.85);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Sci-Fi Glows */
+.primary-glow {
+    box-shadow: 0 0 15px rgba(208, 188, 255, 0.3);
+}
+.secondary-glow:hover {
+    box-shadow: 0 0 10px rgba(76, 215, 246, 0.3);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Premium Checkboxes */
+.premium-checkbox-wrapper input:checked ~ .checkbox-card {
+    background-color: rgba(109, 59, 215, 0.2);
+    border-color: #6d3bd7;
+    box-shadow: 0 0 15px rgba(109, 59, 215, 0.2);
+}
+.premium-checkbox-wrapper input:checked ~ .checkbox-card .checkbox-box {
+    background-color: #6d3bd7;
+    border-color: #6d3bd7;
+}
+.premium-checkbox-wrapper input:checked ~ .checkbox-card .checkbox-icon {
+    opacity: 1;
+    transform: scale(1);
+}
+.premium-checkbox-wrapper input:checked ~ .checkbox-card .checkbox-text {
+    color: #ffffff;
+}
+</style>
+
+<!-- STITCH_SHADER_START:ANIMATION_23 class="fixed inset-0 w-full h-full -z-10" -->
+<div class="fixed inset-0 w-full h-full -z-10" style="display:block;">
+<canvas id="shader-canvas-ANIMATION_23" style="display:block;width:100%;height:100%" width="1280" height="1024"></canvas>
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-ANIMATION_23');
+  function syncSize() {
+    const w = canvas.clientWidth  || 1280;
+    const h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+  }
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(syncSize).observe(canvas);
+  syncSize();
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position; varying vec2 v_texCoord; void main() { v_texCoord = a_position * 0.5 + 0.5; gl_Position = vec4(a_position, 0.0, 1.0); }`;
+  const fs = `precision highp float; varying vec2 v_texCoord; uniform float u_time; uniform vec2 u_resolution; uniform vec2 u_mouse; float noise(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); } void main() { vec2 uv = v_texCoord; vec2 mouse = u_mouse / u_resolution; float t = u_time * 0.2; vec2 p = uv * 2.0 - 1.0; p.x *= u_resolution.x / u_resolution.y; float color = 0.0; color += sin(p.x * 2.0 + t + sin(p.y * 3.0 + t)); color += sin(p.y * 1.5 - t + cos(p.x * 2.5 + t)); float dist = distance(uv, mouse); float glow = smoothstep(0.4, 0.0, dist) * 0.3; vec3 col1 = vec3(0.07, 0.07, 0.07); vec3 col2 = vec3(0.54, 0.36, 0.96) * 0.15; vec3 finalCol = mix(col1, col2, color * 0.5 + 0.5); float grain = noise(uv * u_time) * 0.05; finalCol += grain; finalCol += glow * vec3(0.54, 0.36, 0.96); gl_FragColor = vec4(finalCol, 1.0); }`;
+  function cs(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+  const prog = gl.createProgram(); gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs)); gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(prog); gl.useProgram(prog);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position'); gl.enableVertexAttribArray(pos); gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time'); const uRes = gl.getUniformLocation(prog, 'u_resolution'); const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+  let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+  window.addEventListener('mousemove', (event) => { const rect = canvas.getBoundingClientRect(); if (rect.width && rect.height) { mouse.x = ((event.clientX - rect.left) / rect.width) * canvas.width; mouse.y = (1.0 - (event.clientY - rect.top) / rect.height) * canvas.height; } });
+  function render(t) { if (typeof ResizeObserver === 'undefined') syncSize(); gl.viewport(0, 0, canvas.width, canvas.height); if (uTime) gl.uniform1f(uTime, t * 0.001); if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height); if (uMouse) gl.uniform2f(uMouse, mouse.x, mouse.y); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); requestAnimationFrame(render); }
+  render(0);
+})();
+</script>
+</div>
+<!-- STITCH_SHADER_END:ANIMATION_23 -->
+
+<div class="flex-1 relative z-10 w-full max-w-7xl mx-auto space-y-8 pt-2 pb-12">
+    <!-- Hero Section -->
+    <header class="mb-8">
+        <h2 class="text-primary font-mono-label text-xs uppercase tracking-widest opacity-80 font-semibold flex items-center gap-2">
+            <span class="material-symbols-outlined text-[14px]">face</span>
+            Avatar Studio <span class="text-white/30 text-xs">|</span> Your AI Video Production Lab
+        </h2>
+    </header>
+
+    <div class="flex flex-col gap-8 relative w-full">
+        
+        <!-- Main Configuration Column (2/3 width) -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Section: Avatar Look -->
+            <section class="glass-panel rounded-xl p-6 relative overflow-hidden shadow-xl border border-white/10 w-full">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-headline-sm text-lg text-white flex items-center gap-2 font-bold">
+                        <span class="material-symbols-outlined text-primary text-[20px]">face</span>
+                        Select Avatar Look
+                    </h3>
+                </div>
+                
+                <!-- Horizontal scrollable container for avatars -->
+                <div id="avatar-list-container" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
+                    <!-- Loading State -->
+                    <div class="flex items-center gap-2 text-on-surface-variant w-full justify-center py-6">
+                        <span class="material-symbols-outlined animate-spin">autorenew</span>
+                        <span class="text-sm">Loading avatars...</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Script Selection -->
+            <section class="glass-panel rounded-xl p-6 relative overflow-hidden shadow-xl border border-white/10 w-full">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-headline-sm text-lg text-white flex items-center gap-2 font-bold">
+                        <span class="material-symbols-outlined text-secondary text-[20px]">description</span>
+                        Provide Script
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <!-- Hidden file input for custom voiceover -->
+                        <input type="file" id="custom-voiceover-input" accept=".mp3,audio/mp3,audio/mpeg" class="hidden" />
+                        
+                        <!-- Upload Voiceover Label/Button -->
+                        <label for="custom-voiceover-input" class="text-xs font-medium text-secondary hover:text-white transition-colors flex items-center gap-1 bg-secondary/10 hover:bg-white/10 border border-secondary/30 px-3 py-1.5 rounded-md cursor-pointer group" title="Upload Custom Voiceover (.mp3, Max 10MB)">
+                            <span class="material-symbols-outlined text-[16px] group-hover:-translate-y-0.5 transition-transform">mic</span> 
+                            <span id="custom-voiceover-filename" class="max-w-[120px] truncate">Upload Voiceover</span>
+                            <!-- Clear button (hidden by default) -->
+                            <button type="button" id="btn-clear-voiceover" class="hidden text-white/40 hover:text-error transition-colors p-0.5 rounded-full hover:bg-white/5 shrink-0 ml-1" title="Remove Audio">
+                                <span class="material-symbols-outlined text-[14px]">close</span>
+                            </button>
+                        </label>
+
+                        <!-- Write Custom Script Button -->
+                        <a href="/script-room?mode=custom" class="text-xs font-medium text-primary hover:text-white transition-colors flex items-center gap-1 bg-inverse-primary/10 hover:bg-white/10 border border-inverse-primary/30 px-3 py-1.5 rounded-md">
+                            <span class="material-symbols-outlined text-[16px]">edit_note</span> Write a custom script
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-on-surface-variant flex justify-between items-end">
+                            <span>Choose Script</span>
+                        </label>
+                        <div class="relative group">
+                            <select id="select-saved-script" class="bg-surface-container-high border border-white/10 text-white font-medium rounded-xl px-4 py-3.5 focus:border-primary focus:ring-2 focus:ring-primary/50 hover:border-white/30 outline-none transition-all duration-300 w-full cursor-pointer text-sm shadow-inner relative z-10">
+                                <option value="" selected>Select an approved script...</option>
+                                <!-- Script options injected here -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4 py-2">
+                        <div class="h-px bg-white/10 flex-1"></div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-on-surface-variant flex justify-between items-center">
+                            <span id="custom-script-label">Script Preview</span>
+                        </label>
+                        <div class="relative">
+                            <textarea id="custom-script-input" readonly class="w-full bg-surface-container-high border border-white/10 rounded-xl p-4 pb-16 text-on-surface/80 outline-none transition-all placeholder:text-white/20 h-[180px] resize-none text-sm leading-relaxed cursor-not-allowed custom-scrollbar" placeholder="Select a script above to view its contents."></textarea>
+                            
+                            <!-- Edit Script Button (positioned bottom right inside textarea container) -->
+                            <a id="btn-edit-script-link" href="/script-room" class="absolute bottom-3 right-3 hidden text-xs font-medium text-primary hover:text-white transition-colors flex items-center gap-1 bg-inverse-primary/10 hover:bg-white/10 border border-inverse-primary/30 px-3 py-1.5 rounded-md shadow-lg z-30">
+                                <span class="material-symbols-outlined text-[16px]">edit_document</span> Edit this script inside Script Room
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Settings Column -->
+        <div class="w-full space-y-6">
+            
+            <!-- Section: Video Configurations -->
+            <section class="glass-panel rounded-xl p-6 relative overflow-hidden shadow-xl border border-white/10 flex flex-col h-full w-full">
+                <h3 class="font-headline-sm text-lg text-white flex items-center gap-2 font-bold mb-6">
+                    <span class="material-symbols-outlined text-[#ffb2b7] text-[20px]">movie_edit</span>
+                    Edit Settings
+                </h3>
+
+                <div class="flex flex-col gap-5 flex-1">
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Template -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[14px]">view_quilt</span> Template <span class="text-error ml-1">*</span>
+                            </label>
+                            <select id="setting-template" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full cursor-pointer appearance-none">
+                                <option value="BasicTemplate">Basic Full Screen</option>
+                                <option value="TransparentTemplate">Transparent Background</option>
+                                <option value="SplitScreenTemplate">Top Split-Screen</option>
+                                <option value="BRollTemplate">B-Roll Full Screen</option>
+                                <option value="StorytellingTemplate">Polaroid Storytelling</option>
+                            </select>
+                        </div>
+
+                        <!-- Subtitle Style -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[14px]">subtitles</span> Subtitle Style
+                            </label>
+                            <select id="setting-subtitle" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full cursor-pointer appearance-none">
+                                <option value="Random">Randomly select any subtitle</option>
+                                <option value="Classic">Classic</option>
+                                <option value="Highlight">Highlight</option>
+                                <option value="Glassmorphism">Glassmorphism</option>
+                                <option value="Sticker">Sticker</option>
+                                <option value="Retro">Retro</option>
+                                <option value="Bubble">Bubble</option>
+                                <option value="Cyberpunk">Cyberpunk</option>
+                                <option value="Minimalist">Minimalist</option>
+                                <option value="Press">Press</option>
+                            </select>
+                            <p class="text-[11px] text-white/40 italic mt-1">Note: You'll be able to change this in the Edit Suite.</p>
+                        </div>
+                    </div>
+
+                    <!-- Full Screen B-Roll Style -->
+                    <div class="flex flex-col gap-2">
+                        <!-- Top Bar with Toggle -->
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5 cursor-pointer" for="toggle-broll-style">
+                                <span class="material-symbols-outlined text-[14px]">movie</span> Full Screen B-Roll Style
+                            </label>
+                            
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-broll-style" class="sr-only peer" />
+                                <div class="w-9 h-5 bg-black/50 rounded-full peer peer-checked:bg-primary transition-colors border border-white/20"></div>
+                                <div class="absolute left-[2px] top-[2px] w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4 shadow-sm"></div>
+                            </label>
+                        </div>
+                        
+                        <!-- Dropdown Box (hidden when unchecked) -->
+                        <div id="broll-style-options" class="hidden transition-all duration-300">
+                            <select id="setting-editing-style" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full cursor-pointer appearance-none">
+                                <option value="BoxAnimation">Box Animation</option>
+                                <option value="Standard">Standard Jump Cuts</option>
+                                <option value="Cinematic">Cinematic Story</option>
+                                <option value="Vlog">High-Energy Vlog</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Floating Overlays (Multi-Checkbox) -->
+                    <div class="flex flex-col gap-3 mt-4">
+                        <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px]">layers</span> Floating Overlays
+                        </label>
+                        <div class="grid grid-cols-2 gap-3" id="setting-overlays">
+                            
+                            <label class="premium-checkbox-wrapper relative cursor-pointer block">
+                                <input type="checkbox" id="motion-graphics-checkbox" value="Motion Graphics Overlay" class="sr-only edit-with-checkbox" />
+                                <div class="checkbox-card flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10">
+                                    <div class="checkbox-box w-5 h-5 rounded flex items-center justify-center border border-white/30 bg-black/40 transition-colors duration-300 flex-shrink-0">
+                                        <span class="material-symbols-outlined checkbox-icon text-white text-[14px] font-bold opacity-0 scale-50 transition-all duration-300">check</span>
+                                    </div>
+                                    <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">Motion Graphics</span>
+                                </div>
+                            </label>
+                            
+                            <label class="premium-checkbox-wrapper relative cursor-pointer">
+                                <input type="checkbox" value="Images" class="sr-only edit-with-checkbox" />
+                                <div class="checkbox-card flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10">
+                                    <div class="checkbox-box w-5 h-5 rounded flex items-center justify-center border border-white/30 bg-black/40 transition-colors duration-300">
+                                        <span class="material-symbols-outlined checkbox-icon text-white text-[14px] font-bold opacity-0 scale-50 transition-all duration-300">check</span>
+                                    </div>
+                                    <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">Images</span>
+                                </div>
+                            </label>
+                            
+                            <label class="premium-checkbox-wrapper relative cursor-pointer">
+                                <input type="checkbox" value="Videos" class="sr-only edit-with-checkbox" />
+                                <div class="checkbox-card flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10">
+                                    <div class="checkbox-box w-5 h-5 rounded flex items-center justify-center border border-white/30 bg-black/40 transition-colors duration-300">
+                                        <span class="material-symbols-outlined checkbox-icon text-white text-[14px] font-bold opacity-0 scale-50 transition-all duration-300">check</span>
+                                    </div>
+                                    <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">Videos</span>
+                                </div>
+                            </label>
+                            
+                            <label class="premium-checkbox-wrapper relative cursor-pointer">
+                                <input type="checkbox" value="Text Overlays" class="sr-only edit-with-checkbox" />
+                                <div class="checkbox-card flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10">
+                                    <div class="checkbox-box w-5 h-5 rounded flex items-center justify-center border border-white/30 bg-black/40 transition-colors duration-300">
+                                        <span class="material-symbols-outlined checkbox-icon text-white text-[14px] font-bold opacity-0 scale-50 transition-all duration-300">check</span>
+                                    </div>
+                                    <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">Text Overlays</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+            
+            <!-- Detached Action Button -->
+            <button id="btn-queue-generation" class="w-full px-6 py-4 rounded-xl bg-inverse-primary text-white font-bold text-base hover:bg-primary transition-all duration-300 shadow-[0_10px_30px_rgba(109,59,215,0.4)] flex items-center justify-center gap-3 group relative overflow-hidden opacity-50 cursor-not-allowed">
+                <div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                <span class="material-symbols-outlined text-[24px] group-hover:rotate-12 transition-transform drop-shadow-md">send_time_extension</span>
+                <span class="drop-shadow-md tracking-wide">Submit to Production Line</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Look Generation Modal -->
+<div id="modal-add-look" class="fixed inset-0 z-50 hidden opacity-0 transition-opacity duration-300">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="glass-panel rounded-2xl w-full max-w-2xl flex flex-col max-h-[90vh] shadow-2xl overflow-hidden border border-white/10 relative">
+            
+            <!-- Header -->
+            <div class="flex justify-between items-center p-6 border-b border-white/10 relative overflow-hidden bg-black/20">
+                <div class="absolute inset-0 opacity-[0.15] bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,1)_1px,transparent_0)]" style="background-size: 8px 8px;"></div>
+                <div class="relative z-10">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-[24px]">face_retouching_natural</span>
+                        Generate New Avatar Look
+                    </h2>
+                    <p class="text-sm text-on-surface-variant mt-1">Fill in at least one of the fields below to create a new look.</p>
+                </div>
+                <button id="btn-close-add-look" class="relative z-10 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors">
+                    <span class="material-symbols-outlined text-white/70 text-[18px]">close</span>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
+                <!-- Camera Angle -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">videocam</span> Camera Angle
+                    </label>
+                    <input type="text" id="look-camera" maxlength="1000" class="add-look-input bg-surface-container-high border border-white/10 text-on-surface rounded-xl p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-white/20 text-sm" placeholder="e.g., Close-up shot, Low angle looking up, Over the shoulder">
+                </div>
+
+                <!-- Style / Clothes -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">styler</span> Style & Clothes
+                    </label>
+                    <input type="text" id="look-style" maxlength="1000" class="add-look-input bg-surface-container-high border border-white/10 text-on-surface rounded-xl p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-white/20 text-sm" placeholder="e.g., Sharp navy blue suit, Casual streetwear hoodie">
+                </div>
+
+                <!-- Background & Lighting -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">lightbulb</span> Background & Lighting
+                    </label>
+                    <input type="text" id="look-bg" maxlength="1000" class="add-look-input bg-surface-container-high border border-white/10 text-on-surface rounded-xl p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-white/20 text-sm" placeholder="e.g., Neon cyberpunk city at night, Soft studio lighting with a dark backdrop">
+                </div>
+
+                <!-- Props -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">category</span> Props
+                    </label>
+                    <input type="text" id="look-props" maxlength="1000" class="add-look-input bg-surface-container-high border border-white/10 text-on-surface rounded-xl p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-white/20 text-sm" placeholder="e.g., Holding a cup of coffee, Wearing sunglasses, Modern laptop on desk">
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-5 border-t border-white/10 bg-black/20 flex justify-end gap-3">
+                <button id="btn-cancel-add-look" class="px-5 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors">
+                    Cancel
+                </button>
+                <button id="btn-proceed-add-look" class="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-inverse-primary hover:bg-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(109,59,215,0.4)] disabled:shadow-none flex items-center gap-2" disabled>
+                    <span class="material-symbols-outlined text-[18px]">auto_fix_high</span> Generate Look
+                </button>
+            </div>
+
+        </div>
+
+<!-- Voiceover Intent Modal -->
+<div id="modal-voiceover-intent" class="fixed inset-0 z-[60] hidden opacity-0 transition-opacity duration-300">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="glass-panel rounded-2xl w-full max-w-md flex flex-col shadow-[0_0_40px_rgba(109,59,215,0.15)] overflow-hidden border border-white/10 relative">
+            
+            <div class="p-6 border-b border-white/10 flex justify-between items-center bg-black/20">
+                <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">mic</span>
+                    Custom Voiceover
+                </h3>
+                <button type="button" id="btn-close-voiceover-intent" class="text-white/40 hover:text-white transition-colors p-1 rounded-full hover:bg-white/5">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+
+            <div class="p-6 flex flex-col gap-5 relative z-10" id="voiceover-intent-step-1">
+                <p class="text-sm text-on-surface-variant leading-relaxed">
+                    You uploaded a custom audio file. Is this voiceover for an existing script you've generated, or is it a completely new video from scratch?
+                </p>
+                <div class="flex flex-col gap-3">
+                    <button type="button" id="btn-vo-intent-existing" class="w-full text-left p-4 rounded-xl bg-surface-container-high border border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all group flex items-start gap-3">
+                        <span class="material-symbols-outlined text-secondary mt-0.5">description</span>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold text-white group-hover:text-primary transition-colors">Yes, an existing script</span>
+                            <span class="text-xs text-white/50 mt-0.5">I will select the script from my approved scripts list.</span>
+                        </div>
+                    </button>
+                    
+                    <button type="button" id="btn-vo-intent-new" class="w-full text-left p-4 rounded-xl bg-surface-container-high border border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all group flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary mt-0.5">add_circle</span>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold text-white group-hover:text-primary transition-colors">No, it's a new video from scratch</span>
+                            <span class="text-xs text-white/50 mt-0.5">I have a brand new script for this voiceover.</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 flex flex-col gap-4 relative z-10 hidden" id="voiceover-intent-step-2">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-sm font-bold text-white flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-secondary">title</span> Video Topic</span>
+                        <span class="text-[10px] font-bold text-[#ffb2b7] bg-[#ffb2b7]/10 px-2 py-0.5 rounded-full flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">star</span> Required</span>
+                    </label>
+                    <input type="text" id="vo-new-topic" class="w-full bg-surface-container-high border border-white/10 text-on-surface rounded-xl p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-white/20 text-sm" placeholder="e.g., My custom audio project">
+                </div>
+
+                <div class="flex flex-col gap-1.5 flex-1">
+                    <label class="text-sm font-bold text-white flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-primary">edit_document</span> Script Text</span>
+                        <span class="text-[10px] font-bold text-white/50 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full flex items-center gap-1">Optional</span>
+                    </label>
+                    <textarea id="vo-new-script" class="w-full bg-surface-container-high border border-white/10 rounded-xl p-3 text-on-surface/90 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-white/20 h-[150px] resize-none text-sm leading-relaxed custom-scrollbar" placeholder="If you have a script for this voiceover, you can paste it here..."></textarea>
+                </div>
+                
+                <div class="flex justify-between items-center mt-2">
+                    <button type="button" id="btn-vo-intent-back" class="text-xs font-medium text-white/50 hover:text-white transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">arrow_back</span> Back
+                    </button>
+                    <button type="button" id="btn-vo-intent-confirm" class="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-inverse-primary hover:bg-primary transition-all shadow-[0_0_15px_rgba(109,59,215,0.4)] flex items-center justify-center">
+                        <span>Save & Continue</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 flex flex-col gap-4 relative z-10 hidden" id="voiceover-intent-step-3">
+                <p class="text-sm text-on-surface-variant leading-relaxed">
+                    Please select the script on which this voiceover has been recorded.
+                </p>
+                <div class="flex flex-col gap-1.5 flex-1 mt-2">
+                    <label class="text-sm font-bold text-white flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px] text-secondary">description</span> Approved Scripts
+                    </label>
+                    <div class="relative group">
+                        <select id="modal-select-saved-script" class="bg-surface-container-high border border-white/10 text-white font-medium rounded-xl px-4 py-3.5 focus:border-primary focus:ring-2 focus:ring-primary/50 hover:border-white/30 outline-none transition-all duration-300 w-full cursor-pointer text-sm shadow-inner relative z-10">
+                            <option value="" selected>Select an approved script...</option>
+                            <!-- Options injected here dynamically to match main dropdown -->
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center mt-6">
+                    <button type="button" id="btn-vo-intent-back-existing" class="text-xs font-medium text-white/50 hover:text-white transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">arrow_back</span> Back
+                    </button>
+                    <button type="button" id="btn-vo-intent-confirm-existing" class="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-inverse-primary hover:bg-primary transition-all shadow-[0_0_15px_rgba(109,59,215,0.4)] flex items-center justify-center">
+                        <span>Save & Continue</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Transparent Background Warning Modal -->
+<div id="modal-transparent-warning" class="fixed inset-0 z-[60] hidden opacity-0 transition-opacity duration-300">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="glass-panel rounded-2xl w-full max-w-sm flex flex-col shadow-[0_0_40px_rgba(255,0,0,0.15)] overflow-hidden border border-[#ffb2b7]/20 relative text-center">
+            <div class="p-8 flex flex-col items-center gap-4 relative z-10">
+                <div class="w-14 h-14 rounded-full bg-[#ffb2b7]/10 flex items-center justify-center mb-2">
+                    <span class="material-symbols-outlined text-[#ffb2b7] text-[32px]">warning</span>
+                </div>
+                <h3 class="text-xl font-bold text-white">Irreversible Action</h3>
+                <p class="text-sm text-on-surface-variant leading-relaxed">If you select <strong>Transparent background</strong>, you will <span class="text-[#ffb2b7]">not be able to revert</span> to other templates inside the Edit Suite.</p>
+                <button id="btn-close-transparent-warning" class="mt-4 w-full px-5 py-3 rounded-xl text-sm font-bold text-[#ffb2b7] bg-[#ffb2b7]/10 hover:bg-[#ffb2b7]/20 border border-[#ffb2b7]/30 transition-all active:scale-95">
+                    I Understand
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+    </div>
+</div>

@@ -1,8 +1,7 @@
 import { supabase } from '../supabaseClient.js';
 
 export function initIdeaLabs() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const avatarId = urlParams.get('avatar_id');
+    const avatarId = localStorage.getItem('activeAvatarId');
     
     if (!avatarId) {
         console.warn('No avatar_id found in URL. Some Idea Labs features may not work.');
@@ -241,6 +240,26 @@ export function initIdeaLabs() {
             if (link && !/^https?:\/\//i.test(link)) {
                 link = 'https://' + link;
             }
+
+            // Reject if it contains spaces (not a valid copied URL)
+            if (/\s/.test(link)) {
+                if (errorAddAccountContainer) {
+                    errorAddAccountText.textContent = "A valid profile link cannot contain spaces.";
+                    errorAddAccountContainer.classList.remove('hidden');
+                }
+                return;
+            }
+
+            // Ensure it's a parseable URL
+            try {
+                new URL(link);
+            } catch (e) {
+                if (errorAddAccountContainer) {
+                    errorAddAccountText.textContent = "Please enter a valid URL.";
+                    errorAddAccountContainer.classList.remove('hidden');
+                }
+                return;
+            }
             
             // Validate Platform and Link mismatch
             const linkLower = link.toLowerCase();
@@ -260,6 +279,19 @@ export function initIdeaLabs() {
                 }
                 return;
             }
+
+            // Validate it's a profile link, not just the root domain
+            let cleanLink = link.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/^www\./, '');
+            const linkParts = cleanLink.split('/');
+            if (linkParts.length < 2 || linkParts[1].trim() === '' || linkParts[1].startsWith('?')) {
+                // If it's something like facebook.com/ or facebook.com/?ref=share without a username path
+                if (errorAddAccountContainer) {
+                    errorAddAccountText.textContent = `Please enter a full profile URL (e.g., ${platform.toLowerCase()}.com/username), not just the main website.`;
+                    errorAddAccountContainer.classList.remove('hidden');
+                }
+                return;
+            }
+
             
             const submitBtnText = document.getElementById('add-account-text');
             const submitBtnSpinner = document.getElementById('add-account-spinner');
@@ -491,8 +523,10 @@ export function initIdeaLabs() {
             // Get current user ID
             const { data: { session } } = await supabase.auth.getSession();
             const userId = session?.user?.id;
+            const currentAvatarId = localStorage.getItem('activeAvatarId');
             
             if (!userId) throw new Error('Not authenticated');
+            if (!currentAvatarId) throw new Error('No avatar selected');
 
             const { data, error } = await supabase
                 .from('watchlist_results')
@@ -503,6 +537,7 @@ export function initIdeaLabs() {
                     )
                 `)
                 .eq('owner_user_id', userId)
+                .eq('owner_avatar_id', currentAvatarId)
                 .eq('saved_to_idea_vault', 'no')
                 .order(currentSort.field, { ascending: currentSort.ascending });
 
@@ -658,7 +693,7 @@ export function initIdeaLabs() {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const id = btn.dataset.id;
-                    const itemData = data.find(d => d.content_id === id);
+                    const itemData = filteredData.find(d => d.content_id === id);
                     if (itemData) {
                         detailTranscript.textContent = itemData.content_transcript || 'No transcript available.';
                         showModal(modalTranscript);
@@ -666,66 +701,13 @@ export function initIdeaLabs() {
                 });
             });
 
-    // Convert regular URLs to embeddable iframe URLs
-    const getEmbedUrl = (url) => {
-        if (!url) return '';
-        const urlStr = url.toLowerCase();
-        
-        if (urlStr.includes('youtube.com') || urlStr.includes('youtu.be')) {
-            let videoId = '';
-            if (urlStr.includes('youtu.be/')) {
-                videoId = url.split('youtu.be/')[1]?.split('?')[0];
-            } else if (urlStr.includes('watch?v=')) {
-                videoId = url.split('watch?v=')[1]?.split('&')[0];
-            } else if (urlStr.includes('/shorts/')) {
-                videoId = url.split('/shorts/')[1]?.split('?')[0];
-            }
-            if (videoId) return `https://www.youtube.com/embed/${videoId}`;
-        }
-        
-        if (urlStr.includes('tiktok.com')) {
-            const videoId = url.split('/video/')[1]?.split('?')[0];
-            if (videoId) return `https://www.tiktok.com/embed/v2/${videoId}`;
-        }
-        
-        if (urlStr.includes('instagram.com/p/') || urlStr.includes('instagram.com/reel/')) {
-            const path = url.split('instagram.com')[1]?.split('?')[0];
-            if (path) return `https://www.instagram.com${path}embed/`;
-        }
-        
-        if (urlStr.includes('linkedin.com')) {
-            // LinkedIn post IDs are 19 digits long
-            const match = urlStr.match(/\d{19}/);
-            if (match) {
-                return `https://www.linkedin.com/embed/feed/update/urn:li:share:${match[0]}`;
-            }
-        }
-        
-        return url;
-    };
-
             // Action Buttons
             feedBody.querySelectorAll('.btn-view-link').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const link = e.target.closest('button').dataset.link;
                     if (link && link !== 'null') {
-                        const embedUrl = getEmbedUrl(link);
-                        
-                        // Set up modal
-                        if (iframeExternalLink) iframeExternalLink.href = link;
-                        
-                        if (iframeContainer) {
-                            iframeContainer.innerHTML = `
-                                <iframe src="${embedUrl}" 
-                                        class="w-full h-full border-0 absolute inset-0 z-10 bg-black" 
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                        allowfullscreen>
-                                </iframe>
-                                <span class="material-symbols-outlined animate-spin text-white/50 text-[32px] absolute z-0">autorenew</span>
-                            `;
-                        }
-                        
-                        showModal(modalIframe);
+                        // Open in a new non-maximized window instead of iframe
+                        window.open(link, 'feedPopup', 'width=1000,height=800,left=100,top=100,scrollbars=yes,resizable=yes');
                     }
                 });
             });
@@ -737,16 +719,80 @@ export function initIdeaLabs() {
                     btnEl.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">autorenew</span>';
                     
                     const id = btnEl.dataset.id;
-                    const { error: saveErr } = await supabase
-                        .from('watchlist_results')
-                        .update({ saved_to_idea_vault: 'yes' })
-                        .eq('content_id', id);
+                    const itemData = allFeedIdeas.find(d => d.content_id === id);
+                    const topic = itemData ? itemData.content_topic : null;
+                    
+                    try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        const userId = session?.user?.id;
+
+                        // 1. Fetch avatar details for approver and settings
+                        const { data: avatar, error: avatarErr } = await supabase
+                            .from('avatar_details')
+                            .select('approver_user_id, approval_settings')
+                            .eq('avatar_id', avatarId)
+                            .single();
+
+                        if (avatarErr) throw avatarErr;
+
+                        const approverId = avatar?.approver_user_id;
+                        const approvalSettings = avatar?.approval_settings;
                         
-                    if (saveErr) {
-                        console.error("Error saving:", saveErr);
-                        btnEl.innerHTML = originalHTML;
-                    } else {
+                        // Check if this specific stage (idea) requires approval
+                        const requiresIdeaApproval = approverId && approvalSettings && String(approvalSettings.idea) === 'true';
+
+                        if (requiresIdeaApproval) {
+                            // Needs approval
+                            const { error: saveErr } = await supabase
+                                .from('watchlist_results')
+                                .update({ saved_to_idea_vault: 'pending_approval' })
+                                .eq('content_id', id);
+                            
+                            if (saveErr) throw saveErr;
+
+                            // Insert into content_pipeline for approver
+                            const { error: pipeErr } = await supabase
+                                .from('content_pipeline')
+                                .insert({
+                                    content_id: id,
+                                    owner_user_id: userId,
+                                    owner_avatar_id: avatarId,
+                                    approver_user_id: approverId,
+                                    current_stage: 'idea',
+                                    approval_status: 'pending',
+                                    topic: topic
+                                });
+                            
+                            if (pipeErr) throw pipeErr;
+                        } else {
+                            // Directly approve
+                            const { error: saveErr } = await supabase
+                                .from('watchlist_results')
+                                .update({ saved_to_idea_vault: 'yes' })
+                                .eq('content_id', id);
+                            
+                            if (saveErr) throw saveErr;
+
+                            // Insert into content_pipeline
+                            const { error: pipeErr } = await supabase
+                                .from('content_pipeline')
+                                .insert({
+                                    content_id: id,
+                                    owner_user_id: userId,
+                                    owner_avatar_id: avatarId,
+                                    approver_user_id: approverId || null,
+                                    current_stage: 'idea',
+                                    approval_status: approverId ? 'approved' : null,
+                                    topic: topic
+                                });
+                            
+                            if (pipeErr) throw pipeErr;
+                        }
+
                         loadWatchlistFeed();
+                    } catch (err) {
+                        console.error("Error saving:", err);
+                        btnEl.innerHTML = originalHTML;
                     }
                 });
             });

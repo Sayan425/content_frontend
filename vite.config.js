@@ -7,6 +7,30 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
+const htmlRewritePlugin = () => ({
+  name: 'html-rewrite',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      if (req.url.startsWith('/api') || req.url.startsWith('/src') || req.url.startsWith('/components') || req.url.startsWith('/node_modules') || req.url.startsWith('/@') || req.url.includes('.')) {
+        return next();
+      }
+
+      const match = req.url.match(/^\/([^\/?]+)\/?([^\/?]*)/);
+      if (match) {
+        const page = match[1];
+        const tools = ['idea-labs', 'script-room', 'production-queue', 'edit-queue', 'avatar-studio'];
+        
+        if (tools.includes(page) || page === 'workspace') {
+          req.url = `/workspace.html`;
+        } else if (page === 'dashboard') {
+          req.url = `/dashboard.html`;
+        }
+      }
+      next();
+    });
+  }
+});
+
 const r2ApiPlugin = () => ({
   name: 'r2-api',
   configureServer(server) {
@@ -171,7 +195,7 @@ const r2ApiPlugin = () => ({
 });
 
 export default defineConfig({
-  plugins: [react(), r2ApiPlugin()],
+  plugins: [react(), r2ApiPlugin(), htmlRewritePlugin()],
   server: {
     proxy: {
       '/r2-assets': {
@@ -191,8 +215,7 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'index.html'),
         dashboard: path.resolve(__dirname, 'dashboard.html'),
-        workspace: path.resolve(__dirname, 'workspace.html'),
-        editQueue: path.resolve(__dirname, 'edit-queue.html')
+        workspace: path.resolve(__dirname, 'workspace.html')
       }
     }
   }

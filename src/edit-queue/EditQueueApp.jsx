@@ -1,15 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { PhoneMockup } from './PhoneMockup';
 import { EditorSidebar } from './EditorSidebar';
+import { supabase } from '../../supabaseClient.js';
 
 export function EditQueueApp() {
   const [config, setConfig] = useState(null);
   const [editId, setEditId] = useState('');
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get('edit_id') || '797f7542-eefa-4289-8f30-d59c315c9dd5';
-    setEditId(id);
+    const fetchEditId = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      let id = urlParams.get('content_id');
+      
+      if (!id) {
+         // The new routing is /edit-queue/[content_id]
+         id = window.location.pathname.split('/')[2];
+      }
+      
+      if (!id) {
+         const avatarId = localStorage.getItem('activeAvatarId');
+         if (avatarId) {
+             const { data } = await supabase
+                 .from('edit_queue')
+                 .select('content_id')
+                 .eq('owner_avatar_id', avatarId)
+                 .order('created_at', { ascending: false })
+                 .limit(1)
+                 .single();
+                 
+             if (data) {
+                 id = data.content_id;
+             }
+         }
+      }
+      
+      setEditId(id || '797f7542-eefa-4289-8f30-d59c315c9dd5');
+    };
+    
+    fetchEditId();
   }, []);
 
   return (

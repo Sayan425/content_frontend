@@ -93,7 +93,7 @@ export function VideoSettingsPanel({ config, setConfig, editId }) {
         const { error } = await supabase
           .from('edit_queue')
           .update({ manifest: newConfig })
-          .eq('edit_id', editId);
+          .eq('content_id', editId);
           
         if (error) throw error;
         console.log('Auto-saved settings to Supabase directly!');

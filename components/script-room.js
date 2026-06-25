@@ -1,9 +1,9 @@
 import { supabase } from '../supabaseClient.js';
 import systemPrompts from '../system-prompts.json';
+import { showCustomAlert, showCustomConfirm } from './notifications.js';
 
 export function initScriptRoom() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const avatarId = urlParams.get('avatar_id');
+    const avatarId = localStorage.getItem('activeAvatarId');
     
     if (!avatarId) {
         console.warn('No avatar_id found in URL. Some Script Room features may not work.');
@@ -13,11 +13,372 @@ export function initScriptRoom() {
     const boardContainer = document.getElementById('saved-ideas-board');
     const btnCreateScratch = document.getElementById('btn-create-scratch');
 
+    // Modal Elements for Create / Edit Script integrations
+    const topicModal = document.getElementById('modal-create-script-topic');
+    const closeTopicModalBtn = document.getElementById('close-topic-modal');
+    const btnCancelTopic = document.getElementById('btn-cancel-topic');
+    const btnSubmitTopic = document.getElementById('btn-submit-topic');
+    const newScriptTopicTextarea = document.getElementById('new-script-topic');
+
+    const savedScriptsModal = document.getElementById('modal-saved-scripts');
+    const closeSavedScriptsModalBtn = document.getElementById('close-saved-scripts-modal');
+    const searchSavedScriptsInput = document.getElementById('search-saved-scripts');
+    const savedScriptsListContainer = document.getElementById('saved-scripts-list');
+    const btnEditExisting = document.getElementById('btn-edit-existing');
+
+    let currentContentId = null;
+    let allSavedScripts = []; // Cache for search
+    let isEditorMode = false;
+    let regenerateCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }; // Rate limit tracking for regeneration per step
+
+    const sanitizeInput = (str) => {
+        if (!str) return '';
+        return str.replace(/[&<>'"]/g, 
+            tag => ({ 
+                '&': '&amp;', 
+                '<': '&lt;', 
+                '>': '&gt;', 
+                "'": '&#39;', 
+                '"': '&quot;' 
+            }[tag] || tag)
+        );
+    };
+
+
+    function openTopicModal() {
+        if (!topicModal) return;
+        if (newScriptTopicTextarea) {
+            newScriptTopicTextarea.value = '';
+        }
+        if (btnSubmitTopic) {
+            btnSubmitTopic.disabled = true;
+        }
+        topicModal.classList.remove('hidden');
+        void topicModal.offsetWidth;
+        topicModal.classList.remove('opacity-0');
+        topicModal.classList.add('opacity-100');
+    }
+
+    function closeTopicModal() {
+        if (!topicModal) return;
+        topicModal.classList.remove('opacity-100');
+        topicModal.classList.add('opacity-0');
+        setTimeout(() => topicModal.classList.add('hidden'), 300);
+    }
+
+    function openSavedScriptsModal() {
+        if (!savedScriptsModal) return;
+        if (searchSavedScriptsInput) {
+            searchSavedScriptsInput.value = '';
+        }
+        savedScriptsModal.classList.remove('hidden');
+        void savedScriptsModal.offsetWidth;
+        savedScriptsModal.classList.remove('opacity-0');
+        savedScriptsModal.classList.add('opacity-100');
+        loadSavedScripts();
+    }
+
+    function closeSavedScriptsModal() {
+        if (!savedScriptsModal) return;
+        savedScriptsModal.classList.remove('opacity-100');
+        savedScriptsModal.classList.add('opacity-0');
+        setTimeout(() => savedScriptsModal.classList.add('hidden'), 300);
+    }
+
     if (btnCreateScratch) {
-        btnCreateScratch.addEventListener('click', () => {
-            alert('Opening Script Editor from scratch... (to be implemented)');
-            // Here we would transition to the actual editor UI
+        btnCreateScratch.addEventListener('click', openTopicModal);
+    }
+
+    if (closeTopicModalBtn) {
+        closeTopicModalBtn.addEventListener('click', closeTopicModal);
+    }
+
+    if (newScriptTopicTextarea && btnSubmitTopic && btnCancelTopic) {
+        newScriptTopicTextarea.addEventListener('input', () => {
+            const isEmpty = newScriptTopicTextarea.value.trim().length === 0;
+            btnSubmitTopic.disabled = isEmpty;
+            btnCancelTopic.disabled = isEmpty;
         });
+
+        btnSubmitTopic.addEventListener('click', () => {
+            const topic = sanitizeInput(newScriptTopicTextarea.value.trim());
+            if (topic) {
+                closeTopicModal();
+                currentContentId = null;
+                isEditorMode = false;
+                regenerateCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                openTakesModal(topic, null, false);
+            }
+        });
+        
+        btnCancelTopic.addEventListener('click', () => {
+            const topic = sanitizeInput(newScriptTopicTextarea.value.trim());
+            if (topic) {
+                closeTopicModal();
+                currentContentId = null;
+                isEditorMode = false;
+                regenerateCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                openTakesModal(topic, null, true);
+            }
+        });
+    }
+
+    if (btnEditExisting) {
+        btnEditExisting.addEventListener('click', openSavedScriptsModal);
+    }
+
+    if (closeSavedScriptsModalBtn) {
+        closeSavedScriptsModalBtn.addEventListener('click', closeSavedScriptsModal);
+    }
+
+    if (searchSavedScriptsInput) {
+        searchSavedScriptsInput.addEventListener('input', () => {
+            const query = searchSavedScriptsInput.value.toLowerCase().trim();
+            filterAndRenderScripts(query);
+        });
+    }
+
+    async function loadSavedScripts() {
+        if (!savedScriptsListContainer) return;
+        
+        savedScriptsListContainer.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-20 w-full">
+                <span class="material-symbols-outlined animate-spin text-white/50 text-[32px] mb-2">autorenew</span>
+                <span class="text-white/50 text-sm">Loading scripts...</span>
+            </div>
+        `;
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
+            
+            if (!userId) throw new Error('Not authenticated');
+
+            const { data, error } = await supabase
+                .from('scripts_final')
+                .select(`
+                    *,
+                    content_pipeline!inner (
+                        current_stage
+                    )
+                `)
+                .eq('owner_user_id', userId)
+                .eq('content_pipeline.current_stage', 'script')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            allSavedScripts = data || [];
+            filterAndRenderScripts('');
+
+        } catch (error) {
+            console.error('Error loading saved scripts:', error);
+            savedScriptsListContainer.innerHTML = `
+                <div class="text-error p-4 bg-error/10 rounded-xl border border-error/20 w-full">
+                    Failed to load scripts: ${error.message}
+                </div>
+            `;
+            await showCustomAlert(`Failed to load scripts: ${error.message}`, 'Error');
+        }
+    }
+
+    function filterAndRenderScripts(query) {
+        if (!savedScriptsListContainer) return;
+
+        const filtered = allSavedScripts.filter(script => {
+            const topicMatch = script.topic && script.topic.toLowerCase().includes(query);
+            const personaMatch = script.creator_persona && script.creator_persona.toLowerCase().includes(query);
+            const scriptMatch = script.final_script && script.final_script.toLowerCase().includes(query);
+            return topicMatch || personaMatch || scriptMatch;
+        });
+
+        if (filtered.length === 0) {
+            savedScriptsListContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-16 text-center w-full">
+                    <span class="material-symbols-outlined text-[40px] text-white/20 mb-2">folder_off</span>
+                    <span class="text-white/50 text-sm">No saved scripts match your search.</span>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        filtered.forEach(script => {
+            const dateStr = new Date(script.created_at).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            const scriptPreview = script.final_script ? script.final_script.substring(0, 150) + (script.final_script.length > 150 ? '...' : '') : 'No script text.';
+
+            html += `
+                <div class="w-full text-left p-5 rounded-xl bg-black/45 border border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all text-white flex flex-col gap-3 relative group/script-card" data-content-id="${script.content_id}">
+                    <div class="flex justify-between items-start gap-4">
+                        <div class="flex flex-col gap-1 min-w-0">
+                            <h4 class="font-bold text-sm text-primary truncate max-w-[320px]" title="${script.topic || 'Untitled topic'}">${script.topic || 'Untitled topic'}</h4>
+                            <span class="text-[10px] text-white/40 font-mono-label">${dateStr}</span>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button class="btn-edit-script px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/80 text-on-primary text-xs font-bold transition-all flex items-center gap-1 cursor-pointer">
+                                <span class="material-symbols-outlined text-[14px]">edit</span>
+                                <span>Edit</span>
+                            </button>
+                            <button class="btn-delete-script px-3 py-1.5 rounded-lg border border-error/30 hover:border-error hover:bg-error/10 text-error text-xs font-bold transition-all flex items-center gap-1 cursor-pointer">
+                                <span class="material-symbols-outlined text-[14px]">delete</span>
+                                <span>Delete</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+                        <span class="text-secondary flex items-center gap-1 font-semibold">
+                            <span class="material-symbols-outlined text-[14px]">person</span>
+                            ${script.creator_persona || 'No Persona'}
+                        </span>
+                        <span class="text-white/30">|</span>
+                        <span class="text-[#ffb2b7] flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">account_tree</span>
+                            ${script.storytelling_format || 'No Format'}
+                        </span>
+                    </div>
+
+                    <p class="text-xs text-white/70 bg-black/20 rounded-lg p-3 border border-white/5 italic font-body-md line-clamp-2 leading-relaxed">
+                        "${scriptPreview}"
+                    </p>
+                </div>
+            `;
+        });
+
+        savedScriptsListContainer.innerHTML = html;
+
+        // Attach event listeners to Edit and Delete buttons
+        savedScriptsListContainer.querySelectorAll('.btn-edit-script').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const card = btn.closest('[data-content-id]');
+                const contentId = card.dataset.contentId;
+                const script = allSavedScripts.find(s => s.content_id === contentId);
+                if (script) {
+                    closeSavedScriptsModal();
+                    openScriptForEditing(script);
+                }
+            });
+        });
+
+        savedScriptsListContainer.querySelectorAll('.btn-delete-script').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const card = btn.closest('[data-content-id]');
+                const contentId = card.dataset.contentId;
+                deleteScriptFromSupabase(contentId, card);
+            });
+        });
+    }
+
+    function openScriptForEditing(script) {
+        if (!takesModal) return;
+
+        currentContentId = script.content_id;
+        currentTakesTopic = script.topic;
+        currentSelectedTake = script.take;
+        currentSelectedStructure = script.storytelling_format;
+        currentSelectedHook = { hook: script.hook, psychology: "Saved Hook" };
+        currentSelectedPersona = script.creator_persona;
+        currentSelectedCTA = script.cta;
+
+        // Setup step 5
+        generatorStep = 5;
+        isEditorMode = true;
+        
+        // Populate display fields
+        if (takesTopicDisplay) takesTopicDisplay.textContent = script.topic;
+        
+        // Populate script metadata badges in UI
+        if (scriptMetadataContainer) {
+            // Count words
+            const wordCount = script.final_script ? script.final_script.split(/\s+/).filter(Boolean).length : 0;
+            const runtimeSec = Math.ceil(wordCount / 2.5); // rule of thumb: ~150 WPM (2.5 words per sec)
+            scriptMetadataContainer.innerHTML = `
+                <div class="bg-black/40 border border-white/10 text-white/80 px-2.5 py-1 rounded-md text-[11px] font-mono-label tracking-wide flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-primary/70">lightbulb</span> Topic: ${script.topic}</div>
+                <div class="bg-black/40 border border-white/10 text-white/80 px-2.5 py-1 rounded-md text-[11px] font-mono-label tracking-wide flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-white/50">description</span> ${wordCount} words</div>
+                <div class="bg-black/40 border border-white/10 text-white/80 px-2.5 py-1 rounded-md text-[11px] font-mono-label tracking-wide flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-white/50">schedule</span> ~${runtimeSec} sec</div>
+            `;
+        }
+
+        // Populate textarea
+        if (scriptOutputTextarea) {
+            scriptOutputTextarea.textContent = script.final_script || '';
+        }
+
+        updateGeneratorStepUI();
+
+        // Show modal
+        takesModal.classList.remove('hidden');
+        void takesModal.offsetWidth;
+        takesModal.classList.remove('opacity-0');
+        takesModal.classList.add('opacity-100');
+    }
+
+    async function deleteScriptFromSupabase(contentId, listItemElement) {
+        const confirmed = await showCustomConfirm('Are you sure you want to delete this script? This action cannot be undone.', 'Delete Script?');
+        if (!confirmed) return;
+        
+        try {
+            const { error: err1 } = await supabase
+                .from('scripts_final')
+                .delete()
+                .eq('content_id', contentId);
+            
+            if (err1) throw err1;
+
+            // Determine if this is a Path A (scraped idea) or Path B (scratch) script
+            const { data: ideaData, error: ideaErr } = await supabase
+                .from('watchlist_results')
+                .select('content_id')
+                .eq('content_id', contentId)
+                .maybeSingle();
+
+            if (ideaErr) throw ideaErr;
+
+            if (ideaData) {
+                // Path A: Revert the pipeline stage back to 'idea' so it stays on the Idea Board
+                const { error: err2 } = await supabase
+                    .from('content_pipeline')
+                    .update({ current_stage: 'idea' })
+                    .eq('content_id', contentId);
+                    
+                if (err2) throw err2;
+            } else {
+                // Path B: No original idea exists, so completely delete the pipeline row
+                const { error: err2 } = await supabase
+                    .from('content_pipeline')
+                    .delete()
+                    .eq('content_id', contentId);
+                    
+                if (err2) throw err2;
+            }
+            
+            allSavedScripts = allSavedScripts.filter(s => s.content_id !== contentId);
+            
+            // Remove from UI
+            if (listItemElement) {
+                listItemElement.style.opacity = '0';
+                listItemElement.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    listItemElement.remove();
+                    // If list is empty, show empty state
+                    if (savedScriptsListContainer.children.length === 0) {
+                        savedScriptsListContainer.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-20 text-center w-full">
+                                <span class="material-symbols-outlined text-[40px] text-white/20 mb-2">folder_off</span>
+                                <span class="text-white/50 text-sm">No saved scripts found.</span>
+                            </div>
+                        `;
+                    }
+                }, 300);
+            }
+        } catch (error) {
+            console.error('Error deleting script:', error);
+            await showCustomAlert(`Failed to delete script: ${error.message}`, 'Error');
+        }
     }
 
     async function loadSavedIdeas() {
@@ -26,8 +387,10 @@ export function initScriptRoom() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             const userId = session?.user?.id;
+            const currentAvatarId = localStorage.getItem('activeAvatarId');
             
             if (!userId) throw new Error('Not authenticated');
+            if (!currentAvatarId) throw new Error('No avatar selected');
 
             const { data, error } = await supabase
                 .from('watchlist_results')
@@ -38,14 +401,39 @@ export function initScriptRoom() {
                     )
                 `)
                 .eq('owner_user_id', userId)
+                .eq('owner_avatar_id', currentAvatarId)
                 .eq('saved_to_idea_vault', 'yes')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
+            
+            let finalIdeas = [];
+            if (data && data.length > 0) {
+                // Fetch the pipeline stages for these ideas manually since there is no FK relationship
+                const contentIds = data.map(item => item.content_id);
+                const { data: pipelineData, error: pipelineError } = await supabase
+                    .from('content_pipeline')
+                    .select('content_id, current_stage')
+                    .in('content_id', contentIds);
+                    
+                if (pipelineError) throw pipelineError;
+                
+                // Map stages
+                const stageMap = {};
+                if (pipelineData) {
+                    pipelineData.forEach(p => { stageMap[p.content_id] = p.current_stage; });
+                }
+                
+                // Filter to keep only those that are either missing from the pipeline or strictly in the 'idea' stage
+                finalIdeas = data.filter(item => {
+                    const stage = stageMap[item.content_id];
+                    return !stage || stage === 'idea';
+                });
+            }
 
-            if (!data || data.length === 0) {
+            if (!finalIdeas || finalIdeas.length === 0) {
                 boardContainer.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-20 text-center w-full" style="column-span: all;">
+                    <div class="col-span-full flex flex-col items-center justify-center py-20 text-center w-full">
                         <div class="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-inner">
                             <span class="material-symbols-outlined text-[40px] text-white/20">push_pin</span>
                         </div>
@@ -106,23 +494,6 @@ export function initScriptRoom() {
                 return { html: '<span class="material-symbols-outlined text-[16px]">link</span>', borderBg: 'bg-white/5 border-white/10 hover:bg-white/15', color: 'text-white' };
             }
 
-            function getEmbedUrl(url) {
-                if (!url) return null;
-                if (url.includes('youtube.com/watch')) {
-                    const videoId = new URL(url).searchParams.get('v');
-                    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
-                }
-                if (url.includes('youtu.be/')) {
-                    const videoId = url.split('youtu.be/')[1].split('?')[0];
-                    return `https://www.youtube.com/embed/${videoId}`;
-                }
-                if (url.includes('instagram.com/p/') || url.includes('instagram.com/reel/')) {
-                    // Instagram embed needs a trailing slash before embed
-                    const cleanUrl = url.split('?')[0];
-                    return cleanUrl.endsWith('/') ? cleanUrl + 'embed' : cleanUrl + '/embed';
-                }
-                return url;
-            }
 
             function getPlatformName(url) {
                 if (!url) return 'Other';
@@ -136,7 +507,7 @@ export function initScriptRoom() {
                 return 'Other';
             }
 
-            let allIdeas = data;
+            let allIdeas = finalIdeas;
             const filterPlatform = document.getElementById('filter-platform');
             const filterCreator = document.getElementById('filter-creator');
 
@@ -173,7 +544,7 @@ export function initScriptRoom() {
             function renderIdeas(ideasToRender) {
                 if (!ideasToRender || ideasToRender.length === 0) {
                     boardContainer.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-20 text-center w-full" style="column-span: all;">
+                        <div class="col-span-full flex flex-col items-center justify-center py-20 text-center w-full">
                             <div class="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-inner">
                                 <span class="material-symbols-outlined text-[40px] text-white/20">search_off</span>
                             </div>
@@ -226,7 +597,7 @@ export function initScriptRoom() {
                     <div class="relative group break-inside-avoid mb-12 pt-6 w-full max-w-[320px] mx-auto" style="transform: rotate(${rotation}deg) translateY(${offsetY}px) translateZ(0); will-change: transform;" data-id="${item.content_id}">
                         
                         <!-- Stacked Premium Paper Container (Animates smoothly on hover) -->
-                        <div class="w-full min-h-[220px] relative cursor-pointer transition-transform duration-300 ease-out group-hover:-translate-y-2 drop-shadow-[0_10px_20px_rgba(0,0,0,0.7)]">
+                        <div class="w-full min-h-[220px] relative cursor-pointer transition-transform duration-300 ease-out group-hover:-translate-y-2 drop-shadow-[0_10px_20px_rgba(0,0,0,0.7)] btn-generate-takes group/card" data-topic="${topic.replace(/"/g, '&quot;')}">
                             
                             <!-- Hyper-Realistic Pushpin (Anchored to the paper container so it moves with it) -->
                             <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-50 w-6 h-6 flex items-center justify-center pointer-events-none">
@@ -257,6 +628,11 @@ export function initScriptRoom() {
                             <!-- Expanding Glowing Accent Line -->
                             <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[30%] h-[3px] rounded-b-full opacity-60 group-hover:w-[70%] group-hover:opacity-100 transition-all duration-500 ease-out z-20" style="background-color: ${pin.hex}; box-shadow: 0 0 12px ${pin.hex};"></div>
                             
+                            <!-- Delete Idea Button (Top Right beside Platform) -->
+                            <button class="delete-idea-btn absolute top-5 right-16 w-8 h-9 rounded-[12px] bg-black/40 border border-white/10 flex items-center justify-center transition-all z-30 shadow-inner group/del hover:border-error/50 hover:bg-error/10" data-id="${item.content_id}" title="Delete Idea">
+                                <span class="material-symbols-outlined text-[15px] text-white/40 transition-all group-hover/del:text-error">delete</span>
+                            </button>
+                            
                             <!-- Platform Inspiration Icon (Top Right) -->
                             <button class="platform-link-btn absolute top-5 right-5 w-9 h-9 rounded-full ${platformData.borderBg} border flex items-center justify-center transition-all z-30 shadow-inner group/btn hover:scale-110" data-link="${item.content_link}" title="Inspiration Source">
                                 <span class="${platformData.color} transition-transform group-hover/btn:scale-110 flex items-center justify-center">${platformData.html}</span>
@@ -270,8 +646,8 @@ export function initScriptRoom() {
                                         <h4 class="text-xs text-primary/80 uppercase tracking-[0.2em] font-bold font-mono-label">Topic</h4>
                                     </div>
                                     <!-- Premium dark glass box for Topic -->
-                                    <div class="bg-black/20 p-4 rounded-xl border border-white/5 shadow-[inset_1px_1px_4px_rgba(0,0,0,0.4)] backdrop-blur-sm min-h-[70px] flex flex-col justify-center cursor-pointer hover:bg-black/40 hover:border-primary/50 transition-all group/topic btn-generate-takes relative overflow-hidden" data-topic="${topic.replace(/"/g, '&quot;')}">
-                                        <p class="font-headline-sm text-white text-[15px] font-bold leading-snug line-clamp-3 group-hover/topic:text-primary transition-all duration-300 relative z-10">${topic}</p>
+                                    <div class="bg-black/20 p-4 rounded-xl border border-white/5 shadow-[inset_1px_1px_4px_rgba(0,0,0,0.4)] backdrop-blur-sm min-h-[70px] flex flex-col justify-center transition-all group-hover/card:bg-black/40 group-hover/card:border-primary/50 relative overflow-hidden">
+                                        <p class="font-headline-sm text-white text-[15px] font-bold leading-snug line-clamp-3 group-hover/card:text-primary transition-all duration-300 relative z-10">${topic}</p>
                                     </div>
                                 </div>
                                 
@@ -352,56 +728,64 @@ export function initScriptRoom() {
             filterCreator.addEventListener('change', applyFilters);
         }
 
-            // Attach click listeners to platform links (Iframe Popup)
-            const iframeModal = document.getElementById('iframe-modal');
-            const iframeContainer = document.getElementById('iframe-container');
-            const iframeExternalLink = document.getElementById('iframe-external-link');
-            const closeIframeModalBtn = document.getElementById('close-iframe-modal');
-
-            const platformBtns = boardContainer.querySelectorAll('.platform-link-btn');
-            platformBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent opening the script editor
-                    const link = btn.dataset.link;
-                    if (!link || link === 'null') {
-                        alert('No link available for this inspiration.');
-                        return;
-                    }
+            // Attach click listeners for delete idea
+            const deleteIdeaBtns = boardContainer.querySelectorAll('.delete-idea-btn');
+            deleteIdeaBtns.forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    const cardParent = btn.closest('[data-id]');
                     
-                    const embedUrl = getEmbedUrl(link);
-                    iframeExternalLink.href = link;
-                    
-                    iframeContainer.innerHTML = `
-                        <span class="material-symbols-outlined animate-spin text-white/50 text-[32px] absolute z-0">autorenew</span>
-                        <iframe src="${embedUrl}" class="w-full h-full relative z-10 border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    `;
-                    
-                    iframeModal.classList.remove('hidden');
-                    // Trigger reflow
-                    void iframeModal.offsetWidth;
-                    iframeModal.classList.remove('opacity-0');
-                    iframeModal.classList.add('opacity-100');
+                    showCustomConfirm(
+                        'If you want, this will be permanently deleted and cannot be reversed.',
+                        'Delete Idea?',
+                        async () => {
+                            try {
+                                const { error: err1 } = await supabase
+                                    .from('content_pipeline')
+                                    .delete()
+                                    .eq('content_id', id);
+                                if (err1) throw err1;
+                                
+                                const { error: err2 } = await supabase
+                                    .from('watchlist_results')
+                                    .delete()
+                                    .eq('content_id', id);
+                                if (err2) throw err2;
+                                
+                                if (cardParent) {
+                                    cardParent.style.opacity = '0';
+                                    cardParent.style.transform = 'scale(0.9)';
+                                    setTimeout(() => {
+                                        loadSavedIdeas();
+                                    }, 300);
+                                }
+                            } catch (error) {
+                                console.error('Error deleting idea:', error);
+                                await showCustomAlert('Failed to delete idea: ' + error.message, 'Error');
+                            }
+                        }
+                    );
                 });
             });
 
-            if (closeIframeModalBtn) {
-                closeIframeModalBtn.addEventListener('click', () => {
-                    iframeModal.classList.remove('opacity-100');
-                    iframeModal.classList.add('opacity-0');
-                    setTimeout(() => {
-                        iframeModal.classList.add('hidden');
-                        iframeContainer.innerHTML = '<span class="material-symbols-outlined animate-spin text-white/50 text-[32px] absolute">autorenew</span>';
-                    }, 300);
-                });
-            }
-
-            // Attach click listeners to cards for the script editor
-            const cardContents = boardContainer.querySelectorAll('.card-content');
-            cardContents.forEach(content => {
-                content.addEventListener('click', () => {
-                    const id = content.closest('.relative').dataset.id;
-                    alert(`Opening Script Editor for idea ID: ${id} (to be implemented)`);
-                    // Transition to actual editor loaded with this idea
+            // Attach click listeners to platform links
+            const platformBtns = boardContainer.querySelectorAll('.platform-link-btn');
+            platformBtns.forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    let link = btn.dataset.link;
+                    if (!link || link === 'null') {
+                        await showCustomAlert('No link available for this inspiration.', 'Notice');
+                        return;
+                    }
+                    
+                    if (!link.startsWith('http://') && !link.startsWith('https://')) {
+                        link = 'https://' + link;
+                    }
+                    
+                    // Open in a new non-maximized window instead of iframe
+                    window.open(link, 'pinboardPopup', 'width=1000,height=800,left=100,top=100,scrollbars=yes,resizable=yes');
                 });
             });
 
@@ -410,7 +794,9 @@ export function initScriptRoom() {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const topic = btn.dataset.topic;
-                    if (topic) openTakesModal(topic);
+                    const cardParent = btn.closest('[data-id]');
+                    const contentId = cardParent ? cardParent.dataset.id : null;
+                    if (topic) openTakesModal(topic, contentId);
                 });
             });
 
@@ -456,6 +842,11 @@ export function initScriptRoom() {
     // Persona & CTA UI Elements
     const personaHookDisplayContainer = document.getElementById('persona-hook-display-container');
     const personaHookDisplay = document.getElementById('persona-hook-display');
+    if (personaHookDisplay) {
+        personaHookDisplay.addEventListener('click', () => {
+            personaHookDisplay.classList.toggle('truncate');
+        });
+    }
     const personaLoadingState = document.getElementById('persona-loading-state');
     const personaResultsState = document.getElementById('persona-results-state');
     const customCtaInput = document.getElementById('custom-cta-input');
@@ -470,7 +861,6 @@ export function initScriptRoom() {
 
     // Shared Buttons
     const btnRegenerate = document.getElementById('btn-regenerate');
-    const btnWriteCustom = document.getElementById('btn-write-custom');
     const btnConfirmSelection = document.getElementById('btn-confirm-selection');
 
     let loadingInterval = null;
@@ -520,12 +910,31 @@ export function initScriptRoom() {
         const backBtnEl = document.getElementById('btn-generator-back');
         const progressHeader = document.getElementById('generator-progress-header');
         
+        // Handle Visibility of Utility Buttons
+        if (btnRegenerate) {
+            if (isEditorMode) {
+                btnRegenerate.classList.add('hidden');
+            } else {
+                if (generatorStep >= 4 || regenerateCounts[generatorStep] >= 3) {
+                    btnRegenerate.classList.add('hidden');
+                } else {
+                    btnRegenerate.classList.remove('hidden');
+                }
+            }
+        }
+        if (btnConfirmSelection) {
+            btnConfirmSelection.classList.toggle('hidden', generatorStep !== 5 && (generatorStep === 5 && isEditorMode ? false : false));
+        }
+
         if (generatorStep === 1) {
             generatorModalIcon.textContent = 'psychology';
             generatorModalText.textContent = 'Generate Video Takes';
             
             if (backBtnEl) backBtnEl.classList.add('hidden');
-            if (progressHeader) progressHeader.classList.remove('hidden');
+            if (progressHeader) {
+                if (isEditorMode) progressHeader.classList.add('hidden');
+                else progressHeader.classList.remove('hidden');
+            }
             
             takesResultsState.classList.remove('hidden');
             structuresResultsState.classList.add('hidden');
@@ -549,12 +958,10 @@ export function initScriptRoom() {
             if (footerContainer) {
                 footerContainer.className = 'mt-8 flex justify-between items-center pt-4 border-t border-white/10';
             }
-            if (btnRegenerate) btnRegenerate.classList.remove('hidden');
-            if (btnWriteCustom) btnWriteCustom.classList.remove('hidden');
             
             if (btnConfirmSelection) {
-                btnConfirmSelection.textContent = 'Continue to Flow';
-                btnConfirmSelection.disabled = !currentSelectedTake;
+                btnConfirmSelection.textContent = 'Write Your Own';
+                btnConfirmSelection.disabled = false;
             }
         } else if (generatorStep === 2) {
             generatorModalIcon.textContent = 'account_tree';
@@ -586,12 +993,10 @@ export function initScriptRoom() {
             if (footerContainer) {
                 footerContainer.className = 'mt-8 flex justify-between items-center pt-4 border-t border-white/10';
             }
-            if (btnRegenerate) btnRegenerate.classList.remove('hidden');
-            if (btnWriteCustom) btnWriteCustom.classList.remove('hidden');
             
             if (btnConfirmSelection) {
-                btnConfirmSelection.textContent = 'Select Format';
-                btnConfirmSelection.disabled = !currentSelectedStructure;
+                btnConfirmSelection.textContent = 'Write Your Own';
+                btnConfirmSelection.disabled = false;
             }
         } else if (generatorStep === 3) {
             generatorModalIcon.textContent = 'phishing';
@@ -624,12 +1029,10 @@ export function initScriptRoom() {
             if (footerContainer) {
                 footerContainer.className = 'mt-8 flex justify-between items-center pt-4 border-t border-white/10';
             }
-            if (btnRegenerate) btnRegenerate.classList.remove('hidden');
-            if (btnWriteCustom) btnWriteCustom.classList.remove('hidden');
             
             if (btnConfirmSelection) {
-                btnConfirmSelection.textContent = 'Select Hook';
-                btnConfirmSelection.disabled = !currentSelectedHook;
+                btnConfirmSelection.textContent = 'Write Your Own';
+                btnConfirmSelection.disabled = false;
             }
         } else if (generatorStep === 4) {
             generatorModalIcon.textContent = 'person';
@@ -663,19 +1066,26 @@ export function initScriptRoom() {
             if (footerContainer) {
                 footerContainer.className = 'mt-8 flex justify-center items-center pt-4 border-t border-white/10';
             }
-            if (btnRegenerate) btnRegenerate.classList.add('hidden');
-            if (btnWriteCustom) btnWriteCustom.classList.add('hidden');
             
             if (btnConfirmSelection) {
-                btnConfirmSelection.textContent = 'Finalize Idea & Generate Script';
+                btnConfirmSelection.textContent = 'Finalize & Generate Script';
                 btnConfirmSelection.disabled = !currentSelectedPersona;
             }
         } else if (generatorStep === 5) {
             generatorModalIcon.textContent = 'description';
-            generatorModalText.textContent = 'Generate Full Script';
+            let titleText = 'Review Script';
+            if (isEditorMode) titleText = 'Edit Script';
+            else if (!currentSelectedTake) titleText = 'Write Your Script';
+            generatorModalText.textContent = titleText;
             
-            if (backBtnEl) backBtnEl.classList.remove('hidden');
-            if (progressHeader) progressHeader.classList.add('hidden');
+            if (backBtnEl) {
+                if (isEditorMode) backBtnEl.classList.add('hidden');
+                else backBtnEl.classList.remove('hidden');
+            }
+            if (progressHeader) {
+                if (isEditorMode) progressHeader.classList.add('hidden');
+                else progressHeader.classList.add('hidden'); // It was already hiding it in step 5
+            }
             
             takesResultsState.classList.add('hidden');
             structuresResultsState.classList.add('hidden');
@@ -693,7 +1103,6 @@ export function initScriptRoom() {
                 footerContainer.className = 'mt-8 flex justify-center items-center pt-4 border-t border-white/10';
             }
             if (btnRegenerate) btnRegenerate.classList.add('hidden');
-            if (btnWriteCustom) btnWriteCustom.classList.add('hidden');
             
             if (btnConfirmSelection) {
                 btnConfirmSelection.textContent = 'Finish & Save';
@@ -726,350 +1135,73 @@ export function initScriptRoom() {
         runScriptGeneration();
     }
 
+    async function fetchWithRetry(url, options, maxRetries = 5) {
+        for (let i = 0; i < maxRetries; i++) {
+            const response = await fetch(url, options);
+            if (response.status === 429) {
+                // OpenRouter often sends back a Retry-After header
+                const retryAfter = response.headers.get('Retry-After');
+                const delayMs = retryAfter ? parseInt(retryAfter) * 1000 : (Math.pow(2, i) * 1000 + Math.random() * 1000);
+                console.warn(`Rate limited (429). Retrying in ${delayMs}ms... (Attempt ${i + 1} of ${maxRetries})`);
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+                continue;
+            }
+            return response;
+        }
+        // One last attempt
+        return fetch(url, options);
+    }
+
     async function generateTakesFromGroq(topic, prevTakes = []) {
-        const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
-        if (!openaiKey) {
-            throw new Error('OpenAI API Key not found in environment variables. Please add VITE_OPENAI_API_KEY to your .env file.');
-        }
-
-        let userContent = `Topic: ${topic}`;
-        if (prevTakes && prevTakes.length > 0) {
-            userContent += `\n\nPrevious Takes (DO NOT REPEAT THESE):\n${prevTakes.map(t => `- ${t}`).join('\n')}`;
-        }
-
-        const combinedInput = `${systemPrompts.videoTakesPrompt}\n\n${userContent}`;
-
-        const payload = {
-            model: "gpt-4.1-mini",
-            input: combinedInput,
-            tools: [{ type: "web_search_preview" }],
-            text: {
-                format: {
-                    type: "json_schema",
-                    name: "takes_schema",
-                    strict: true,
-                    schema: {
-                        type: "object",
-                        properties: {
-                            takes: {
-                                type: "array",
-                                items: { type: "string" }
-                            }
-                        },
-                        required: ["takes"],
-                        additionalProperties: false
-                    }
-                }
-            }
-        };
-
-        const response = await fetch('https://api.openai.com/v1/responses', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${openaiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const err = await response.text();
-            throw new Error(`OpenAI API Error: ${err}`);
-        }
-
-        const data = await response.json();
-        
-        let parsedResult;
-        
-        try {
-            // New Responses API Structure
-            if (data.output && Array.isArray(data.output)) {
-                const messageOutput = data.output.find(item => item.type === "message" && item.role === "assistant");
-                if (messageOutput && messageOutput.content) {
-                    const textContent = messageOutput.content.find(c => c.type === "output_text")?.text;
-                    if (textContent) {
-                        parsedResult = JSON.parse(textContent);
-                    }
-                }
-            }
-            
-            // Older fallback structures
-            if (!parsedResult && data.choices && data.choices[0] && data.choices[0].message) {
-                 parsedResult = JSON.parse(data.choices[0].message.content);
-            }
-            
-            if (!parsedResult) {
-                 const textContent = JSON.stringify(data);
-                 const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-                 if (jsonMatch) parsedResult = JSON.parse(jsonMatch[0]);
-            }
-        } catch (e) {
-            // Ignore parse error on fallback and throw custom below
-        }
-
-        if (parsedResult && parsedResult.takes) return parsedResult.takes;
-        
-        throw new Error('OpenAI did not return takes in the expected format. Raw response: ' + JSON.stringify(data));
+        await new Promise(r => setTimeout(r, 1500)); // Simulate API delay
+        return [
+            `Demo Take 1: An exciting angle on ${topic}`,
+            `Demo Take 2: A contrarian perspective about ${topic}`,
+            `Demo Take 3: The hidden truth behind ${topic}`
+        ];
     }
 
     async function generateStructuresFromGroq(topic, take, prevStructures = []) {
-        const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
-        if (!openaiKey) {
-            throw new Error('OpenAI API Key not found in environment variables. Please add VITE_OPENAI_API_KEY to your .env file.');
-        }
-
-        let userContent = `Topic: ${topic}\nTake: ${take}`;
-        if (prevStructures && prevStructures.length > 0) {
-            userContent += `\n\nPrevious Structures (DO NOT REPEAT THESE NAMES OR EXACT FLOWS):\n${prevStructures.map(s => `- ${s}`).join('\n')}`;
-        }
-
-        const combinedInput = `${systemPrompts.videoStructurePrompt}\n\n${userContent}`;
-
-        const payload = {
-            model: "gpt-4.1-mini",
-            input: combinedInput,
-            tools: [{ type: "web_search_preview" }],
-            text: {
-                format: {
-                    type: "json_schema",
-                    name: "structures_schema",
-                    strict: true,
-                    schema: {
-                        type: "object",
-                        properties: {
-                            detectedContentType: { type: "string" },
-                            structures: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        name: { type: "string" },
-                                        description: { type: "string" },
-                                        flow: {
-                                            type: "array",
-                                            items: { type: "string" },
-                                            // Enforce exactly 4 beats if we want to be strict, but strict mode sometimes rejects these. 
-                                            // We will leave it as an array to let the model decide, it follows instructions well.
-                                        }
-                                    },
-                                    required: ["name", "description", "flow"],
-                                    additionalProperties: false
-                                }
-                            }
-                        },
-                        required: ["detectedContentType", "structures"],
-                        additionalProperties: false
-                    }
-                }
-            }
-        };
-
-        const response = await fetch('https://api.openai.com/v1/responses', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${openaiKey}`,
-                'Content-Type': 'application/json'
+        await new Promise(r => setTimeout(r, 1500)); // Simulate API delay
+        return [
+            {
+                name: "The Problem-Solution Framework",
+                description: "Highlight a burning pain point, then offer the perfect resolution.",
+                flow: ["Hook: The Problem", "Agitate: Why it hurts", "Solution: The fix", "CTA: Next steps"]
             },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const err = await response.text();
-            throw new Error(`OpenAI API Error: ${err}`);
-        }
-
-        const data = await response.json();
-        
-        let parsedResult;
-        
-        try {
-            // New Responses API Structure
-            if (data.output && Array.isArray(data.output)) {
-                const messageOutput = data.output.find(item => item.type === "message" && item.role === "assistant");
-                if (messageOutput && messageOutput.content) {
-                    const textContent = messageOutput.content.find(c => c.type === "output_text")?.text;
-                    if (textContent) {
-                        parsedResult = JSON.parse(textContent);
-                    }
-                }
+            {
+                name: "The Myth-Buster Approach",
+                description: "Challenge a common misconception and reveal the actual truth.",
+                flow: ["Hook: The Lie", "The Truth Revealed", "The Evidence", "CTA: Share the truth"]
             }
-            
-            // Older fallback structures
-            if (!parsedResult && data.choices && data.choices[0] && data.choices[0].message) {
-                 parsedResult = JSON.parse(data.choices[0].message.content);
-            }
-            
-            if (!parsedResult) {
-                 const textContent = JSON.stringify(data);
-                 const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-                 if (jsonMatch) parsedResult = JSON.parse(jsonMatch[0]);
-            }
-        } catch (e) {
-            // ignore parse error on fallback
-        }
-
-        if (parsedResult && parsedResult.structures) return parsedResult.structures;
-
-        throw new Error('OpenAI did not return structures in the expected format. Raw response: ' + JSON.stringify(data));
+        ];
     }
 
     async function generateHooksFromOpenAI(topic, take, structure, prevHooks = []) {
-        const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
-        if (!openaiKey) {
-            throw new Error('OpenAI API Key not found in environment variables. Please add VITE_OPENAI_API_KEY to your .env file.');
-        }
-
-        let userContent = `Topic: ${topic}\nTake: ${take}\nScript Structure: ${structure.name} - ${structure.flow.join(' -> ')}`;
-        if (prevHooks && prevHooks.length > 0) {
-            userContent += `\n\nPrevious Hooks (DO NOT REPEAT THESE):\n${prevHooks.map(h => `- ${h}`).join('\n')}`;
-        }
-
-        const combinedInput = `${systemPrompts.videoHooksPrompt}\n\n${userContent}`;
-
-        const payload = {
-            model: "gpt-4.1-mini",
-            input: combinedInput,
-            text: {
-                format: {
-                    type: "json_schema",
-                    name: "hooks_schema",
-                    strict: true,
-                    schema: {
-                        type: "object",
-                        properties: {
-                            hooks: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        hook: { type: "string" },
-                                        psychology: { type: "string" }
-                                    },
-                                    required: ["hook", "psychology"],
-                                    additionalProperties: false
-                                }
-                            }
-                        },
-                        required: ["hooks"],
-                        additionalProperties: false
-                    }
-                }
-            }
-        };
-
-        const response = await fetch('https://api.openai.com/v1/responses', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${openaiKey}`,
-                'Content-Type': 'application/json'
+        await new Promise(r => setTimeout(r, 1500)); // Simulate API delay
+        return [
+            {
+                hook: "Stop scrolling! Here is a secret nobody is telling you.",
+                psychology: "Pattern Interrupt / Curiosity"
             },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const err = await response.text();
-            throw new Error(`OpenAI API Error: ${err}`);
-        }
-
-        const data = await response.json();
-        
-        let parsedResult;
-        
-        try {
-            if (data.output && Array.isArray(data.output)) {
-                const messageOutput = data.output.find(item => item.type === "message" && item.role === "assistant");
-                if (messageOutput && messageOutput.content) {
-                    const textContent = messageOutput.content.find(c => c.type === "output_text")?.text;
-                    if (textContent) {
-                        parsedResult = JSON.parse(textContent);
-                    }
-                }
+            {
+                hook: "If you want to master this, you need to hear what I have to say.",
+                psychology: "Desire / FOMO"
+            },
+            {
+                hook: "This one simple trick completely changed everything for me.",
+                psychology: "Relatability / Social Proof"
             }
-            if (!parsedResult && data.choices && data.choices[0] && data.choices[0].message) {
-                 parsedResult = JSON.parse(data.choices[0].message.content);
-            }
-            if (!parsedResult) {
-                 const textContent = JSON.stringify(data);
-                 const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-                 if (jsonMatch) parsedResult = JSON.parse(jsonMatch[0]);
-            }
-        } catch (e) {}
-
-        if (parsedResult && parsedResult.hooks) return parsedResult.hooks;
-
-        throw new Error('OpenAI did not return hooks in the expected format. Raw response: ' + JSON.stringify(data));
+        ];
     }
 
     async function generatePersonasFromOpenAI(topic, take, structure, hook) {
-        const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
-        if (!openaiKey) {
-            throw new Error('OpenAI API Key not found in environment variables. Please add VITE_OPENAI_API_KEY to your .env file.');
-        }
-
-        let userContent = `Topic: ${topic}\nTake: ${take}\nScript Structure: ${structure.name}\nHook: ${hook.hook}`;
-
-        const combinedInput = `${systemPrompts.videoPersonaPrompt}\n\n${userContent}`;
-
-        const payload = {
-            model: "gpt-4.1-mini",
-            input: combinedInput,
-            text: {
-                format: {
-                    type: "json_schema",
-                    name: "personas_schema",
-                    strict: true,
-                    schema: {
-                        type: "object",
-                        properties: {
-                            personas: {
-                                type: "array",
-                                items: { type: "string" }
-                            }
-                        },
-                        required: ["personas"],
-                        additionalProperties: false
-                    }
-                }
-            }
-        };
-
-        const response = await fetch('https://api.openai.com/v1/responses', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${openaiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const err = await response.text();
-            throw new Error(`OpenAI API Error: ${err}`);
-        }
-
-        const data = await response.json();
-        let parsedResult;
-        
-        try {
-            if (data.output && Array.isArray(data.output)) {
-                const messageOutput = data.output.find(item => item.type === "message" && item.role === "assistant");
-                if (messageOutput && messageOutput.content) {
-                    const textContent = messageOutput.content.find(c => c.type === "output_text")?.text;
-                    if (textContent) parsedResult = JSON.parse(textContent);
-                }
-            }
-            if (!parsedResult && data.choices && data.choices[0] && data.choices[0].message) {
-                 parsedResult = JSON.parse(data.choices[0].message.content);
-            }
-            if (!parsedResult) {
-                 const textContent = JSON.stringify(data);
-                 const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-                 if (jsonMatch) parsedResult = JSON.parse(jsonMatch[0]);
-            }
-        } catch (e) {}
-
-        if (parsedResult && parsedResult.personas) return parsedResult.personas;
-        throw new Error('OpenAI did not return personas in the expected format. Raw response: ' + JSON.stringify(data));
+        await new Promise(r => setTimeout(r, 1500)); // Simulate API delay
+        return [
+            "The High-Energy Expert",
+            "The Calm & Relatable Friend",
+            "The No-Nonsense Truth Teller"
+        ];
     }
 
     async function runHooksGeneration() {
@@ -1227,109 +1359,29 @@ export function initScriptRoom() {
     }
 
     async function generateScriptFromOpenAI(topic, take, format, hook, persona, cta) {
-        const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
-        if (!openaiKey) {
-            throw new Error('OpenAI API Key not found');
-        }
-
-        const userContent = `TOPIC: ${topic}\nTAKE: ${take}\nPERSONA: ${persona}\nHOOK TYPE: ${hook.psychology}\nSTRUCTURE: ${format.name} - ${format.flow.join(' -> ')}\n${cta ? `CTA: ${cta}\n` : ''}\nNote: The user explicitly selected the hook: "${hook.hook}". You should ideally incorporate or heavily adapt this hook into your script's opening.`;
-
-        const combinedInput = `${systemPrompts.videoScriptPrompt}\n\n${userContent}`;
-
-        const payload = {
-            model: "gpt-4.1-mini",
-            input: combinedInput,
-            tools: [{ type: "web_search_preview" }],
-            text: {
-                format: {
-                    type: "json_schema",
-                    name: "script_schema",
-                    strict: true,
-                    schema: {
-                        type: "object",
-                        properties: {
-                            meta: {
-                                type: "object",
-                                properties: {
-                                    hook_archetype: { type: "string" },
-                                    target_emotion: { type: "string" },
-                                    psychological_triggers: {
-                                        type: "array",
-                                        items: { type: "string" }
-                                    },
-                                    body_structure: { type: "string" },
-                                    persona_lens: { type: "string" }
-                                },
-                                required: ["hook_archetype", "target_emotion", "psychological_triggers", "body_structure", "persona_lens"],
-                                additionalProperties: false
-                            },
-                            script: {
-                                type: "object",
-                                properties: {
-                                    hook: { type: "string" },
-                                    body: { type: "string" },
-                                    outro: { type: "string" },
-                                    full_script: { type: "string" }
-                                },
-                                required: ["hook", "body", "outro", "full_script"],
-                                additionalProperties: false
-                            },
-                            delivery: {
-                                type: "object",
-                                properties: {
-                                    word_count: { type: "integer" },
-                                    estimated_runtime_seconds: { type: "integer" },
-                                    rehook_locations: {
-                                        type: "array",
-                                        items: { type: "string" }
-                                    },
-                                    key_delivery_note: { type: "string" },
-                                    bolded_line: { type: "string" }
-                                },
-                                required: ["word_count", "estimated_runtime_seconds", "rehook_locations", "key_delivery_note", "bolded_line"],
-                                additionalProperties: false
-                            }
-                        },
-                        required: ["meta", "script", "delivery"],
-                        additionalProperties: false
-                    }
-                }
+        await new Promise(r => setTimeout(r, 2000)); // Simulate API delay
+        return {
+            meta: {
+                hook_archetype: "Pattern Interrupt",
+                target_emotion: "Excitement",
+                psychological_triggers: ["Curiosity", "Social Proof"],
+                body_structure: "Problem -> Solution -> Value",
+                persona_lens: persona || "The High-Energy Expert"
+            },
+            script: {
+                hook: hook ? hook.hook : "Stop scrolling! Here is a secret nobody is telling you.",
+                body: "I spent the last 5 years figuring out how this works, and the answer is so simple. First, you need to understand the core mechanics. Once you have that locked in, you just repeat the process. It's literally a cheat code for success.",
+                outro: cta || "Save this video so you don't lose it, and follow for more!",
+                full_script: `${hook ? hook.hook : "Stop scrolling! Here is a secret nobody is telling you."}\n\nI spent the last 5 years figuring out how this works, and the answer is so simple. First, you need to understand the core mechanics. Once you have that locked in, you just repeat the process. It's literally a cheat code for success.\n\n${cta || "Save this video so you don't lose it, and follow for more!"}`
+            },
+            delivery: {
+                word_count: 65,
+                estimated_runtime_seconds: 22,
+                rehook_locations: ["Middle of the body text"],
+                key_delivery_note: "Speak with passion and slightly faster pacing than usual.",
+                bolded_line: "It's literally a cheat code for success."
             }
         };
-
-        const response = await fetch('https://api.openai.com/v1/responses', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${openaiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const err = await response.text();
-            throw new Error(`OpenAI API Error: ${err}`);
-        }
-
-        const data = await response.json();
-        
-        let parsedResult;
-        try {
-            if (data.output && data.output.length > 0) {
-                const messageOutput = data.output.find(o => o.type === 'message');
-                if (messageOutput && messageOutput.content && messageOutput.content.length > 0) {
-                    const textContent = messageOutput.content.find(c => c.type === 'output_text');
-                    if (textContent && textContent.text) {
-                        parsedResult = JSON.parse(textContent.text);
-                        return parsedResult;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('Error parsing script output', e);
-        }
-        
-        throw new Error('OpenAI did not return the script in the expected format. Raw response: ' + JSON.stringify(data));
     }
 
     async function runScriptGeneration() {
@@ -1393,10 +1445,129 @@ export function initScriptRoom() {
         }
     }
 
-    function openTakesModal(topic) {
+    async function saveScriptToSupabase() {
+        if (!btnConfirmSelection) return;
+        
+        const rawScriptText = scriptOutputTextarea ? (scriptOutputTextarea.innerText || scriptOutputTextarea.textContent).trim() : '';
+        const finalScriptText = sanitizeInput(rawScriptText);
+        if (!finalScriptText) {
+            await showCustomAlert('Script text cannot be empty.', 'Error');
+            return;
+        }
+
+        const originalBtnText = btnConfirmSelection.textContent;
+        btnConfirmSelection.textContent = 'Saving...';
+        btnConfirmSelection.disabled = true;
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
+            
+            if (!userId) throw new Error('Not authenticated');
+
+            const payload = {
+                take: sanitizeInput(currentSelectedTake) || null,
+                storytelling_format: currentSelectedStructure ? (typeof currentSelectedStructure === 'object' ? `${sanitizeInput(currentSelectedStructure.name)}\n${currentSelectedStructure.flow.map(f=>sanitizeInput(f)).join(' -> ')}` : sanitizeInput(currentSelectedStructure)) : null,
+                topic: sanitizeInput(currentTakesTopic) || null,
+                hook: currentSelectedHook ? sanitizeInput(currentSelectedHook.hook) : null,
+                cta: sanitizeInput(currentSelectedCTA) || null,
+                final_script: finalScriptText,
+                owner_avatar_id: avatarId || null,
+                creator_persona: sanitizeInput(currentSelectedPersona) || null,
+                owner_user_id: userId
+            };
+
+            // Fetch approval settings
+            let needsApproval = false;
+            let approverUserId = null;
+            if (avatarId) {
+                const { data: avatarData } = await supabase
+                    .from('avatar_details')
+                    .select('approver_user_id, approval_settings')
+                    .eq('avatar_id', avatarId)
+                    .single();
+                
+                if (avatarData) {
+                    approverUserId = avatarData.approver_user_id;
+                    if (approverUserId && avatarData.approval_settings && String(avatarData.approval_settings.script) === 'true') {
+                        needsApproval = true;
+                    }
+                }
+            }
+            
+            payload.status = needsApproval ? 'pending_approval' : 'approved';
+
+            if (currentContentId) {
+                payload.content_id = currentContentId;
+                const { error } = await supabase
+                    .from('scripts_final')
+                    .upsert(payload, { onConflict: 'content_id' });
+                if (error) throw error;
+                await supabase.from('content_pipeline').update({ 
+                    current_stage: 'script',
+                    approval_status: needsApproval ? 'pending' : (approverUserId ? 'approved' : null),
+                    approver_user_id: approverUserId,
+                    topic: currentTakesTopic || null
+                }).eq('content_id', currentContentId);
+            } else {
+                const { data: pipeData, error: pipeError } = await supabase
+                    .from('content_pipeline')
+                    .insert({
+                        owner_user_id: userId,
+                        owner_avatar_id: avatarId,
+                        current_stage: 'script',
+                        approver_user_id: approverUserId,
+                        approval_status: needsApproval ? 'pending' : (approverUserId ? 'approved' : null),
+                        topic: currentTakesTopic || null
+                    })
+                    .select('content_id')
+                    .single();
+                if (pipeError) throw pipeError;
+                
+                currentContentId = pipeData.content_id;
+                payload.content_id = currentContentId;
+                const { error } = await supabase
+                    .from('scripts_final')
+                    .insert(payload);
+                if (error) throw error;
+            }
+
+            // Success feedback
+            btnConfirmSelection.textContent = 'Saved Successfully!';
+            btnConfirmSelection.classList.remove('bg-primary', 'hover:bg-primary-hover');
+            btnConfirmSelection.classList.add('bg-green-600', 'text-white');
+            
+            setTimeout(() => {
+                // Reset button style
+                btnConfirmSelection.textContent = originalBtnText;
+                btnConfirmSelection.classList.remove('bg-green-600', 'text-white');
+                btnConfirmSelection.classList.add('bg-primary', 'hover:bg-primary-hover');
+                btnConfirmSelection.disabled = false;
+                
+                loadSavedIdeas(); // Refresh the Idea Board to remove the used idea
+                
+                // Close modal
+                closeTakesModalFunc();
+            }, 1500);
+
+        } catch (error) {
+            console.error('Error saving script to Supabase:', error);
+            if (error.code === '23505') {
+                await showCustomAlert('A script with this exact content already exists in your saved scripts. Please modify the script text slightly to save.', 'Duplicate Script');
+            } else {
+                await showCustomAlert(`Failed to save script: ${error.message}`, 'Error');
+            }
+            btnConfirmSelection.textContent = originalBtnText;
+            btnConfirmSelection.disabled = false;
+        }
+    }
+
+    function openTakesModal(topic, contentId = null, bypassAI = false) {
         if (!takesModal) return;
-        generatorStep = 1;
+        generatorStep = bypassAI ? 5 : 1;
         currentTakesTopic = topic;
+        currentContentId = contentId;
+        regenerateCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
         
         // Reset UI to Takes Step
         currentSelectedTake = null;
@@ -1418,16 +1589,32 @@ export function initScriptRoom() {
         if (takesResultsState) takesResultsState.innerHTML = '';
         if (takesCustomInput) takesCustomInput.value = '';
         
-        updateGeneratorStepUI();
+        if (bypassAI) {
+            if (scriptOutputTextarea) scriptOutputTextarea.textContent = '';
+            takesModal.classList.remove('hidden');
+            void takesModal.offsetWidth;
+            takesModal.classList.remove('opacity-0');
+            takesModal.classList.add('opacity-100');
+            
+            updateGeneratorStepUI();
+            
+            if (scriptResultsState) scriptResultsState.classList.remove('hidden');
+            if (btnConfirmSelection) {
+                btnConfirmSelection.textContent = 'Finish & Save';
+                btnConfirmSelection.disabled = false;
+            }
+        } else {
+            updateGeneratorStepUI();
 
-        if (takesLoadingState) takesLoadingState.classList.remove('hidden');
-        
-        takesModal.classList.remove('hidden');
-        void takesModal.offsetWidth;
-        takesModal.classList.remove('opacity-0');
-        takesModal.classList.add('opacity-100');
+            if (takesLoadingState) takesLoadingState.classList.remove('hidden');
+            
+            takesModal.classList.remove('hidden');
+            void takesModal.offsetWidth;
+            takesModal.classList.remove('opacity-0');
+            takesModal.classList.add('opacity-100');
 
-        runTakesGeneration();
+            runTakesGeneration();
+        }
     }
 
     function closeTakesModalFunc() {
@@ -1580,188 +1767,193 @@ export function initScriptRoom() {
         });
     }
     
-    if (btnWriteCustom) {
-        btnWriteCustom.addEventListener('click', () => {
-            if (generatorStep === 1) {
-                if (!takesResultsState) return;
-                
-                let customBtn = takesResultsState.querySelector('.takes-custom-option');
-                if (!customBtn) {
-                    customBtn = document.createElement('div');
-                    customBtn.className = 'w-full text-left p-4 rounded-xl bg-black/40 border border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all text-white text-[15px] takes-option-btn takes-custom-option flex items-center cursor-text';
-                    customBtn.innerHTML = `
-                        <span class="text-primary/50 font-mono-label mr-2 font-bold">06</span> 
-                        <input type="text" class="flex-1 bg-transparent border-none outline-none text-white placeholder-white/30" placeholder="Type your custom take here..." />
-                    `;
-                    const inputField = customBtn.querySelector('input');
-                    
-                    customBtn.addEventListener('click', () => {
-                        document.querySelectorAll('.takes-option-btn').forEach(b => {
-                            b.classList.remove('border-primary', 'bg-primary/10');
-                            b.classList.add('border-white/10', 'bg-black/40');
-                        });
-                        customBtn.classList.remove('border-white/10', 'bg-black/40');
-                        customBtn.classList.add('border-primary', 'bg-primary/10');
-                        inputField.focus();
-                        currentSelectedTake = inputField.value.trim();
-                        if (btnConfirmSelection) btnConfirmSelection.disabled = currentSelectedTake.length === 0;
-                    });
-
-                    inputField.addEventListener('input', (e) => {
-                        currentSelectedTake = e.target.value.trim();
-                        if (customBtn.classList.contains('border-primary')) {
-                            if (btnConfirmSelection) btnConfirmSelection.disabled = currentSelectedTake.length === 0;
-                        }
-                    });
-
-                    takesResultsState.appendChild(customBtn);
-                }
-                customBtn.click();
-                setTimeout(() => {
-                    takesResultsState.scrollTop = takesResultsState.scrollHeight;
-                }, 50);
-            } else if (generatorStep === 2) {
-                // Structures Custom Input
-                if (!structuresResultsState) return;
-                
-                let customBtn = structuresResultsState.querySelector('.structures-custom-option');
-                if (!customBtn) {
-                    customBtn = document.createElement('div');
-                    customBtn.className = 'w-full text-left p-4 rounded-xl bg-black/40 border border-white/10 hover:border-secondary/50 hover:bg-white/5 transition-all text-white text-[15px] structures-option-btn structures-custom-option cursor-text';
-                    
-                    customBtn.innerHTML = `
-                        <div class="flex flex-col gap-3 w-full">
-                            <div class="font-bold text-secondary flex items-center gap-2 border-b border-white/10 pb-2">
-                                <span class="material-symbols-outlined text-[18px]">edit_note</span>
-                                <input type="text" class="bg-transparent border-none outline-none text-white placeholder-white/30 w-full" placeholder="Storytelling Format Name (e.g. Myth Busting)" id="custom-structure-name" />
-                            </div>
-                            
-                            <div class="grid grid-cols-1 gap-2 bg-black/20 rounded-lg p-3">
-                                <div class="text-xs text-white/50 uppercase tracking-widest mb-1">Outline the 5 narrative beats</div>
-                                <div class="flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 focus-within:border-secondary/50 transition-all">
-                                    <div class="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 text-secondary text-xs font-bold font-mono-label shrink-0">1</div>
-                                    <input type="text" class="bg-transparent border-none outline-none text-white/90 text-sm w-full custom-structure-step" placeholder="Beat 1: e.g. Open with..." />
-                                </div>
-                                <div class="flex items-center justify-center -my-1 text-white/20"><span class="material-symbols-outlined text-[16px]">arrow_downward</span></div>
-                                <div class="flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 focus-within:border-secondary/50 transition-all">
-                                    <div class="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 text-secondary text-xs font-bold font-mono-label shrink-0">2</div>
-                                    <input type="text" class="bg-transparent border-none outline-none text-white/90 text-sm w-full custom-structure-step" placeholder="Beat 2: e.g. Explain..." />
-                                </div>
-                                <div class="flex items-center justify-center -my-1 text-white/20"><span class="material-symbols-outlined text-[16px]">arrow_downward</span></div>
-                                <div class="flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 focus-within:border-secondary/50 transition-all">
-                                    <div class="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 text-secondary text-xs font-bold font-mono-label shrink-0">3</div>
-                                    <input type="text" class="bg-transparent border-none outline-none text-white/90 text-sm w-full custom-structure-step" placeholder="Beat 3: e.g. Show..." />
-                                </div>
-                                <div class="flex items-center justify-center -my-1 text-white/20"><span class="material-symbols-outlined text-[16px]">arrow_downward</span></div>
-                                <div class="flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 focus-within:border-secondary/50 transition-all">
-                                    <div class="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 text-secondary text-xs font-bold font-mono-label shrink-0">4</div>
-                                    <input type="text" class="bg-transparent border-none outline-none text-white/90 text-sm w-full custom-structure-step" placeholder="Beat 4: e.g. Connect to..." />
-                                </div>
-                                <div class="flex items-center justify-center -my-1 text-white/20"><span class="material-symbols-outlined text-[16px]">arrow_downward</span></div>
-                                <div class="flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 focus-within:border-secondary/50 transition-all">
-                                    <div class="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 text-secondary text-xs font-bold font-mono-label shrink-0">5</div>
-                                    <input type="text" class="bg-transparent border-none outline-none text-white/90 text-sm w-full custom-structure-step" placeholder="Beat 5: e.g. Conclude with..." />
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    const updateCustomStructureSelection = () => {
-                        const nameInput = customBtn.querySelector('#custom-structure-name');
-                        const steps = Array.from(customBtn.querySelectorAll('.custom-structure-step')).map(inp => inp.value.trim());
-                        const hasAllSteps = steps.every(s => s.length > 0) && nameInput.value.trim().length > 0;
-                        
-                        currentSelectedStructure = {
-                            name: nameInput.value.trim(),
-                            flow: steps
-                        };
-                        
-                        if (customBtn.classList.contains('border-secondary')) {
-                            if (btnConfirmSelection) btnConfirmSelection.disabled = !hasAllSteps;
-                        }
-                    };
-
-                    customBtn.addEventListener('click', () => {
-                        document.querySelectorAll('.structures-option-btn').forEach(b => {
-                            b.classList.remove('border-secondary', 'bg-secondary/10');
-                            b.classList.add('border-white/10', 'bg-black/40');
-                        });
-                        customBtn.classList.remove('border-white/10', 'bg-black/40');
-                        customBtn.classList.add('border-secondary', 'bg-secondary/10');
-                        customBtn.querySelector('#custom-structure-name').focus();
-                        updateCustomStructureSelection();
-                    });
-
-                    customBtn.querySelectorAll('input').forEach(inp => {
-                        inp.addEventListener('input', updateCustomStructureSelection);
-                    });
-
-                    structuresResultsState.appendChild(customBtn);
-                }
-                customBtn.click();
-                setTimeout(() => {
-                    structuresResultsState.scrollTop = structuresResultsState.scrollHeight;
-                }, 50);
-            } else if (generatorStep === 3) {
-                // Hooks Custom Input
-                if (!hooksResultsState) return;
-                
-                let customBtn = hooksResultsState.querySelector('.hooks-custom-option');
-                if (!customBtn) {
-                    customBtn = document.createElement('div');
-                    customBtn.className = 'w-full text-left p-4 rounded-xl bg-black/40 border border-white/10 hover:border-white/50 hover:bg-white/5 transition-all text-white text-[15px] hooks-option-btn hooks-custom-option cursor-text';
-                    
-                    customBtn.innerHTML = `
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-white/50 font-mono-label mr-2 font-bold">06</span>
-                            <span class="text-[10px] uppercase tracking-widest px-2 py-1 bg-white/10 rounded-md font-bold text-white/80 border border-white/20">Custom Hook</span>
-                        </div>
-                        <textarea class="w-full bg-transparent border-none outline-none text-white placeholder-white/30 resize-none h-20 mt-2" placeholder="Type your custom hook here..."></textarea>
-                    `;
-                    
-                    const inputField = customBtn.querySelector('textarea');
-                    
-                    customBtn.addEventListener('click', () => {
-                        document.querySelectorAll('.hooks-option-btn').forEach(b => {
-                            b.classList.remove('border-white', 'bg-white/10');
-                            b.classList.add('border-white/10', 'bg-black/40');
-                        });
-                        customBtn.classList.remove('border-white/10', 'bg-black/40');
-                        customBtn.classList.add('border-white', 'bg-white/10');
-                        inputField.focus();
-                        currentSelectedHook = { hook: inputField.value.trim(), psychology: "Custom Hook" };
-                        if (btnConfirmSelection) btnConfirmSelection.disabled = inputField.value.trim().length === 0;
-                    });
-
-                    inputField.addEventListener('input', (e) => {
-                        currentSelectedHook = { hook: e.target.value.trim(), psychology: "Custom Hook" };
-                        if (customBtn.classList.contains('border-white')) {
-                            if (btnConfirmSelection) btnConfirmSelection.disabled = currentSelectedHook.hook.length === 0;
-                        }
-                    });
-
-                    hooksResultsState.appendChild(customBtn);
-                }
-                customBtn.click();
-                setTimeout(() => {
-                    hooksResultsState.scrollTop = hooksResultsState.scrollHeight;
-                }, 50);
-            }
-        });
-    }
-
     if (btnConfirmSelection) {
         btnConfirmSelection.addEventListener('click', () => {
-            if (generatorStep === 1 && currentSelectedTake) {
-                advanceToStep2();
-            } else if (generatorStep === 2 && currentSelectedStructure) {
-                advanceToStep3();
-            } else if (generatorStep === 3 && currentSelectedHook) {
-                advanceToStep4();
-            } else if (generatorStep === 4 && currentSelectedPersona) {
+            if (generatorStep === 4 && currentSelectedPersona) {
                 advanceToStep5();
+                return;
             } else if (generatorStep === 5) {
-                closeTakesModalFunc();
+                saveScriptToSupabase();
+                return;
+            }
+
+            if (btnConfirmSelection.textContent.trim() === 'Write Your Own') {
+                btnConfirmSelection.textContent = 'Continue';
+                btnConfirmSelection.disabled = true;
+
+                if (generatorStep === 1) {
+                    if (!takesResultsState) return;
+                    
+                    let customBtn = takesResultsState.querySelector('.takes-custom-option');
+                    if (!customBtn) {
+                        customBtn = document.createElement('div');
+                        customBtn.className = 'w-full text-left p-4 rounded-xl bg-black/40 border border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all text-white text-[15px] takes-option-btn takes-custom-option flex items-center cursor-text';
+                        customBtn.innerHTML = `
+                            <span class="text-primary/50 font-mono-label mr-2 font-bold">06</span> 
+                            <input type="text" class="flex-1 bg-transparent border-none outline-none text-white placeholder-white/30" placeholder="Type your custom take here..." />
+                        `;
+                        const inputField = customBtn.querySelector('input');
+                        
+                        customBtn.addEventListener('click', () => {
+                            document.querySelectorAll('.takes-option-btn').forEach(b => {
+                                b.classList.remove('border-primary', 'bg-primary/10');
+                                b.classList.add('border-white/10', 'bg-black/40');
+                            });
+                            customBtn.classList.remove('border-white/10', 'bg-black/40');
+                            customBtn.classList.add('border-primary', 'bg-primary/10');
+                            inputField.focus();
+                            currentSelectedTake = inputField.value.trim();
+                            if (btnConfirmSelection && btnConfirmSelection.textContent.trim() === 'Continue') btnConfirmSelection.disabled = currentSelectedTake.length === 0;
+                        });
+
+                        inputField.addEventListener('input', (e) => {
+                            currentSelectedTake = e.target.value.trim();
+                            if (customBtn.classList.contains('border-primary')) {
+                                if (btnConfirmSelection && btnConfirmSelection.textContent.trim() === 'Continue') btnConfirmSelection.disabled = currentSelectedTake.length === 0;
+                            }
+                        });
+
+                        takesResultsState.appendChild(customBtn);
+                    }
+                    customBtn.click();
+                    setTimeout(() => {
+                        takesResultsState.scrollTop = takesResultsState.scrollHeight;
+                    }, 50);
+                } else if (generatorStep === 2) {
+                    // Structures Custom Input
+                    if (!structuresResultsState) return;
+                    
+                    let customBtn = structuresResultsState.querySelector('.structures-custom-option');
+                    if (!customBtn) {
+                        customBtn = document.createElement('div');
+                        customBtn.className = 'w-full text-left p-4 rounded-xl bg-black/40 border border-white/10 hover:border-secondary/50 hover:bg-white/5 transition-all text-white text-[15px] structures-option-btn structures-custom-option cursor-text';
+                        
+                        customBtn.innerHTML = `
+                            <div class="flex flex-col gap-3 w-full">
+                                <div class="font-bold text-secondary flex items-center gap-2 border-b border-white/10 pb-2">
+                                    <span class="material-symbols-outlined text-[18px]">edit_note</span>
+                                    <input type="text" maxlength="1000" class="bg-transparent border-none outline-none text-white placeholder-white/30 w-full" placeholder="Storytelling Format Name (e.g. Myth Busting)" id="custom-structure-name" />
+                                </div>
+                                
+                                <div class="grid grid-cols-1 gap-2 bg-black/20 rounded-lg p-3">
+                                    <div class="text-xs text-white/50 uppercase tracking-widest mb-1">Outline the 5 narrative beats</div>
+                                    <div class="flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 focus-within:border-secondary/50 transition-all">
+                                        <div class="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 text-secondary text-xs font-bold font-mono-label shrink-0">1</div>
+                                        <input type="text" maxlength="1000" class="bg-transparent border-none outline-none text-white/90 text-sm w-full custom-structure-step" placeholder="Beat 1: e.g. Open with..." />
+                                    </div>
+                                    <div class="flex items-center justify-center -my-1 text-white/20"><span class="material-symbols-outlined text-[16px]">arrow_downward</span></div>
+                                    <div class="flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 focus-within:border-secondary/50 transition-all">
+                                        <div class="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 text-secondary text-xs font-bold font-mono-label shrink-0">2</div>
+                                        <input type="text" maxlength="1000" class="bg-transparent border-none outline-none text-white/90 text-sm w-full custom-structure-step" placeholder="Beat 2: e.g. Explain..." />
+                                    </div>
+                                    <div class="flex items-center justify-center -my-1 text-white/20"><span class="material-symbols-outlined text-[16px]">arrow_downward</span></div>
+                                    <div class="flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 focus-within:border-secondary/50 transition-all">
+                                        <div class="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 text-secondary text-xs font-bold font-mono-label shrink-0">3</div>
+                                        <input type="text" maxlength="1000" class="bg-transparent border-none outline-none text-white/90 text-sm w-full custom-structure-step" placeholder="Beat 3: e.g. Show..." />
+                                    </div>
+                                    <div class="flex items-center justify-center -my-1 text-white/20"><span class="material-symbols-outlined text-[16px]">arrow_downward</span></div>
+                                    <div class="flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 focus-within:border-secondary/50 transition-all">
+                                        <div class="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 text-secondary text-xs font-bold font-mono-label shrink-0">4</div>
+                                        <input type="text" maxlength="1000" class="bg-transparent border-none outline-none text-white/90 text-sm w-full custom-structure-step" placeholder="Beat 4: e.g. Connect to..." />
+                                    </div>
+                                    <div class="flex items-center justify-center -my-1 text-white/20"><span class="material-symbols-outlined text-[16px]">arrow_downward</span></div>
+                                    <div class="flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-white/5 focus-within:border-secondary/50 transition-all">
+                                        <div class="flex items-center justify-center w-6 h-6 rounded-full bg-secondary/20 text-secondary text-xs font-bold font-mono-label shrink-0">5</div>
+                                        <input type="text" maxlength="1000" class="bg-transparent border-none outline-none text-white/90 text-sm w-full custom-structure-step" placeholder="Beat 5: e.g. Conclude with..." />
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        const updateCustomStructureSelection = () => {
+                            const nameInput = customBtn.querySelector('#custom-structure-name');
+                            const steps = Array.from(customBtn.querySelectorAll('.custom-structure-step')).map(inp => inp.value.trim());
+                            const hasAllSteps = steps.every(s => s.length > 0) && nameInput.value.trim().length > 0;
+                            
+                            currentSelectedStructure = {
+                                name: nameInput.value.trim(),
+                                flow: steps
+                            };
+                            
+                            if (customBtn.classList.contains('border-secondary')) {
+                                if (btnConfirmSelection && btnConfirmSelection.textContent.trim() === 'Continue') btnConfirmSelection.disabled = !hasAllSteps;
+                            }
+                        };
+
+                        customBtn.addEventListener('click', () => {
+                            document.querySelectorAll('.structures-option-btn').forEach(b => {
+                                b.classList.remove('border-secondary', 'bg-secondary/10');
+                                b.classList.add('border-white/10', 'bg-black/40');
+                            });
+                            customBtn.classList.remove('border-white/10', 'bg-black/40');
+                            customBtn.classList.add('border-secondary', 'bg-secondary/10');
+                            customBtn.querySelector('#custom-structure-name').focus();
+                            updateCustomStructureSelection();
+                        });
+
+                        customBtn.querySelectorAll('input').forEach(inp => {
+                            inp.addEventListener('input', updateCustomStructureSelection);
+                        });
+
+                        structuresResultsState.appendChild(customBtn);
+                    }
+                    customBtn.click();
+                    setTimeout(() => {
+                        structuresResultsState.scrollTop = structuresResultsState.scrollHeight;
+                    }, 50);
+                } else if (generatorStep === 3) {
+                    // Hooks Custom Input
+                    if (!hooksResultsState) return;
+                    
+                    let customBtn = hooksResultsState.querySelector('.hooks-custom-option');
+                    if (!customBtn) {
+                        customBtn = document.createElement('div');
+                        customBtn.className = 'w-full text-left p-4 rounded-xl bg-black/40 border border-white/10 hover:border-white/50 hover:bg-white/5 transition-all text-white text-[15px] hooks-option-btn hooks-custom-option cursor-text';
+                        
+                        customBtn.innerHTML = `
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white/50 font-mono-label mr-2 font-bold">06</span>
+                                <span class="text-[10px] uppercase tracking-widest px-2 py-1 bg-white/10 rounded-md font-bold text-white/80 border border-white/20">Custom Hook</span>
+                            </div>
+                            <textarea maxlength="1000" class="w-full bg-transparent border-none outline-none text-white placeholder-white/30 resize-none h-20 mt-2" placeholder="Type your custom hook here..."></textarea>
+                        `;
+                        
+                        const inputField = customBtn.querySelector('textarea');
+                        
+                        customBtn.addEventListener('click', () => {
+                            document.querySelectorAll('.hooks-option-btn').forEach(b => {
+                                b.classList.remove('border-white', 'bg-white/10');
+                                b.classList.add('border-white/10', 'bg-black/40');
+                            });
+                            customBtn.classList.remove('border-white/10', 'bg-black/40');
+                            customBtn.classList.add('border-white', 'bg-white/10');
+                            inputField.focus();
+                            currentSelectedHook = { hook: inputField.value.trim(), psychology: "Custom Hook" };
+                            if (btnConfirmSelection && btnConfirmSelection.textContent.trim() === 'Continue') btnConfirmSelection.disabled = inputField.value.trim().length === 0;
+                        });
+
+                        inputField.addEventListener('input', (e) => {
+                            currentSelectedHook = { hook: e.target.value.trim(), psychology: "Custom Hook" };
+                            if (customBtn.classList.contains('border-white')) {
+                                if (btnConfirmSelection && btnConfirmSelection.textContent.trim() === 'Continue') btnConfirmSelection.disabled = currentSelectedHook.hook.length === 0;
+                            }
+                        });
+
+                        hooksResultsState.appendChild(customBtn);
+                    }
+                    customBtn.click();
+                    setTimeout(() => {
+                        hooksResultsState.scrollTop = hooksResultsState.scrollHeight;
+                    }, 50);
+                }
+            } else if (btnConfirmSelection.textContent.trim() === 'Continue') {
+                if (generatorStep === 1 && currentSelectedTake) {
+                    advanceToStep2();
+                } else if (generatorStep === 2 && currentSelectedStructure) {
+                    advanceToStep3();
+                } else if (generatorStep === 3 && currentSelectedHook) {
+                    advanceToStep4();
+                }
             }
         });
     }
@@ -1787,4 +1979,75 @@ export function initScriptRoom() {
         });
     }
 
+    if (scriptOutputTextarea) {
+        scriptOutputTextarea.addEventListener('keydown', (e) => {
+            const content = scriptOutputTextarea.innerText || scriptOutputTextarea.textContent;
+            if (content.length >= 10000 && e.key !== 'Backspace' && e.key !== 'Delete' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+            }
+        });
+        scriptOutputTextarea.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+            const currentContent = scriptOutputTextarea.innerText || scriptOutputTextarea.textContent;
+            if (currentContent.length + pasteData.length > 10000) {
+                showCustomAlert('Cannot paste. The script would exceed the 10000 character limit.', 'Limit Exceeded');
+                return;
+            }
+            document.execCommand('insertText', false, pasteData);
+        });
+    }
+
+    if (btnRegenerate) {
+        btnRegenerate.addEventListener('click', () => {
+            if (regenerateCounts[generatorStep] >= 3) return;
+            
+            regenerateCounts[generatorStep]++;
+            if (regenerateCounts[generatorStep] >= 3) {
+                btnRegenerate.classList.add('hidden');
+            }
+            
+            // Depending on generatorStep, re-run generation
+            if (generatorStep === 1) runTakesGeneration();
+            else if (generatorStep === 2) runStructuresGeneration();
+            else if (generatorStep === 3) runHooksGeneration();
+            else if (generatorStep === 4) runPersonasGeneration();
+            else if (generatorStep === 5) runScriptGeneration();
+        });
+    }
+
+    // Auto-open topic modal if coming from Avatar Studio
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'custom') {
+        setTimeout(openTopicModal, 100);
+    }
+
+    // Auto-load script for editing if ?edit=... is passed
+    const editId = urlParams.get('edit');
+    if (editId) {
+        setTimeout(async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const userId = session?.user?.id;
+                if (!userId) return;
+                const { data: scriptData, error } = await supabase
+                    .from('scripts_final')
+                    .select('*')
+                    .eq('content_id', editId)
+                    .eq('owner_user_id', userId)
+                    .single();
+                
+                if (error) throw error;
+
+                if (scriptData) {
+                    openScriptForEditing(scriptData);
+                } else {
+                    showCustomAlert('Script not found or access denied.', 'Error');
+                }
+            } catch (err) {
+                console.error('Error auto-loading script for editing:', err);
+                showCustomAlert('Failed to load script for editing.', 'Error');
+            }
+        }, 100);
+    }
 }

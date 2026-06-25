@@ -88,7 +88,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = setTimeout(async () => {
             try {
-                const { error } = await supabase.from('edit_queue').update({ manifest: newConfig }).eq('edit_id', editId);
+                const { error } = await supabase.from('edit_queue').update({ manifest: newConfig }).eq('content_id', editId);
                 if (error) console.error('Supabase update returned an error:', error);
             } catch (err) {
                 console.error('Failed to auto-save to Supabase:', err);

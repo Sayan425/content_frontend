@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient.js';
+import { showCustomAlert, showCustomConfirm } from './notifications.js';
 
 export async function loadSidebar(containerId = 'sidebar-container') {
     const container = document.getElementById(containerId);
@@ -6,7 +7,7 @@ export async function loadSidebar(containerId = 'sidebar-container') {
 
     // 1. Fetch and inject the HTML
     try {
-        const response = await fetch('/components/sidebar.html');
+        const response = await fetch('/components/sidebar.html?v=2');
         if (!response.ok) throw new Error('Failed to load sidebar HTML');
         const html = await response.text();
         container.innerHTML = html;
@@ -26,8 +27,8 @@ export async function loadSidebar(containerId = 'sidebar-container') {
     try {
         const { data: allAvatars, error: avatarsError } = await supabase
             .from('avatar_details')
-            .select('avatar_id, name, base_look')
-            .eq('owner', session.user.id);
+            .select('avatar_id, name, base_look, approver_user_id')
+            .eq('owner_user_id', session.user.id);
             
         if (avatarsError) throw avatarsError;
 
@@ -36,7 +37,6 @@ export async function loadSidebar(containerId = 'sidebar-container') {
         if (dropdownList && allAvatars && allAvatars.length > 0) {
             allAvatars.forEach(avatar => {
                 const avatarItem = document.createElement('a');
-                avatarItem.href = `/workspace.html?avatar_id=${avatar.avatar_id}`;
                 avatarItem.className = 'w-full flex items-center gap-3 px-3 py-2 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 cursor-pointer';
                 avatarItem.innerHTML = `
                     <div class="w-6 h-6 rounded-md overflow-hidden flex-shrink-0 bg-surface border border-white/10">
@@ -44,13 +44,18 @@ export async function loadSidebar(containerId = 'sidebar-container') {
                     </div>
                     <span class="text-sm text-on-surface truncate">${avatar.name || 'Unnamed Avatar'}</span>
                 `;
+                avatarItem.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.setItem('activeAvatarId', avatar.avatar_id);
+                    // Redirect to dashboard or just reload
+                    window.location.href = '/dashboard';
+                });
                 dropdownList.appendChild(avatarItem);
             });
         }
 
         // 4. Update the currently selected avatar in the top switcher
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentAvatarId = urlParams.get('avatar_id');
+        const currentAvatarId = localStorage.getItem('activeAvatarId');
         
         if (currentAvatarId) {
             const currentAvatar = allAvatars.find(a => a.avatar_id === currentAvatarId);
@@ -143,18 +148,94 @@ export async function loadSidebar(containerId = 'sidebar-container') {
         }
     });
 
-    // 8. Programmatically update link URLs to preserve avatar_id
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentAvatarId = urlParams.get('avatar_id');
-    const avatarParam = currentAvatarId ? `?avatar_id=${currentAvatarId}` : '';
+    // 8. Programmatically update link URLs to use new routing: /tool-name/[content_id]
+    // Since we don't always have a content_id, we will link to /tool-name to open the tool generically.
+    const currentAvatarId = localStorage.getItem('activeAvatarId');
     
     const homeNav = document.getElementById('nav-home');
     const dashboardNav = document.getElementById('nav-dashboard');
     const completedVideosNav = document.getElementById('nav-completed-videos');
     const editQueueNav = document.getElementById('nav-edit-queue');
+    const editSuiteNav = document.getElementById('nav-edit-suite');
+    const ideaLabsNav = document.getElementById('nav-idea-labs');
+    const scriptRoomNav = document.getElementById('nav-script-room');
+    const runpodQueueNav = document.getElementById('nav-runpod-queue');
+    const avatarStudioNav = document.getElementById('nav-avatar-studio');
 
-    if (homeNav) homeNav.href = `/dashboard.html${avatarParam}`;
-    if (dashboardNav) dashboardNav.href = `/dashboard.html${avatarParam}`;
-    if (completedVideosNav) completedVideosNav.href = `/workspace.html${avatarParam}`;
-    if (editQueueNav) editQueueNav.href = `/edit-queue.html${avatarParam}`;
+    if (homeNav) homeNav.setAttribute('href', `/dashboard`);
+    if (dashboardNav) dashboardNav.setAttribute('href', `/dashboard`);
+    
+    // Note: To navigate to a specific content item, the code inside the tools (like idea-labs)
+    // will need to push to /idea-labs/content_id or /edit-queue/content_id.
+    // The sidebar just links to the generic tool endpoint.
+    if (completedVideosNav) completedVideosNav.setAttribute('href', `/dashboard`);
+    if (editQueueNav) editQueueNav.setAttribute('href', `/edit-queue`);
+    if (editSuiteNav) editSuiteNav.setAttribute('href', `/edit-suite`);
+    if (ideaLabsNav) ideaLabsNav.setAttribute('href', `/idea-labs`);
+    if (scriptRoomNav) scriptRoomNav.setAttribute('href', `/script-room`);
+    if (runpodQueueNav) runpodQueueNav.setAttribute('href', `/production-queue`);
+    if (avatarStudioNav) avatarStudioNav.setAttribute('href', `/avatar-studio`);
+
+    // 9. Profile Settings Logic
+    const profileSettingsNav = document.getElementById('nav-profile-settings');
+    const psModal = document.getElementById('profile-settings-modal');
+    const btnClosePsModal = document.getElementById('btn-close-ps-modal');
+    const psModalBackdrop = document.getElementById('ps-modal-backdrop');
+    
+    if (profileSettingsNav && psModal) {
+        profileSettingsNav.addEventListener('click', async (e) => {
+            e.preventDefault();
+            psModal.classList.remove('hidden');
+            
+            // Load current reviewer
+            if (currentAvatarId) {
+                const { data } = await supabase.from('avatar_details').select('approver_user_id').eq('avatar_id', currentAvatarId).single();
+                if (data && data.approver_user_id) {
+                    const { data: user } = await supabase.from('users').select('email').eq('user_id', data.approver_user_id).single();
+                    document.getElementById('current-reviewer-display').textContent = `Current Reviewer: ${user?.email || data.approver_user_id}`;
+                } else {
+                    document.getElementById('current-reviewer-display').textContent = 'Current Reviewer: None';
+                }
+            }
+        });
+        
+        const closePsModal = () => psModal.classList.add('hidden');
+        if (btnClosePsModal) btnClosePsModal.addEventListener('click', closePsModal);
+        if (psModalBackdrop) psModalBackdrop.addEventListener('click', closePsModal);
+        
+        // Assign Reviewer
+        const btnAssignReviewer = document.getElementById('btn-assign-reviewer');
+        if (btnAssignReviewer) {
+            btnAssignReviewer.addEventListener('click', async () => {
+                const email = document.getElementById('reviewer-email-input').value;
+                if (!email || !currentAvatarId) return;
+                
+                // Lookup user by email
+                const { data: user, error } = await supabase.from('users').select('user_id').eq('email', email).single();
+                if (error || !user) {
+                    await showCustomAlert('Reviewer not found with that email.', 'Error');
+                    return;
+                }
+                
+                // Update avatar
+                await supabase.from('avatar_details').update({ approver_user_id: user.user_id }).eq('avatar_id', currentAvatarId);
+                document.getElementById('current-reviewer-display').textContent = `Current Reviewer: ${email}`;
+                document.getElementById('reviewer-email-input').value = '';
+                await showCustomAlert('Reviewer assigned!', 'Success');
+            });
+        }
+        
+        // Delete Avatar
+        const btnDeleteAvatar = document.getElementById('btn-delete-avatar');
+        if (btnDeleteAvatar) {
+            btnDeleteAvatar.addEventListener('click', async () => {
+                if (!currentAvatarId) return;
+                const confirmed = await showCustomConfirm('Are you sure you want to delete this avatar? This action cannot be undone.', 'Delete Avatar?');
+                if (confirmed) {
+                    await supabase.from('avatar_details').delete().eq('avatar_id', currentAvatarId);
+                    window.location.href = '/dashboard';
+                }
+            });
+        }
+    }
 }
