@@ -303,7 +303,8 @@ export function MainVideoPanel({ config, setConfig, editId }) {
                   
                   if(tracks.length > 0) {
                       setBgmTracks(tracks);
-                      if(!config.backgroundMusicUrl) {
+                      // Use functional state update or safely check config to avoid closure issues
+                      if(config && !config.backgroundMusicUrl) {
                           updateConfig('backgroundMusicUrl', tracks[0].value);
                       }
                   }

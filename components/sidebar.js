@@ -7,7 +7,7 @@ export async function loadSidebar(containerId = 'sidebar-container') {
 
     // 1. Fetch and inject the HTML
     try {
-        const response = await fetch('/components/sidebar.html?v=2');
+        const response = await fetch('/components/sidebar.html?v=3');
         if (!response.ok) throw new Error('Failed to load sidebar HTML');
         const html = await response.text();
         container.innerHTML = html;

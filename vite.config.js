@@ -18,7 +18,7 @@ const htmlRewritePlugin = () => ({
       const match = req.url.match(/^\/([^\/?]+)\/?([^\/?]*)/);
       if (match) {
         const page = match[1];
-        const tools = ['idea-labs', 'script-room', 'production-queue', 'edit-queue', 'avatar-studio'];
+        const tools = ['idea-labs', 'script-room', 'production-queue', 'edit-queue', 'avatar-studio', 'edit-suite'];
         
         if (tools.includes(page) || page === 'workspace') {
           req.url = `/workspace.html`;

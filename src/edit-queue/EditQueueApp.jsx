@@ -44,6 +44,14 @@ export function EditQueueApp() {
     <div className="flex w-full h-full">
       {/* Middle section for the Phone Mockup */}
       <div className="flex-1 flex items-center justify-center p-8 relative">
+        <button 
+          onClick={() => window.location.href = '/edit-suite'}
+          className="absolute top-10 left-6 flex items-center justify-center w-10 h-10 bg-surface-container/50 hover:bg-surface-container border border-white/10 rounded-full transition-colors backdrop-blur-md text-on-surface z-50 shadow-lg cursor-pointer hover:shadow-primary/20 hover:border-primary/30"
+          title="Back to Edit Suite"
+        >
+          <span className="material-symbols-outlined text-xl">arrow_back</span>
+        </button>
+
         {/* Background glow effect for aesthetics */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 blur-[100px] rounded-full pointer-events-none"></div>
         

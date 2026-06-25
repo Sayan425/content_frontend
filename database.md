@@ -161,8 +161,9 @@ The entire pipeline is tied together by a single `content_id` that flows through
 | `approval_status` | text | YES | — | Current approval state. NULL if no approver assigned. |
 | `reviewer_notes` | text | YES | — | Notes left by the reviewer when rejecting content. Explains what needs to change. |
 | `topic` | text | YES | — | The topic of this content piece. Set when script is written. Used for display without joining to scripts_final. |
+| `final_video` | text | YES | — | URL of the final rendered video once the editing is completed. |
 
-**Allowed values for `current_stage`:** `idea`, `script`, `production`, `edit`
+**Allowed values for `current_stage`:** `idea`, `script`, `production`, `edit`, `completed`
 
 **Allowed values for `approval_status`:** `pending`, `approved`, `rejected`
 
@@ -371,7 +372,8 @@ saved_to_idea_vault = 'yes'          saved_to_idea_vault = 'pending_approval'
         ↓
 14. Check approver → status = 'pending_approval' or 'approved'
         ↓ approved
-15. Finalized video output generated and marked complete.
+15. `content_pipeline.current_stage` → `'completed'`
+16. Finalized video output generated, uploaded, and `final_video` link saved in `content_pipeline`.
 ```
 
 ### Path B — Original Content (creator writes from scratch)

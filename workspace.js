@@ -64,7 +64,9 @@ async function initWorkspace() {
     const container = document.getElementById('main-content');
     
     const renderTool = (toolName) => {
+        // Remove padding for full-bleed apps like edit-queue, add it back for others
         if (toolName === 'edit-queue') {
+            container.classList.remove('p-8');
             container.innerHTML = '<div id="react-root" class="w-full h-full flex items-center justify-center"><p class="text-on-surface-variant animate-pulse">Loading Edit Suite...</p></div>';
             import('/src/edit-queue/index.jsx')
                 .then(module => module.mountEditQueue('react-root'))
@@ -73,12 +75,16 @@ async function initWorkspace() {
                     container.innerHTML = `<div class="w-full h-full flex flex-col items-center justify-center text-error"><span class="material-symbols-outlined text-4xl mb-2">error</span><p>Failed to load Edit Suite. Check console.</p><p class="text-xs mt-2 opacity-70">${err.message}</p></div>`;
                 });
         } else if (toolName === 'idea-labs') {
+            container.classList.add('p-8');
             loadComponent('/components/idea-labs.html', 'main-content');
         } else if (toolName === 'script-room') {
+            container.classList.add('p-8');
             loadComponent('/components/script-room.html', 'main-content');
         } else if (toolName === 'production-queue' || toolName === 'avatar-studio') {
+            container.classList.add('p-8');
             loadComponent('/components/production-queue.html', 'main-content');
         } else if (toolName === 'edit-suite') {
+            container.classList.add('p-8');
             loadComponent('/components/edit-suite.html', 'main-content');
         }
 

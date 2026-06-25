@@ -223,7 +223,7 @@ const VideoOverlayAnimated = ({ src, durationInFrames, index, position }) => {
                 <Tape style={{ top: '-15px', left: '-30px', rotate: '-40deg' }} />
                 <Tape style={{ bottom: '-10px', right: '-30px', rotate: '-30deg' }} />
                 
-                <Video 
+                <OffthreadVideo 
                     src={resolveAssetUrl(src)} 
                     style={{ 
                         width: '100%', 
@@ -279,7 +279,7 @@ export const BasicTemplate = ({ config }) => {
                 />
             )}
 
-			<Video
+			<OffthreadVideo
 				src={resolveAssetUrl(config.videoUrl)}
 				style={{ width: '100%', height: '100%', objectFit: 'cover' }}
 			/>

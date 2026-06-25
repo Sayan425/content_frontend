@@ -75,11 +75,15 @@
         
         <!-- Section 1: Videos Awaiting Editing -->
         <section class="glass-panel rounded-xl p-6 relative overflow-hidden shadow-xl border border-white/10 w-full">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="font-headline-sm text-lg text-white flex items-center gap-2 font-bold">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h3 class="font-headline-sm text-lg text-white flex items-center gap-2 font-bold whitespace-nowrap">
                     <span class="material-symbols-outlined text-secondary text-[20px]">movie_edit</span>
                     Videos Awaiting Editing
                 </h3>
+                <div class="relative w-full sm:w-64">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-[18px]">search</span>
+                    <input type="text" id="video-search-input" placeholder="Search by title..." class="w-full bg-surface-container-highest border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all">
+                </div>
             </div>
             
             <div id="awaiting-editing-container" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar w-full min-h-[160px]">
@@ -91,16 +95,16 @@
             </div>
         </section>
 
-        <!-- Section 2: Completed Videos -->
+        <!-- Section 2: Videos Queued for Rendering -->
         <section class="glass-panel rounded-xl p-6 relative overflow-hidden shadow-xl border border-white/10 w-full">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="font-headline-sm text-lg text-white flex items-center gap-2 font-bold">
-                    <span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                    Completed Videos
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h3 class="font-headline-sm text-lg text-white flex items-center gap-2 font-bold whitespace-nowrap">
+                    <span class="material-symbols-outlined text-primary text-[20px]">cloud_upload</span>
+                    Videos Queued for Rendering
                 </h3>
             </div>
             
-            <div id="completed-videos-container" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar w-full min-h-[160px]">
+            <div id="queued-rendering-container" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar w-full min-h-[160px]">
                 <!-- Loading State -->
                 <div class="flex flex-col items-center justify-center w-full text-white/50 py-8">
                     <span class="material-symbols-outlined animate-spin text-[32px] mb-2">autorenew</span>

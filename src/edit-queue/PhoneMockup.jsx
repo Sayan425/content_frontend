@@ -4,6 +4,7 @@ import { RemotionVideo } from './RemotionVideo';
 import { resolveAssetUrl } from './utils/assetResolver';
 import { getVideoMetadata } from '@remotion/media-utils';
 import { supabase } from '../lib/supabase';
+import { preloadVideo, preloadImage, preloadAudio } from '@remotion/preload';
 
 export function PhoneMockup({ config, setConfig, editId }) {
   const videoWidth = 1080;
@@ -89,6 +90,22 @@ export function PhoneMockup({ config, setConfig, editId }) {
         });
       }
 
+      // Preload assets to prevent white flashes
+      try {
+        if (manifestData.videoUrl) preloadVideo(resolveAssetUrl(manifestData.videoUrl));
+        if (manifestData.backgroundMusicUrl) preloadAudio(resolveAssetUrl(manifestData.backgroundMusicUrl));
+        
+        manifestData.overlays.forEach(overlay => {
+            const url = resolveAssetUrl(overlay.props.src || overlay.props.url);
+            if (url) {
+                if (overlay.type === 'Video') preloadVideo(url);
+                if (overlay.type === 'Image') preloadImage(url);
+            }
+        });
+      } catch (preloadErr) {
+        console.warn("Preloading error:", preloadErr);
+      }
+
       setConfig(manifestData);
       setLoading(false);
       
@@ -108,7 +125,7 @@ export function PhoneMockup({ config, setConfig, editId }) {
         const { data, error } = await supabase
           .from('edit_queue')
           .select('manifest, raw_video_link, subtitle')
-          .eq('edit_id', editId)
+          .eq('content_id', editId)
           .single();
 
         if (error) throw error;
@@ -130,7 +147,7 @@ export function PhoneMockup({ config, setConfig, editId }) {
           event: '*', // Listen to UPDATE, INSERT, etc.
           schema: 'public',
           table: 'edit_queue',
-          filter: `edit_id=eq.${editId}`
+          filter: `content_id=eq.${editId}`
         },
         async (payload) => {
           console.log("Realtime update received for edit_queue:", payload);
@@ -150,7 +167,7 @@ export function PhoneMockup({ config, setConfig, editId }) {
   }, [editId, setConfig]);
 
   return (
-    <div className="relative h-full max-h-[90vh] flex items-center justify-center">
+    <div className="relative h-full max-h-[88vh] flex items-center justify-center py-4">
       {/* Phone Hardware Mockup */}
       <div className="relative rounded-[3rem] p-[12px] bg-gradient-to-b from-surface-container-highest to-surface-container border border-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_30px_60px_-15px_rgba(0,0,0,0.8),inset_0_2px_4px_rgba(255,255,255,0.2)] scale-[1.02] h-full aspect-[9/16] z-10">
         
