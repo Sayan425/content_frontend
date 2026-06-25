@@ -39,6 +39,14 @@ async function loadComponent(url, containerId) {
             import('./components/edit-suite.js').then(module => {
                 if (module.initEditSuite) module.initEditSuite();
             }).catch(err => console.error('Failed to load edit-suite.js:', err));
+        } else if (url.includes('completed-videos.html')) {
+            import('./components/completed-videos.js').then(module => {
+                if (module.initCompletedVideos) module.initCompletedVideos();
+            }).catch(err => console.error('Failed to load completed-videos.js:', err));
+        } else if (url.includes('kanban-board.html')) {
+            import('./components/kanban-board.js').then(module => {
+                if (module.initKanbanBoard) module.initKanbanBoard();
+            }).catch(err => console.error('Failed to load kanban-board.js:', err));
         }
     } catch (error) {
         console.error('Error loading component:', error);
@@ -55,10 +63,9 @@ async function initWorkspace() {
     // pathParts[1] would be the content_id, which components can read from window.location.pathname
     
     // Validate tool
-    const validTools = ['idea-labs', 'script-room', 'production-queue', 'edit-queue', 'avatar-studio', 'edit-suite'];
+    const validTools = ['workspace', 'idea-labs', 'script-room', 'production-queue', 'edit-queue', 'avatar-studio', 'edit-suite', 'completed-videos'];
     if (!validTools.includes(tool)) {
-        if (tool === 'workspace') tool = 'idea-labs';
-        else tool = 'idea-labs';
+        tool = 'workspace';
     }
 
     const container = document.getElementById('main-content');
@@ -86,16 +93,24 @@ async function initWorkspace() {
         } else if (toolName === 'edit-suite') {
             container.classList.add('p-8');
             loadComponent('/components/edit-suite.html', 'main-content');
+        } else if (toolName === 'completed-videos') {
+            container.classList.add('p-8');
+            loadComponent('/components/completed-videos.html', 'main-content');
+        } else if (toolName === 'workspace') {
+            container.classList.add('p-8');
+            loadComponent('/components/kanban-board.html', 'main-content');
         }
 
         // Update sidebar active link (give it a small delay so sidebar HTML finishes loading if needed)
         setTimeout(() => {
             document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
-            let activeId = '';
-            if (toolName === 'idea-labs') activeId = 'nav-idea-labs';
+            let activeId = null;
+            if (toolName === 'workspace') activeId = 'nav-workspace';
+            else if (toolName === 'idea-labs') activeId = 'nav-idea-labs';
             else if (toolName === 'script-room') activeId = 'nav-script-room';
             else if (toolName === 'production-queue' || toolName === 'avatar-studio') activeId = 'nav-avatar-studio';
             else if (toolName === 'edit-queue' || toolName === 'edit-suite') activeId = 'nav-edit-suite';
+            else if (toolName === 'completed-videos') activeId = 'nav-completed-videos';
             
             if (activeId) {
                 const activeEl = document.getElementById(activeId);

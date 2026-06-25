@@ -209,6 +209,7 @@ export async function loadSidebar(containerId = 'sidebar-container') {
     
     const homeNav = document.getElementById('nav-home');
     const dashboardNav = document.getElementById('nav-dashboard');
+    const workspaceLink = document.getElementById('nav-workspace');
     const completedVideosNav = document.getElementById('nav-completed-videos');
     const editQueueNav = document.getElementById('nav-edit-queue');
     const editSuiteNav = document.getElementById('nav-edit-suite');
@@ -223,7 +224,8 @@ export async function loadSidebar(containerId = 'sidebar-container') {
     // Note: To navigate to a specific content item, the code inside the tools (like idea-labs)
     // will need to push to /idea-labs/content_id or /edit-queue/content_id.
     // The sidebar just links to the generic tool endpoint.
-    if (completedVideosNav) completedVideosNav.setAttribute('href', `/dashboard`);
+    if (workspaceLink) workspaceLink.setAttribute('href', `/workspace`);
+    if (completedVideosNav) completedVideosNav.setAttribute('href', `/completed-videos`);
     if (editQueueNav) editQueueNav.setAttribute('href', `/edit-queue`);
     if (editSuiteNav) editSuiteNav.setAttribute('href', `/edit-suite`);
     if (ideaLabsNav) ideaLabsNav.setAttribute('href', `/idea-labs`);

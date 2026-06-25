@@ -162,6 +162,7 @@ The entire pipeline is tied together by a single `content_id` that flows through
 | `reviewer_notes` | text | YES | — | Notes left by the reviewer when rejecting content. Explains what needs to change. |
 | `topic` | text | YES | — | The topic of this content piece. Set when script is written. Used for display without joining to scripts_final. |
 | `final_video` | text | YES | — | URL of the final rendered video once the editing is completed. |
+| `cover_image` | text | YES | — | URL of the cover image associated with this content pipeline. |
 
 **Allowed values for `current_stage`:** `idea`, `script`, `production`, `edit`, `completed`
 

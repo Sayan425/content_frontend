@@ -622,6 +622,17 @@ export function initProductionQueue() {
                         }
                     });
                 }
+                
+                // Auto-select script if passed in URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const startScriptId = urlParams.get('start_script');
+                if (startScriptId) {
+                    setTimeout(() => {
+                        selectScript.value = startScriptId;
+                        selectScript.dispatchEvent(new Event('change'));
+                        showCustomAlert("Your script has been loaded. Select your avatar, edit settings, and submit to production.", "Success");
+                    }, 100);
+                }
             }
 
         } catch (error) {

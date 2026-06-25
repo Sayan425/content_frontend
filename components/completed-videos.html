@@ -1,0 +1,174 @@
+<!-- STITCH_SHADER_START:ANIMATION_COMPLETED_VIDEOS class="fixed inset-0 w-full h-full -z-10" -->
+<div class="fixed inset-0 w-full h-full -z-10" style="display:block;">
+<canvas id="shader-canvas-ANIMATION_COMPLETED_VIDEOS" style="display:block;width:100%;height:100%" width="1280" height="1024"></canvas>
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-ANIMATION_COMPLETED_VIDEOS');
+
+  function syncSize() {
+    const w = canvas.clientWidth  || 1280;
+    const h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(syncSize).observe(canvas);
+  }
+  syncSize();
+
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position;
+varying vec2 v_texCoord;
+void main() {
+  v_texCoord = a_position * 0.5 + 0.5;
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}`;
+  const fs = `precision highp float;
+varying vec2 v_texCoord;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+
+float noise(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+void main() {
+    vec2 uv = v_texCoord;
+    vec2 mouse = u_mouse / u_resolution;
+    
+    float t = u_time * 0.2;
+    vec2 p = uv * 2.0 - 1.0;
+    p.x *= u_resolution.x / u_resolution.y;
+    
+    float color = 0.0;
+    color += sin(p.x * 2.0 + t + sin(p.y * 3.0 + t));
+    color += sin(p.y * 1.5 - t + cos(p.x * 2.5 + t));
+    
+    float dist = distance(uv, mouse);
+    float glow = smoothstep(0.4, 0.0, dist) * 0.3;
+    
+    vec3 col1 = vec3(0.07, 0.07, 0.07);
+    vec3 col2 = vec3(0.54, 0.36, 0.96) * 0.15;
+    vec3 finalCol = mix(col1, col2, color * 0.5 + 0.5);
+    
+    float grain = noise(uv * u_time) * 0.05;
+    finalCol += grain;
+    finalCol += glow * vec3(0.54, 0.36, 0.96);
+    
+    gl_FragColor = vec4(finalCol, 1.0);
+}`;
+  function cs(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes = gl.getUniformLocation(prog, 'u_resolution');
+  const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+
+  let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+  window.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width && rect.height) {
+      const nx = (event.clientX - rect.left) / rect.width;
+      const ny = 1.0 - (event.clientY - rect.top) / rect.height;
+      mouse.x = nx * canvas.width;
+      mouse.y = ny * canvas.height;
+    }
+  });
+
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    if (uMouse) gl.uniform2f(uMouse, mouse.x, mouse.y);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
+})();
+</script>
+</div>
+<!-- STITCH_SHADER_END:ANIMATION_COMPLETED_VIDEOS -->
+
+<div class="flex flex-col h-full w-full max-w-[1440px] mx-auto animate-fade-in relative z-10">
+    <!-- Header Area -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 pt-4">
+        <div class="flex flex-col gap-2">
+            <h2 class="font-headline-lg text-headline-lg text-white flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[24px] text-primary">video_library</span>
+                </div>
+                Completed Videos
+            </h2>
+            <p class="text-on-surface-variant text-sm max-w-2xl">
+                Browse and download your fully rendered, approved videos ready for publishing.
+            </p>
+        </div>
+        
+        <!-- Search Bar -->
+        <div class="w-full md:w-[320px] relative group">
+            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-primary transition-colors text-[20px]">search</span>
+            <input type="text" id="search-completed-videos" placeholder="Search by topic..." class="w-full bg-surface-container-high border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-sm text-white placeholder:text-white/30 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none shadow-inner transition-all">
+        </div>
+    </div>
+
+    <!-- Completed Videos Grid -->
+    <div id="completed-videos-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-20">
+        <!-- Initial Loading State -->
+        <div class="col-span-full flex flex-col items-center justify-center py-32 text-center">
+            <span class="material-symbols-outlined animate-spin text-[40px] text-primary/50 mb-4">autorenew</span>
+            <span class="text-white/60 text-sm animate-pulse">Loading your masterpieces...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Premium Video Playback Modal -->
+<div id="modal-video-preview" class="fixed inset-0 z-[100] hidden opacity-0 transition-opacity duration-300">
+    <!-- Deep Cinematic Background -->
+    <div class="absolute inset-0 bg-[#050505]/95 backdrop-blur-3xl transition-all duration-500"></div>
+    
+    <!-- Ambient Glow behind the video -->
+    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div class="w-[40vw] h-[60vh] bg-primary/20 blur-[140px] rounded-full mix-blend-screen opacity-60"></div>
+        <div class="absolute w-[20vw] h-[40vh] bg-secondary/10 blur-[100px] rounded-full mix-blend-screen opacity-40 translate-x-20 -translate-y-20"></div>
+    </div>
+
+    <div class="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-10">
+        <!-- Premium Floating Close Button -->
+        <button id="btn-close-preview" class="absolute top-8 right-8 text-white/60 hover:text-white transition-all p-3 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 hover:border-white/30 backdrop-blur-xl shadow-2xl z-50 flex items-center justify-center group active:scale-95">
+            <span class="material-symbols-outlined text-[24px] group-hover:rotate-90 transition-transform duration-300">close</span>
+            <span class="sr-only">Close</span>
+        </button>
+
+        <!-- Device Mockup Container -->
+        <div class="relative h-[85vh] max-h-[850px] aspect-[9/16] rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden shadow-[0_0_120px_rgba(208,188,255,0.4),0_50px_120px_rgba(0,0,0,0.9)] border-[8px] sm:border-[10px] border-[#151515] bg-black transform scale-95 transition-all duration-500 ring-1 ring-white/20 z-10 group/player" id="preview-container">
+            
+            <!-- Subtle Dynamic Island Mockup -->
+            <div class="absolute top-0 inset-x-0 flex justify-center pointer-events-none z-20">
+                <div class="w-[100px] sm:w-[120px] h-[24px] sm:h-[30px] bg-[#151515] rounded-b-3xl flex items-center justify-center shadow-inner">
+                    <div class="w-1.5 h-1.5 rounded-full bg-white/10 ml-12"></div>
+                </div>
+            </div>
+
+            <video id="preview-video-player" class="w-full h-full object-cover" controls playsinline controlsList="nodownload"></video>
+        </div>
+    </div>
+</div>

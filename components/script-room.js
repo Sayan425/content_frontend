@@ -811,7 +811,7 @@ export function initScriptRoom() {
         } catch (error) {
             console.error('Error loading saved ideas:', error);
             boardContainer.innerHTML = `
-                <div class="w-full text-center text-error p-4 bg-error/10 rounded-lg border border-error/20" style="column-span: all;">
+                <div class="col-span-full w-full text-center text-error p-4 bg-error/10 rounded-lg border border-error/20">
                     Failed to load saved ideas: ${error.message}
                 </div>
             `;
@@ -2057,5 +2057,28 @@ export function initScriptRoom() {
                 showCustomAlert('Failed to load script for editing.', 'Error');
             }
         }, 100);
+    }
+    
+    // Auto-load idea for script generation if ?start_idea=... is passed
+    const startIdeaId = urlParams.get('start_idea');
+    if (startIdeaId) {
+        setTimeout(async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('watchlist_results')
+                    .select('*')
+                    .eq('content_id', startIdeaId)
+                    .single();
+                
+                if (error) throw error;
+                if (data) {
+                    const ideaTopic = data.content_topic || data.parsed_idea?.Topic || data.idea_summary || data.topic || 'Untitled Idea';
+                    openTakesModal(ideaTopic, startIdeaId);
+                }
+            } catch (err) {
+                console.error('Error auto-loading idea for script:', err);
+                showCustomAlert('Failed to load idea.', 'Error');
+            }
+        }, 300); // Slight delay to let UI render
     }
 }
