@@ -9,7 +9,7 @@ async function loadComponent(url, containerId) {
         if (!response.ok) throw new Error('Failed to load component');
         const html = await response.text();
         
-        container.innerHTML = html;
+        container.innerHTML = `<div class="p-8 w-full min-h-full flex flex-col">${html}</div>`;
         
         // Execute scripts (like the webgl shader)
         const scripts = container.querySelectorAll('script');
@@ -47,6 +47,14 @@ async function loadComponent(url, containerId) {
             import('./components/kanban-board.js').then(module => {
                 if (module.initKanbanBoard) module.initKanbanBoard();
             }).catch(err => console.error('Failed to load kanban-board.js:', err));
+        } else if (url.includes('home.html')) {
+            import('./components/home.js?v=6').then(module => {
+                if (module.initHomeAnalytics) module.initHomeAnalytics();
+            }).catch(err => console.error('Failed to load home.js:', err));
+        } else if (url.includes('profile-settings.html')) {
+            import('./components/profile-settings.js').then(module => {
+                if (module.initProfileSettings) module.initProfileSettings();
+            }).catch(err => console.error('Failed to load profile-settings.js:', err));
         }
     } catch (error) {
         console.error('Error loading component:', error);
@@ -57,15 +65,15 @@ async function initWorkspace() {
     // Load the reusable sidebar component
     await loadSidebar('sidebar-container');
     
-    // Determine which tool to load from URL path (e.g. /idea-labs/1234)
+    // Determine which tool to load from URL path (e.g. /analytics/1234)
     const pathParts = window.location.pathname.split('/').filter(Boolean);
-    let tool = pathParts[0] || 'idea-labs';
+    let tool = pathParts[0] || 'analytics';
     // pathParts[1] would be the content_id, which components can read from window.location.pathname
     
     // Validate tool
-    const validTools = ['workspace', 'idea-labs', 'script-room', 'production-queue', 'edit-queue', 'avatar-studio', 'edit-suite', 'completed-videos'];
+    const validTools = ['workspace', 'idea-labs', 'script-room', 'production-queue', 'edit-queue', 'avatar-studio', 'edit-suite', 'completed-videos', 'analytics', 'profile-settings'];
     if (!validTools.includes(tool)) {
-        tool = 'workspace';
+        tool = 'analytics';
     }
 
     const container = document.getElementById('main-content');
@@ -73,7 +81,6 @@ async function initWorkspace() {
     const renderTool = (toolName) => {
         // Remove padding for full-bleed apps like edit-queue, add it back for others
         if (toolName === 'edit-queue') {
-            container.classList.remove('p-8');
             container.innerHTML = '<div id="react-root" class="w-full h-full flex items-center justify-center"><p class="text-on-surface-variant animate-pulse">Loading Edit Suite...</p></div>';
             import('/src/edit-queue/index.jsx')
                 .then(module => module.mountEditQueue('react-root'))
@@ -82,23 +89,21 @@ async function initWorkspace() {
                     container.innerHTML = `<div class="w-full h-full flex flex-col items-center justify-center text-error"><span class="material-symbols-outlined text-4xl mb-2">error</span><p>Failed to load Edit Suite. Check console.</p><p class="text-xs mt-2 opacity-70">${err.message}</p></div>`;
                 });
         } else if (toolName === 'idea-labs') {
-            container.classList.add('p-8');
             loadComponent('/components/idea-labs.html', 'main-content');
         } else if (toolName === 'script-room') {
-            container.classList.add('p-8');
             loadComponent('/components/script-room.html', 'main-content');
         } else if (toolName === 'production-queue' || toolName === 'avatar-studio') {
-            container.classList.add('p-8');
             loadComponent('/components/production-queue.html', 'main-content');
         } else if (toolName === 'edit-suite') {
-            container.classList.add('p-8');
             loadComponent('/components/edit-suite.html', 'main-content');
         } else if (toolName === 'completed-videos') {
-            container.classList.add('p-8');
             loadComponent('/components/completed-videos.html', 'main-content');
         } else if (toolName === 'workspace') {
-            container.classList.add('p-8');
-            loadComponent('/components/kanban-board.html', 'main-content');
+            loadComponent('/components/kanban-board.html?v=6', 'main-content');
+        } else if (toolName === 'analytics') {
+            loadComponent('/components/home.html?v=6', 'main-content');
+        } else if (toolName === 'profile-settings') {
+            loadComponent('/components/profile-settings.html', 'main-content');
         }
 
         // Update sidebar active link (give it a small delay so sidebar HTML finishes loading if needed)
@@ -109,8 +114,10 @@ async function initWorkspace() {
             else if (toolName === 'idea-labs') activeId = 'nav-idea-labs';
             else if (toolName === 'script-room') activeId = 'nav-script-room';
             else if (toolName === 'production-queue' || toolName === 'avatar-studio') activeId = 'nav-avatar-studio';
-            else if (toolName === 'edit-queue' || toolName === 'edit-suite') activeId = 'nav-edit-suite';
+            else if (toolName === 'edit-suite' || toolName === 'edit-queue') activeId = 'nav-edit-suite';
             else if (toolName === 'completed-videos') activeId = 'nav-completed-videos';
+            else if (toolName === 'analytics') activeId = 'nav-analytics';
+            else if (toolName === 'profile-settings') activeId = 'nav-profile-settings';
             
             if (activeId) {
                 const activeEl = document.getElementById(activeId);

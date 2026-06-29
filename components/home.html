@@ -1,0 +1,207 @@
+<div class="flex flex-col h-full w-full min-w-0 mx-auto animate-fade-in relative z-10 overflow-hidden text-on-surface">
+    <!-- Header Area & Filters -->
+    <div class="flex items-center justify-between gap-6 mb-8 flex-wrap">
+        <div class="flex flex-col gap-1">
+            <h2 class="font-headline-lg text-headline-lg text-white flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-inner">
+                    <span class="material-symbols-outlined text-[28px] text-primary">home</span>
+                </div>
+                Dashboard Overview
+            </h2>
+            <p class="text-on-surface-variant text-sm mt-1">
+                Monitor your audience growth and content performance across all platforms.
+            </p>
+        </div>
+        
+        <!-- Filters -->
+        <div class="flex items-center gap-3 bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-lg">
+            <!-- Platform Filter -->
+            <div class="relative group">
+                <select id="analytics-platform-filter" class="appearance-none bg-surface-container border border-white/10 hover:border-white/20 rounded-xl px-4 py-2 pr-10 text-sm text-white focus:outline-none focus:border-primary cursor-pointer transition-colors">
+                    <option value="all">All Platforms</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="twitter">Twitter</option>
+                    <option value="facebook">Facebook</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-white/50 pointer-events-none">expand_more</span>
+            </div>
+            
+            <!-- Date Range Filter -->
+            <div class="relative group flex items-center gap-2">
+                <select id="analytics-date-filter" class="appearance-none bg-surface-container border border-white/10 hover:border-white/20 rounded-xl px-4 py-2 pr-10 text-sm text-white focus:outline-none focus:border-primary cursor-pointer transition-colors">
+                    <option value="1w">Last 1 week</option>
+                    <option value="1m" selected>Last 1 month</option>
+                    <option value="2m">Last 2 months</option>
+                    <option value="3m">Last 3 months</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-white/50 pointer-events-none">expand_more</span>
+            </div>
+
+            <!-- Custom Date Inputs (Hidden by default) -->
+            <div id="custom-date-container" class="hidden items-center gap-2">
+                <input type="date" id="date-start" class="bg-surface-container border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary [color-scheme:dark]">
+                <span class="text-white/50 text-xs">to</span>
+                <input type="date" id="date-end" class="bg-surface-container border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary [color-scheme:dark]">
+                <button id="btn-apply-dates" class="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20 rounded-xl px-3 py-2 text-sm font-medium transition-colors">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="flex-1 overflow-auto custom-scrollbar pb-8">
+        
+        <!-- Section 1: KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.2)] flex flex-col gap-2">
+                <div class="flex items-center gap-2 text-white/60 mb-2">
+                    <span class="material-symbols-outlined text-[20px]">post_add</span>
+                    <span class="text-sm font-medium tracking-wide uppercase">Number of Posts</span>
+                </div>
+                <div class="text-3xl font-bold text-white tracking-tight" id="kpi-posts">0</div>
+            </div>
+            <div class="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.2)] flex flex-col gap-2">
+                <div class="flex items-center gap-2 text-[#4cd7f6]/80 mb-2">
+                    <span class="material-symbols-outlined text-[20px]">visibility</span>
+                    <span class="text-sm font-medium tracking-wide uppercase">Total Impressions</span>
+                </div>
+                <div class="text-3xl font-bold text-white tracking-tight" id="kpi-impressions">0</div>
+            </div>
+            <div class="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.2)] flex flex-col gap-2">
+                <div class="flex items-center gap-2 text-primary/80 mb-2">
+                    <span class="material-symbols-outlined text-[20px]">group</span>
+                    <span class="text-sm font-medium tracking-wide uppercase">Followers Gained</span>
+                </div>
+                <div class="text-3xl font-bold text-white tracking-tight" id="kpi-followers">0</div>
+            </div>
+            <div class="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.2)] flex flex-col gap-2">
+                <div class="flex items-center gap-2 text-[#ffb2b7]/80 mb-2">
+                    <span class="material-symbols-outlined text-[20px]">favorite</span>
+                    <span class="text-sm font-medium tracking-wide uppercase">Total Engagements</span>
+                </div>
+                <div class="text-3xl font-bold text-white tracking-tight" id="kpi-engagements">0</div>
+            </div>
+        </div>
+
+        <!-- Section 2: Charts Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            
+            <!-- Follower History (Spans Full Width) -->
+            <div class="lg:col-span-2 bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.2)] flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-white tracking-wide text-lg flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">trending_up</span>
+                        Follower History
+                    </h3>
+                    <div class="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg p-1">
+                        <button id="toggle-cumulative" class="px-3 py-1 text-xs font-medium bg-primary text-on-primary rounded-md shadow-sm transition-colors">Cumulative</button>
+                        <button id="toggle-daily" class="px-3 py-1 text-xs font-medium text-white/60 hover:text-white rounded-md transition-colors">Daily Growth</button>
+                    </div>
+                </div>
+                <div class="flex-1 min-h-[350px] w-full relative">
+                    <canvas id="chart-follower-history"></canvas>
+                </div>
+            </div>
+
+            <!-- Platform Radar Chart (Side by Side) -->
+            <div class="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.2)] flex flex-col">
+                <h3 class="font-bold text-white tracking-wide text-lg mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[#4cd7f6]">radar</span>
+                    Platform Comparison Breakdown
+                </h3>
+                <p class="text-white/50 text-xs mb-4">Analyze how your audience interacts and views your content across platforms.</p>
+                <div class="flex-1 min-h-[300px] w-full relative flex items-center justify-center">
+                    <canvas id="chart-platform-radar"></canvas>
+                </div>
+            </div>
+
+            <!-- Engagement Breakdown Donut Chart (Side by Side) -->
+            <div class="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.2)] flex flex-col justify-center">
+                <h3 class="font-bold text-white tracking-wide text-lg mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[#ffb2b7]">pie_chart</span>
+                    Audience Engagement Breakdown
+                </h3>
+                <p class="text-white/50 text-xs mb-4">Understand how your audience interacts across all selected platforms.</p>
+                <div class="flex flex-col items-center justify-center gap-6 flex-1 mt-4">
+                    <div class="w-full max-w-[280px] min-h-[280px] relative transition-transform duration-500 hover:scale-105" style="filter: drop-shadow(0 20px 30px rgba(0,0,0,0.6));">
+                        <canvas id="chart-engagement-donut"></canvas>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-x-6 gap-y-3 mt-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full shadow-[0_0_10px_rgba(109,59,215,0.5)]" style="background-color: #6d3bd7"></div>
+                            <div class="flex items-center gap-1.5 text-white/80">
+                                <span class="material-symbols-outlined text-[14px]">favorite</span>
+                                <span class="font-medium text-sm" id="legend-likes">0% (0)</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full shadow-[0_0_10px_rgba(3,181,211,0.5)]" style="background-color: #03b5d3"></div>
+                            <div class="flex items-center gap-1.5 text-white/80">
+                                <span class="material-symbols-outlined text-[14px]">chat_bubble</span>
+                                <span class="font-medium text-sm" id="legend-comments">0% (0)</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full shadow-[0_0_10px_rgba(255,81,106,0.5)]" style="background-color: #ff516a"></div>
+                            <div class="flex items-center gap-1.5 text-white/80">
+                                <span class="material-symbols-outlined text-[14px]">share</span>
+                                <span class="font-medium text-sm" id="legend-shares">0% (0)</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full shadow-[0_0_10px_rgba(133,83,244,0.5)]" style="background-color: #8553f4"></div>
+                            <div class="flex items-center gap-1.5 text-white/80">
+                                <span class="material-symbols-outlined text-[14px]">bookmark</span>
+                                <span class="font-medium text-sm" id="legend-saves">0% (0)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Top Posts -->
+        <div class="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
+            <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+                <h3 class="font-bold text-white tracking-wide text-xl flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[#ffb2b7]">local_fire_department</span>
+                    Top Posts
+                </h3>
+                
+                <div class="flex items-center gap-3">
+                    <span class="text-white/60 text-sm font-medium">View top posts by:</span>
+                    <div class="relative group">
+                        <select id="sort-top-posts" class="appearance-none bg-surface-container border border-white/10 hover:border-white/20 rounded-xl px-4 py-2 pr-10 text-sm text-white focus:outline-none focus:border-primary cursor-pointer transition-colors font-semibold">
+                            <option value="virality_score">Virality Score</option>
+                            <option value="engagement_rate">Engagement Rate</option>
+                            <option value="impressions">Total Impressions</option>
+                            <option value="likes">Total Likes</option>
+                            <option value="shares">Total Shares</option>
+                            <option value="saves">Total Saves</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-white/50 pointer-events-none">sort</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Posts Grid -->
+            <div id="top-posts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+                <!-- Cards injected dynamically here -->
+            </div>
+            
+            <div class="flex justify-center w-full gap-4">
+                <button id="btn-show-less-posts" class="px-6 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-medium transition-all shadow-md hidden">
+                    Show Less
+                </button>
+                <button id="btn-show-more-posts" class="px-6 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-medium transition-all shadow-md hidden">
+                    Show 5 More
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>

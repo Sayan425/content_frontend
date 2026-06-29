@@ -135,7 +135,7 @@ function renderAvatars(avatars) {
 
     avatars.forEach(avatar => {
         const avatarHTML = `
-        <button onclick="localStorage.setItem('activeAvatarId', '${avatar.avatar_id}'); window.location.href='/idea-labs'" class="group flex flex-col items-center gap-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl p-2 transition-transform duration-300 hover:scale-105 max-w-[200px]">
+        <button onclick="localStorage.setItem('activeAvatarId', '${avatar.avatar_id}'); window.location.href='/analytics'" class="group flex flex-col items-center gap-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl p-2 transition-transform duration-300 hover:scale-105 max-w-[200px]">
             <div class="w-32 h-32 md:w-44 md:h-44 rounded-[2.5rem] overflow-hidden border border-white/10 avatar-ring bg-surface-container-high relative shadow-[0_15px_40px_-10px_rgba(0,0,0,0.6)] group-hover:shadow-[0_20px_50px_-12px_rgba(208,188,255,0.4)] transition-all duration-500">
                 <img alt="${avatar.name} Avatar" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="${avatar.base_look || 'https://via.placeholder.com/160'}" />
                 <div class="absolute inset-0 bg-gradient-to-t from-background/90 via-background/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
