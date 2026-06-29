@@ -1,4 +1,4 @@
-import { loadSidebar } from './components/sidebar.js';
+import { loadSidebar } from './components/sidebar.js?v=10';
 
 async function loadComponent(url, containerId) {
     const container = document.getElementById(containerId);

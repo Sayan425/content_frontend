@@ -594,7 +594,7 @@ export function initIdeaLabs() {
                 html += `
                     <tr class="watchlist-feed-row hover:bg-white/10 transition-colors group cursor-pointer backdrop-blur-sm" data-id="${item.content_id}">
                         <td class="px-6 py-5 font-mono-label text-mono-label text-outline text-center">${(index + 1).toString().padStart(2, '0')}</td>
-                        <td class="px-6 py-5 font-medium text-white max-w-[300px] truncate text-[15px] drop-shadow-sm">${item.content_topic || 'Unknown Topic'}</td>
+                        <td class="px-6 py-5 font-medium text-white w-full truncate text-[15px] drop-shadow-sm">${item.content_topic || 'Unknown Topic'}</td>
                         <td class="px-6 py-5 text-center font-mono-label text-mono-label text-primary font-bold">${impressions}</td>
                         <td class="px-6 py-5 text-center font-mono-label text-mono-label text-secondary font-bold">${engagement}</td>
                         <td class="px-6 py-5">
@@ -613,7 +613,7 @@ export function initIdeaLabs() {
                                 <span class="font-mono-label text-mono-label text-secondary font-bold">${engScore}%</span>
                             </div>
                         </td>
-                        <td class="px-6 py-5" onclick="event.stopPropagation()">
+                        <td class="pl-6 pr-9 py-5" onclick="event.stopPropagation()">
                             <div class="flex items-center justify-center gap-2">
                                 <button class="btn-view-link px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/20 hover:text-secondary transition-all flex items-center gap-1 shadow-sm" data-link="${item.content_link}" title="View on Platform">
                                     <span class="material-symbols-outlined text-[16px] pointer-events-none">open_in_new</span>

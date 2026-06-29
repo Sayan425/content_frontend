@@ -27,6 +27,14 @@
     border: 1px solid rgba(255,255,255,0.08);
     box-shadow: 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
 }
+/* Hide scrollbar */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
 </style>
 
 <!-- STITCH_SHADER_START:ANIMATION_23 class="fixed inset-0 w-full h-full -z-10" -->
@@ -148,7 +156,7 @@ void main() {
 </div>
 <!-- STITCH_SHADER_END:ANIMATION_23 -->
 
-<div class="flex-1 relative z-10 w-full max-w-7xl mx-auto space-y-8">
+<div class="flex-1 relative z-10 w-full max-w-7xl mx-auto space-y-8 flex flex-col h-full">
 <!-- Hero Section -->
 <header class="mb-4">
     <h2 class="text-primary font-mono-label text-xs uppercase tracking-widest opacity-80 font-semibold flex items-center gap-2">
@@ -202,7 +210,7 @@ void main() {
 </div>
 </section>
 <!-- Research Table Section -->
-<section class="flex flex-col space-y-4">
+<section class="flex flex-col space-y-4 flex-1 min-h-0">
 <!-- Filters Toolbar -->
 <div class="flex flex-wrap items-center justify-between gap-4">
 <h2 class="font-headline-lg text-headline-lg text-white font-bold drop-shadow-md">Watchlist Feed</h2>
@@ -224,39 +232,39 @@ void main() {
 </div>
 </div>
 <!-- Table Container -->
-<div class="glass-panel rounded-xl overflow-hidden shadow-2xl relative">
+<div class="glass-panel rounded-xl overflow-hidden shadow-2xl relative flex flex-col flex-1 min-h-0">
 <div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
-<div class="overflow-x-auto relative z-10">
-<table class="w-full text-left border-collapse">
+<div class="overflow-y-auto overflow-x-hidden relative z-10 flex-1 hide-scrollbar">
+<table class="w-full table-fixed text-left border-collapse">
 <thead>
 <tr class="border-b border-white/10 bg-black/20 text-label-caps font-label-caps text-on-surface-variant tracking-wider">
 <th class="px-6 py-4 w-16 text-center">SN</th>
 <th class="px-6 py-4">Topic</th>
-<th class="px-6 py-4 text-center cursor-pointer hover:text-white transition-colors group sort-header" data-sort="content_impressions">
+<th class="px-6 py-4 text-center cursor-pointer hover:text-white transition-colors group sort-header w-32" data-sort="content_impressions">
     <div class="flex items-center justify-center gap-1">
         Impressions
         <span class="material-symbols-outlined text-[14px] opacity-50 group-hover:opacity-100 transition-opacity sort-icon">unfold_more</span>
     </div>
 </th>
-<th class="px-6 py-4 text-center cursor-pointer hover:text-white transition-colors group sort-header" data-sort="content_engagement">
+<th class="px-6 py-4 text-center cursor-pointer hover:text-white transition-colors group sort-header w-32" data-sort="content_engagement">
     <div class="flex items-center justify-center gap-1">
         Engagement
         <span class="material-symbols-outlined text-[14px] opacity-50 group-hover:opacity-100 transition-opacity sort-icon">unfold_more</span>
     </div>
 </th>
-<th class="px-6 py-4 text-center cursor-pointer hover:text-white transition-colors group sort-header" data-sort="content_virality_score">
+<th class="px-6 py-4 text-center cursor-pointer hover:text-white transition-colors group sort-header w-40" data-sort="content_virality_score">
     <div class="flex items-center justify-center gap-1">
         Virality Score
         <span class="material-symbols-outlined text-[14px] opacity-50 group-hover:opacity-100 transition-opacity sort-icon">unfold_more</span>
     </div>
 </th>
-<th class="px-6 py-4 text-center cursor-pointer hover:text-white transition-colors group sort-header" data-sort="content_engagement_score">
+<th class="px-6 py-4 text-center cursor-pointer hover:text-white transition-colors group sort-header w-40" data-sort="content_engagement_score">
     <div class="flex items-center justify-center gap-1">
         Engagement Score
         <span class="material-symbols-outlined text-[14px] opacity-50 group-hover:opacity-100 transition-opacity sort-icon">unfold_more</span>
     </div>
 </th>
-                    <th class="px-6 py-4 text-center w-32">Actions</th>
+                    <th class="pl-6 pr-9 py-4 text-center w-48">Actions</th>
                 </tr>
             </thead>
             <tbody id="watchlist-feed-body" class="text-body-sm font-body-sm divide-y divide-white/5">
