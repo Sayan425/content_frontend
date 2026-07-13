@@ -71,6 +71,18 @@ const RangeInput = ({ label, value, onChange, min, max, step }) => (
   </div>
 );
 
+const ToggleInput = ({ label, value, onChange }) => (
+  <div className="flex items-center justify-between mb-4">
+    <label className="text-sm font-medium text-on-surface-variant">{label}</label>
+    <button
+      onClick={() => onChange(!value)}
+      className={`relative w-11 h-6 rounded-full transition-colors ${value ? 'bg-primary' : 'bg-white/10'}`}
+    >
+      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${value ? 'left-[22px]' : 'left-0.5'}`} />
+    </button>
+  </div>
+);
+
 const isHexColor = (v) =>
   typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.trim());
 
@@ -372,6 +384,81 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                         max={100}
                                         step={1}
                                     />
+                                </div>
+
+                                {/* Backdrop: optional card behind the transparent graphic */}
+                                <div className="mt-2 pt-4 border-t border-white/5">
+                                    <h4 className="text-on-surface font-semibold mb-4 text-sm flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-primary text-[18px]">layers</span>
+                                        Backdrop
+                                    </h4>
+
+                                    <ToggleInput
+                                        label="Background"
+                                        value={selectedOverlay.backdrop?.background === true}
+                                        onChange={v => updateOverlay('backdrop.background', v)}
+                                    />
+                                    {selectedOverlay.backdrop?.background === true && (
+                                        <>
+                                            <ColorInput
+                                                label="Background Color"
+                                                value={selectedOverlay.backdrop?.backgroundColor || '#000000'}
+                                                onChange={v => updateOverlay('backdrop.backgroundColor', v)}
+                                            />
+                                            <RangeInput
+                                                label="Background Opacity (%)"
+                                                value={selectedOverlay.backdrop?.backgroundOpacity !== undefined ? selectedOverlay.backdrop.backgroundOpacity : 60}
+                                                onChange={v => updateOverlay('backdrop.backgroundOpacity', v)}
+                                                min={0}
+                                                max={100}
+                                                step={1}
+                                            />
+                                        </>
+                                    )}
+
+                                    <ToggleInput
+                                        label="Border"
+                                        value={selectedOverlay.backdrop?.border === true}
+                                        onChange={v => updateOverlay('backdrop.border', v)}
+                                    />
+                                    {selectedOverlay.backdrop?.border === true && (
+                                        <>
+                                            <ColorInput
+                                                label="Border Color"
+                                                value={selectedOverlay.backdrop?.borderColor || '#ffffff'}
+                                                onChange={v => updateOverlay('backdrop.borderColor', v)}
+                                            />
+                                            <RangeInput
+                                                label="Border Width (px)"
+                                                value={selectedOverlay.backdrop?.borderWidth !== undefined ? selectedOverlay.backdrop.borderWidth : 4}
+                                                onChange={v => updateOverlay('backdrop.borderWidth', v)}
+                                                min={1}
+                                                max={20}
+                                                step={1}
+                                            />
+                                        </>
+                                    )}
+
+                                    {(selectedOverlay.backdrop?.background === true || selectedOverlay.backdrop?.border === true) && (
+                                        <>
+                                            <RangeInput
+                                                label="Corner Radius (px)"
+                                                value={selectedOverlay.backdrop?.radius !== undefined ? selectedOverlay.backdrop.radius : 16}
+                                                onChange={v => updateOverlay('backdrop.radius', v)}
+                                                min={0}
+                                                max={100}
+                                                step={1}
+                                            />
+                                            <RangeInput
+                                                label="Padding (px)"
+                                                value={selectedOverlay.backdrop?.padding !== undefined ? selectedOverlay.backdrop.padding : 24}
+                                                onChange={v => updateOverlay('backdrop.padding', v)}
+                                                min={0}
+                                                max={120}
+                                                step={2}
+                                            />
+                                        </>
+                                    )}
                                 </div>
                             </>
                         ) : (

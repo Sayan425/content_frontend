@@ -333,6 +333,7 @@ export const BasicTemplate = ({ config }) => {
                                     props={overlay.props}
                                     position={overlay.position}
                                     opacity={overlay.opacity}
+                                    backdrop={overlay.backdrop}
                                 />
                             ) : (
                                 <DynamicGraphicRenderer
