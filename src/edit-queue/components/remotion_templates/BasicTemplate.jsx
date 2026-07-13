@@ -5,34 +5,7 @@ import { CompositionRenderer } from '../motion_graphics/CompositionRenderer';
 import { Subtitles } from '../Subtitles';
 import { StaticText } from '../motion_graphics/StaticText';
 import { resolveAssetUrl } from '../../utils/assetResolver';
-
-const ProgressBar = () => {
-    const frame = useCurrentFrame();
-    const { durationInFrames } = useVideoConfig();
-    const progress = frame / durationInFrames;
-
-    return (
-        <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '20px',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 100,
-            overflow: 'hidden'
-        }}>
-            <div style={{
-                width: `${progress * 100}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, #ffcc00, #ffee58)',
-                boxShadow: '0 0 20px rgba(255, 204, 0, 0.8)',
-                borderRight: '3px solid white',
-                transition: 'width 0.1s linear'
-            }} />
-        </div>
-    );
-};
+import { ProgressBar } from '../ProgressBar';
 
 const Tape = ({ style }) => (
     <div style={{
@@ -272,7 +245,9 @@ export const BasicTemplate = ({ config }) => {
 
 	return (
 		<AbsoluteFill style={{ backgroundColor: 'black' }}>
-            <ProgressBar />
+            {config.showProgressBar !== false && (
+                <ProgressBar color={config.progressBarColor || '#ffcc00'} />
+            )}
             {config.showBgm !== false && config.backgroundMusicUrl && (
                 <Audio 
                     src={resolveAssetUrl(config.backgroundMusicUrl)} 

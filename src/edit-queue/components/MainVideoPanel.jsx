@@ -378,6 +378,40 @@ export function MainVideoPanel({ config, setConfig, editId }) {
             />
         </section>
 
+        {/* Progress Bar Section */}
+        <section className="bg-surface p-4 rounded-xl border border-white/5 shadow-sm">
+            <h4 className="text-on-surface font-semibold mb-4 text-sm flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[18px]">linear_scale</span>
+                Progress Bar
+            </h4>
+
+            <ToggleInput
+                label="Show Progress Bar"
+                value={config.showProgressBar !== false} // Defaults to true
+                onChange={v => updateConfig('showProgressBar', v)}
+            />
+
+            {config.showProgressBar !== false && (
+                <div className="flex flex-col gap-2 mb-2">
+                    <label className="text-sm font-medium text-on-surface-variant">Bar Color</label>
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="color"
+                            value={config.progressBarColor || '#ffcc00'}
+                            onChange={e => updateConfig('progressBarColor', e.target.value)}
+                            className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border border-white/10 p-0 shrink-0"
+                        />
+                        <input
+                            type="text"
+                            value={config.progressBarColor || '#ffcc00'}
+                            onChange={e => updateConfig('progressBarColor', e.target.value)}
+                            className="flex-1 bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2 font-mono text-sm focus:border-primary outline-none"
+                        />
+                    </div>
+                </div>
+            )}
+        </section>
+
         {/* Subtitles Section */}
         <section className="bg-surface p-4 rounded-xl border border-white/5 shadow-sm">
             <h4 className="text-on-surface font-semibold mb-4 text-sm flex items-center gap-2">
