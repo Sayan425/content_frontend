@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabase';
 import { markLocalSave } from '../utils/localSaveTracker';
+import { showCustomConfirm } from '../../../components/notifications.js';
 
 // Reusing generic input components
 const SelectInput = ({ label, value, onChange, options }) => (
@@ -268,6 +269,23 @@ export function OverlaysPanel({ config, setConfig, editId }) {
     }
 
     const selectedOverlay = selectedOverlayIndex !== '' ? overlays[selectedOverlayIndex] : null;
+
+    const deleteOverlay = async () => {
+        if (selectedOverlayIndex === '') return;
+        const index = parseInt(selectedOverlayIndex);
+        const confirmed = await showCustomConfirm(
+            'This overlay will be permanently deleted and cannot be restored. Delete it?',
+            'Delete Overlay'
+        );
+        if (!confirmed) return;
+
+        setConfig(prev => {
+            const updated = { ...prev, overlays: (prev.overlays || []).filter((_, i) => i !== index) };
+            autoSaveToSupabase(updated);
+            return updated;
+        });
+        setSelectedOverlayIndex('');
+    };
 
     const handleSelectOverlay = (val) => {
         setSelectedOverlayIndex(val);
@@ -797,6 +815,24 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                             max={180}
                             step={1}
                         />
+                    </section>
+
+                    {/* Danger Zone */}
+                    <section className="bg-surface p-4 rounded-xl border border-error/20 shadow-sm">
+                        <h4 className="text-error font-semibold mb-2 text-sm flex items-center gap-2">
+                            <span className="material-symbols-outlined text-error text-[18px]">warning</span>
+                            Danger Zone
+                        </h4>
+                        <p className="text-xs text-on-surface-variant mb-4">
+                            Deleting an overlay is permanent — it cannot be restored.
+                        </p>
+                        <button
+                            onClick={deleteOverlay}
+                            className="w-full px-4 py-2.5 bg-error/10 hover:bg-error/20 text-error border border-error/30 font-medium rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">delete_forever</span>
+                            Delete This Overlay
+                        </button>
                     </section>
                 </>
             )}
