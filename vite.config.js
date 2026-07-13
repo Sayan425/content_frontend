@@ -207,6 +207,18 @@ export default defineConfig({
             proxyReq.removeHeader('accept-encoding');
           });
         }
+      },
+      // Motion-graphics bucket (holds the .tsx composition files). Separate
+      // bucket from /r2-assets, proxied in dev to avoid browser CORS on fetch.
+      '/mg-assets': {
+        target: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/mg-assets/, ''),
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            proxyReq.removeHeader('accept-encoding');
+          });
+        }
       }
     }
   },

@@ -61,6 +61,105 @@ async function loadComponent(url, containerId) {
     }
 }
 
+// --- Per-page skeleton curtains -------------------------------------------
+// Each tool gets a placeholder that mirrors its real layout, built from
+// shimmering `.sk` blocks (styled in workspace.html). Repeat helper keeps
+// the templates readable.
+const rep = (n, html) => Array(n).fill(html).join('');
+
+const SKELETONS = {
+    // Analytics dashboard: title, stat cards, charts
+    'analytics': `
+        <div class="flex flex-col gap-6">
+            <div class="sk h-12 w-64"></div>
+            <div class="grid grid-cols-4 gap-4">${rep(4, '<div class="sk h-32 rounded-3xl"></div>')}</div>
+            <div class="sk h-[320px] rounded-3xl"></div>
+            <div class="grid grid-cols-2 gap-6">${rep(2, '<div class="sk h-[260px] rounded-3xl"></div>')}</div>
+        </div>`,
+    // Idea Labs: title, toolbar, table with rows
+    'idea-labs': `
+        <div class="flex flex-col gap-5">
+            <div class="sk h-10 w-56"></div>
+            <div class="flex gap-3">
+                <div class="sk h-10 flex-1 max-w-md"></div>
+                <div class="sk h-10 w-32"></div>
+                <div class="sk h-10 w-32"></div>
+            </div>
+            <div class="sk h-12 w-full rounded-xl"></div>
+            <div class="flex flex-col gap-2">${rep(8, '<div class="sk h-14 w-full rounded-xl"></div>')}</div>
+        </div>`,
+    // Kanban board: columns of stacked cards
+    'workspace': `
+        <div class="flex flex-col gap-5 h-full">
+            <div class="sk h-10 w-56"></div>
+            <div class="grid grid-cols-4 gap-4 flex-1">
+                ${rep(4, `
+                <div class="flex flex-col gap-3">
+                    <div class="sk h-9 w-full"></div>
+                    <div class="sk h-28 w-full rounded-2xl"></div>
+                    <div class="sk h-28 w-full rounded-2xl"></div>
+                    <div class="sk h-28 w-full rounded-2xl opacity-60"></div>
+                </div>`)}
+            </div>
+        </div>`,
+    // Script room: list on the left, editor on the right
+    'script-room': `
+        <div class="flex flex-col gap-5 h-full">
+            <div class="sk h-10 w-56"></div>
+            <div class="grid grid-cols-3 gap-6 flex-1">
+                <div class="flex flex-col gap-3">${rep(6, '<div class="sk h-20 w-full rounded-2xl"></div>')}</div>
+                <div class="col-span-2 flex flex-col gap-3">
+                    <div class="sk h-12 w-2/3"></div>
+                    <div class="sk flex-1 min-h-[420px] rounded-2xl"></div>
+                </div>
+            </div>
+        </div>`,
+    // Production queue / avatar studio: two-column cards
+    'production-queue': `
+        <div class="flex flex-col gap-5">
+            <div class="sk h-10 w-64"></div>
+            <div class="grid grid-cols-2 gap-5">${rep(6, '<div class="sk h-40 rounded-2xl"></div>')}</div>
+        </div>`,
+    // Edit suite: rows of videos in progress
+    'edit-suite': `
+        <div class="flex flex-col gap-5">
+            <div class="sk h-10 w-56"></div>
+            <div class="grid grid-cols-3 gap-5">${rep(6, '<div class="sk h-52 rounded-2xl"></div>')}</div>
+        </div>`,
+    // Completed videos: grid of vertical (9:16) thumbnails
+    'completed-videos': `
+        <div class="flex flex-col gap-5">
+            <div class="sk h-10 w-64"></div>
+            <div class="grid grid-cols-5 gap-4">${rep(10, '<div class="sk aspect-[9/16] rounded-2xl"></div>')}</div>
+        </div>`,
+    // Profile settings: avatar + form fields
+    'profile-settings': `
+        <div class="flex flex-col gap-6 max-w-3xl">
+            <div class="sk h-10 w-56"></div>
+            <div class="flex items-center gap-5">
+                <div class="sk w-24 h-24 rounded-full"></div>
+                <div class="flex flex-col gap-2 flex-1">
+                    <div class="sk h-6 w-48"></div>
+                    <div class="sk h-4 w-64"></div>
+                </div>
+            </div>
+            ${rep(4, `
+            <div class="flex flex-col gap-2">
+                <div class="sk h-4 w-32"></div>
+                <div class="sk h-12 w-full"></div>
+            </div>`)}
+        </div>`
+};
+SKELETONS['avatar-studio'] = SKELETONS['production-queue'];
+
+function prepareSkeleton(toolName) {
+    const slot = document.getElementById('skeleton-content');
+    if (slot) slot.innerHTML = SKELETONS[toolName] || SKELETONS['analytics'];
+    // Open a short window during which data reads may show the curtain;
+    // outside of it (background refreshes, auto-saves) it stays hidden.
+    window.__skeletonAllowedUntil = Date.now() + 5000;
+}
+
 async function initWorkspace() {
     // Load the reusable sidebar component
     await loadSidebar('sidebar-container');
@@ -79,8 +178,11 @@ async function initWorkspace() {
     const container = document.getElementById('main-content');
     
     const renderTool = (toolName) => {
+        prepareSkeleton(toolName);
         // Remove padding for full-bleed apps like edit-queue, add it back for others
         if (toolName === 'edit-queue') {
+            container.classList.remove('p-8', 'overflow-y-auto');
+            container.classList.add('overflow-hidden');
             container.innerHTML = '<div id="react-root" class="w-full h-full flex items-center justify-center"><p class="text-on-surface-variant animate-pulse">Loading Edit Suite...</p></div>';
             import('/src/edit-queue/index.jsx')
                 .then(module => module.mountEditQueue('react-root'))
@@ -88,7 +190,12 @@ async function initWorkspace() {
                     console.error('Failed to load React app:', err);
                     container.innerHTML = `<div class="w-full h-full flex flex-col items-center justify-center text-error"><span class="material-symbols-outlined text-4xl mb-2">error</span><p>Failed to load Edit Suite. Check console.</p><p class="text-xs mt-2 opacity-70">${err.message}</p></div>`;
                 });
-        } else if (toolName === 'idea-labs') {
+        } else {
+            container.classList.add('p-8', 'overflow-y-auto');
+            container.classList.remove('overflow-hidden');
+        }
+
+        if (toolName === 'idea-labs') {
             loadComponent('/components/idea-labs.html', 'main-content');
         } else if (toolName === 'script-room') {
             loadComponent('/components/script-room.html', 'main-content');

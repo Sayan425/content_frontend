@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { generateMotionGraphicCode } from '../utils/groqClient';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabase';
+import { markLocalSave } from '../utils/localSaveTracker';
 
 // Reusing generic input components
 const SelectInput = ({ label, value, onChange, options }) => (
@@ -70,6 +70,137 @@ const RangeInput = ({ label, value, onChange, min, max, step }) => (
   </div>
 );
 
+const isHexColor = (v) =>
+  typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.trim());
+
+const prettyLabel = (k) =>
+  k.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' ').replace(/^./, (c) => c.toUpperCase()).trim();
+
+const ColorInput = ({ label, value, onChange }) => (
+  <div className="flex flex-col gap-2 mb-4">
+    <label className="text-sm font-medium text-on-surface-variant">{label}</label>
+    <div className="flex items-center gap-2">
+      <input
+        type="color"
+        value={/^#([0-9a-fA-F]{6})$/.test(value) ? value : '#000000'}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-10 h-10 rounded-lg bg-transparent border border-white/10 cursor-pointer p-0 shrink-0"
+      />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="flex-1 bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+      />
+    </div>
+  </div>
+);
+
+// Editor for an array of like-shaped objects (e.g. chart data: [{label, value}]).
+function ArrayField({ label, value, onChange }) {
+  const items = Array.isArray(value) ? value : [];
+  const subKeys = items.length ? Object.keys(items[0]) : [];
+
+  const setItem = (idx, k, v) => onChange(items.map((it, i) => (i === idx ? { ...it, [k]: v } : it)));
+  const removeItem = (idx) => onChange(items.filter((_, i) => i !== idx));
+  const addItem = () =>
+    onChange([
+      ...items,
+      subKeys.length
+        ? Object.fromEntries(subKeys.map((k) => [k, typeof items[0][k] === 'number' ? 0 : '']))
+        : {},
+    ]);
+
+  return (
+    <div className="flex flex-col gap-2 mb-4">
+      <label className="text-sm font-medium text-on-surface-variant">{label}</label>
+      <div className="flex flex-col gap-2">
+        {items.map((it, idx) => (
+          <div key={idx} className="flex items-end gap-2 bg-surface-container-high/50 p-2 rounded-lg border border-white/5">
+            {subKeys.map((k) => (
+              <div key={k} className="flex-1 min-w-0">
+                <label className="text-[10px] uppercase tracking-wider text-on-surface-variant/70">{k}</label>
+                <input
+                  type={typeof it[k] === 'number' ? 'number' : 'text'}
+                  value={it[k]}
+                  onChange={(e) =>
+                    setItem(idx, k, typeof it[k] === 'number' ? parseFloat(e.target.value) : e.target.value)
+                  }
+                  className="w-full bg-surface-container border border-white/10 text-on-surface rounded-md p-1.5 text-sm outline-none focus:border-primary"
+                />
+              </div>
+            ))}
+            <button
+              onClick={() => removeItem(idx)}
+              className="text-error hover:bg-error/10 rounded-md p-1.5 shrink-0"
+              title="Remove item"
+            >
+              <span className="material-symbols-outlined text-[18px]">delete</span>
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={addItem}
+        className="self-start text-xs text-primary hover:bg-primary/10 rounded-md px-2 py-1 flex items-center gap-1 mt-1"
+      >
+        <span className="material-symbols-outlined text-[16px]">add</span> Add item
+      </button>
+    </div>
+  );
+}
+
+// Fallback editor for nested objects / anything we can't render as a simple field.
+function JsonField({ label, value, onChange }) {
+  const [text, setText] = useState(() => JSON.stringify(value, null, 2));
+  const [err, setErr] = useState(false);
+
+  useEffect(() => {
+    setText(JSON.stringify(value, null, 2));
+  }, [value]);
+
+  return (
+    <div className="flex flex-col gap-2 mb-4">
+      <label className="text-sm font-medium text-on-surface-variant">{label}</label>
+      <textarea
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          try {
+            onChange(JSON.parse(e.target.value));
+            setErr(false);
+          } catch {
+            setErr(true);
+          }
+        }}
+        className={`bg-surface-container-high border ${err ? 'border-error' : 'border-white/10'} text-on-surface rounded-lg p-2 text-xs font-mono min-h-[100px] outline-none focus:border-primary`}
+      />
+      {err && <span className="text-error text-xs">Invalid JSON — not saved</span>}
+    </div>
+  );
+}
+
+// Picks the right editor for a single motion-graphic prop based on its value.
+function PropField({ propKey, value, onChange }) {
+  const label = prettyLabel(propKey);
+  if (isHexColor(value)) return <ColorInput label={label} value={value} onChange={onChange} />;
+  if (typeof value === 'number')
+    return <NumberInput label={label} value={value} onChange={onChange} step={1} />;
+  if (typeof value === 'boolean')
+    return (
+      <SelectInput
+        label={label}
+        value={String(value)}
+        onChange={(v) => onChange(v === 'true')}
+        options={[{ value: 'true', label: 'True' }, { value: 'false', label: 'False' }]}
+      />
+    );
+  if (Array.isArray(value)) return <ArrayField label={label} value={value} onChange={onChange} />;
+  if (value && typeof value === 'object')
+    return <JsonField label={label} value={value} onChange={onChange} />;
+  return <TextInput label={label} value={value} onChange={onChange} />;
+}
+
 export function OverlaysPanel({ config, setConfig, editId }) {
     const [selectedOverlayIndex, setSelectedOverlayIndex] = useState('');
     const saveTimeoutRef = useRef(null);
@@ -88,6 +219,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = setTimeout(async () => {
             try {
+                markLocalSave();
                 const { error } = await supabase.from('edit_queue').update({ manifest: newConfig }).eq('content_id', editId);
                 if (error) console.error('Supabase update returned an error:', error);
             } catch (err) {
@@ -192,32 +324,36 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                             </>
                         ) : selectedOverlay.type === 'MotionGraphic' ? (
                             <>
-                                <h4 className="text-on-surface font-semibold mb-4 text-sm flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-primary text-[18px]">smart_toy</span>
-                                    AI Motion Graphic
+                                <h4 className="text-on-surface font-semibold mb-1 text-sm flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-[18px]">auto_awesome_motion</span>
+                                    Motion Graphic
                                 </h4>
-                                <div className="flex flex-col gap-3">
-                                    <textarea
-                                        className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-primary transition-colors min-h-[80px]"
-                                        placeholder="E.g., A bouncing glowing circle..."
-                                        value={selectedOverlay.props?.prompt || ''}
-                                        onChange={e => updateOverlay('props.prompt', e.target.value)}
+                                {selectedOverlay.templateId && (
+                                    <p className="text-[11px] text-on-surface-variant/70 mb-4 font-mono">{selectedOverlay.templateId}</p>
+                                )}
+                                <div className="flex flex-col gap-1">
+                                    {selectedOverlay.props && Object.keys(selectedOverlay.props).length > 0 ? (
+                                        Object.entries(selectedOverlay.props).map(([key, value]) => (
+                                            <PropField
+                                                key={key}
+                                                propKey={key}
+                                                value={value}
+                                                onChange={(v) => updateOverlayProp(key, v)}
+                                            />
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-on-surface-variant">This graphic has no editable properties.</p>
+                                    )}
+                                </div>
+                                <div className="mt-2 pt-4 border-t border-white/5">
+                                    <RangeInput
+                                        label="Opacity (%)"
+                                        value={selectedOverlay.opacity !== undefined ? selectedOverlay.opacity : 100}
+                                        onChange={v => updateOverlay('opacity', v)}
+                                        min={0}
+                                        max={100}
+                                        step={1}
                                     />
-                                    <button 
-                                        className="w-full bg-primary text-on-primary font-bold py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-                                        onClick={async () => {
-                                            try {
-                                                const currentCode = selectedOverlay.props?.code || '';
-                                                const newCode = await generateMotionGraphicCode(selectedOverlay.props?.prompt, currentCode);
-                                                updateOverlay('props.code', newCode);
-                                            } catch (err) {
-                                                alert("Failed to generate code: " + err.message);
-                                            }
-                                        }}
-                                    >
-                                        <span className="material-symbols-outlined">magic_button</span>
-                                        Generate Graphic
-                                    </button>
                                 </div>
                             </>
                         ) : (

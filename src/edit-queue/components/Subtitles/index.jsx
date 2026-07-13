@@ -95,7 +95,7 @@ export const Subtitles = ({
 
     // Calculate highlighting for JSON format
     const wordsWithState = currentSegment.words?.map(w => ({
-        text: w.text,
+        text: w.text ?? w.word,
         isActive: currentTime >= w.start && currentTime <= w.end
     }));
 

@@ -120,6 +120,25 @@
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.2);
         }
+
+        /* Skeleton building blocks: shimmering placeholder shapes */
+        .sk {
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+        }
+        .sk::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            transform: translateX(-100%);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+            animation: sk-shimmer 1.5s ease-in-out infinite;
+        }
+        @keyframes sk-shimmer {
+            100% { transform: translateX(100%); }
+        }
     </style>
 </head>
 <body class="bg-background text-on-background h-screen overflow-hidden antialiased">
@@ -248,20 +267,8 @@
 
         <!-- Global Skeleton Loader -->
         <div id="global-skeleton-loader" class="hidden absolute top-0 right-0 bottom-0 left-[240px] z-50 bg-background/50 backdrop-blur-sm flex items-start justify-center p-8 transition-opacity duration-300">
-            <div class="w-full h-full flex flex-col gap-6 animate-pulse mt-4">
-                <div class="h-12 w-64 bg-white/5 rounded-2xl"></div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="h-32 bg-white/5 rounded-3xl"></div>
-                    <div class="h-32 bg-white/5 rounded-3xl"></div>
-                    <div class="h-32 bg-white/5 rounded-3xl"></div>
-                    <div class="h-32 bg-white/5 rounded-3xl"></div>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
-                    <div class="lg:col-span-2 h-[350px] bg-white/5 rounded-3xl"></div>
-                    <div class="h-[300px] bg-white/5 rounded-3xl"></div>
-                    <div class="h-[300px] bg-white/5 rounded-3xl"></div>
-                </div>
-            </div>
+            <!-- Per-page skeleton shapes are injected here by workspace.js -->
+            <div id="skeleton-content" class="w-full h-full mt-4 overflow-hidden"></div>
         </div>
 
         <!-- Main Content Area -->
@@ -288,7 +295,16 @@
         const originalFetch = window.fetch;
         window.fetch = async function(...args) {
             const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
-            const isSupabaseDataReq = url.includes('supabase.co/rest/v1/') || url.includes('supabase.co/graphql/v1/');
+            // Only blank the page for data *reads* (page loads). Saves (PATCH/POST)
+            // and anything inside the edit-queue editor must never hide the UI,
+            // otherwise every auto-save flashes the skeleton mid-edit.
+            const method = (args[1]?.method || args[0]?.method || 'GET').toUpperCase();
+            const inEditor = window.location.pathname.startsWith('/edit-queue');
+            // The curtain is only allowed briefly after a page navigation
+            // (workspace.js sets this window). Background reads never show it.
+            const navWindowOpen = window.__skeletonAllowedUntil && Date.now() < window.__skeletonAllowedUntil;
+            const isSupabaseDataReq = !inEditor && navWindowOpen && method === 'GET' &&
+                (url.includes('supabase.co/rest/v1/') || url.includes('supabase.co/graphql/v1/'));
             
             if (isSupabaseDataReq) {
                 if (activeSupabaseRequests === 0) {

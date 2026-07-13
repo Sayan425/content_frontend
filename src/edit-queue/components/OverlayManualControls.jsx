@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
+import { markLocalSave } from '../utils/localSaveTracker';
 
 export function OverlayManualControls({ selectedOverlayId, overlays, setConfig, editId }) {
   const [localPos, setLocalPos] = useState({ x: 50, y: 50, scale: 1, rotation: 0 });
@@ -98,6 +99,7 @@ export function OverlayManualControls({ selectedOverlayId, overlays, setConfig, 
 
                 if (manifestIndex !== -1) {
                     manifest.overlays[manifestIndex].position = formattedPos;
+                    markLocalSave();
                     await supabase
                         .from('edit_queue')
                         .update({ manifest: manifest })

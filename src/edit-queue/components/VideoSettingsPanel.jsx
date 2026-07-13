@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { markLocalSave } from '../utils/localSaveTracker';
 
 const SelectInput = ({ label, value, onChange, options }) => (
   <div className="flex flex-col gap-2 mb-4">
@@ -90,6 +91,7 @@ export function VideoSettingsPanel({ config, setConfig, editId }) {
     
     saveTimeoutRef.current = setTimeout(async () => {
       try {
+        markLocalSave();
         const { error } = await supabase
           .from('edit_queue')
           .update({ manifest: newConfig })

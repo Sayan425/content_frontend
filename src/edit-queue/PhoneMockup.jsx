@@ -5,6 +5,7 @@ import { resolveAssetUrl } from './utils/assetResolver';
 import { getVideoMetadata } from '@remotion/media-utils';
 import { supabase } from '../lib/supabase';
 import { preloadVideo, preloadImage, preloadAudio } from '@remotion/preload';
+import { isRecentLocalSave } from './utils/localSaveTracker';
 
 export function PhoneMockup({ config, setConfig, editId }) {
   const videoWidth = 1080;
@@ -151,6 +152,12 @@ export function PhoneMockup({ config, setConfig, editId }) {
         },
         async (payload) => {
           console.log("Realtime update received for edit_queue:", payload);
+          // Skip echoes of this tab's own auto-saves: local state is already
+          // up to date, and rebuilding the config makes the player reload.
+          if (isRecentLocalSave()) {
+            console.log("Skipping realtime echo of local save");
+            return;
+          }
           if (payload.new) {
             await processAndSetConfig(payload.new);
           }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, OffthreadVideo, Video, Audio, interpolate, useCurrentFrame, useVideoConfig, Img, spring, Sequence } from 'remotion';
 import { DynamicGraphicRenderer } from '../motion_graphics/DynamicGraphicRenderer';
+import { CompositionRenderer } from '../motion_graphics/CompositionRenderer';
 import { Subtitles } from '../Subtitles';
 import { StaticText } from '../motion_graphics/StaticText';
 import { resolveAssetUrl } from '../../utils/assetResolver';
@@ -360,11 +361,20 @@ export const BasicTemplate = ({ config }) => {
                 if (overlay.type === 'MotionGraphic') {
                     return (
                         <Sequence key={`overlay-${index}`} from={startFrame} durationInFrames={durationFrames}>
-                            <DynamicGraphicRenderer
-                                code={overlay.props.code}
-                                durationInFrames={durationFrames}
-                                position={overlay.position}
-                            />
+                            {overlay.templateId ? (
+                                <CompositionRenderer
+                                    templateId={overlay.templateId}
+                                    props={overlay.props}
+                                    position={overlay.position}
+                                    opacity={overlay.opacity}
+                                />
+                            ) : (
+                                <DynamicGraphicRenderer
+                                    code={overlay.props.code}
+                                    durationInFrames={durationFrames}
+                                    position={overlay.position}
+                                />
+                            )}
                         </Sequence>
                     );
                 }

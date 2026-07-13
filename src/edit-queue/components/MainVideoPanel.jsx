@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { markLocalSave } from '../utils/localSaveTracker';
 import * as Styles from './Subtitles/StyleVariations';
 
 const SelectInput = ({ label, value, onChange, options }) => (
@@ -323,6 +324,7 @@ export function MainVideoPanel({ config, setConfig, editId }) {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(async () => {
       try {
+        markLocalSave();
         const { error } = await supabase.from('edit_queue').update({ manifest: newConfig }).eq('content_id', editId);
         if (error) console.error('Supabase update returned an error:', error);
       } catch (err) {
