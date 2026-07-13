@@ -4,8 +4,8 @@ import { RemotionVideo } from './RemotionVideo';
 import { resolveAssetUrl } from './utils/assetResolver';
 import { getVideoMetadata } from '@remotion/media-utils';
 import { supabase } from '../lib/supabase';
-import { preloadVideo, preloadImage, preloadAudio } from '@remotion/preload';
 import { isRecentLocalSave } from './utils/localSaveTracker';
+import { prefetchAsset, waitForAsset, freeAllAssets } from './utils/assetPrefetcher';
 
 export function PhoneMockup({ config, setConfig, editId }) {
   const videoWidth = 1080;
@@ -13,6 +13,8 @@ export function PhoneMockup({ config, setConfig, editId }) {
   
   const [durationInFrames, setDurationInFrames] = useState(1702); // Fallback to 68s at 25fps
   const [loading, setLoading] = useState(!config);
+  // One-time buffer: true until the main video is fully downloaded into RAM.
+  const [buffering, setBuffering] = useState(true);
   const playerRef = useRef(null);
 
   useEffect(() => {
@@ -91,24 +93,35 @@ export function PhoneMockup({ config, setConfig, editId }) {
         });
       }
 
-      // Preload assets to prevent white flashes
+      // Download every asset into RAM once (video, BGM, overlay media) so the
+      // player never re-fetches from R2 — template switches become instant.
+      const mainVideoUrl = resolveAssetUrl(manifestData.videoUrl);
       try {
-        if (manifestData.videoUrl) preloadVideo(resolveAssetUrl(manifestData.videoUrl));
-        if (manifestData.backgroundMusicUrl) preloadAudio(resolveAssetUrl(manifestData.backgroundMusicUrl));
-        
+        if (manifestData.videoUrl) prefetchAsset(mainVideoUrl);
+        if (manifestData.backgroundMusicUrl) prefetchAsset(resolveAssetUrl(manifestData.backgroundMusicUrl));
+
         manifestData.overlays.forEach(overlay => {
-            const url = resolveAssetUrl(overlay.props.src || overlay.props.url);
-            if (url) {
-                if (overlay.type === 'Video') preloadVideo(url);
-                if (overlay.type === 'Image') preloadImage(url);
+            const url = resolveAssetUrl(overlay.props?.src || overlay.props?.url);
+            if (url && (overlay.type === 'Video' || overlay.type === 'Image')) {
+                prefetchAsset(url);
             }
         });
-      } catch (preloadErr) {
-        console.warn("Preloading error:", preloadErr);
+      } catch (prefetchErr) {
+        console.warn("Prefetching error:", prefetchErr);
       }
 
       setConfig(manifestData);
       setLoading(false);
+
+      // Keep the "Buffering" badge up until the main video is fully in
+      // memory; if the download fails we still let the player try normally.
+      if (manifestData.videoUrl) {
+        waitForAsset(mainVideoUrl)
+          .catch(() => {})
+          .finally(() => setBuffering(false));
+      } else {
+        setBuffering(false);
+      }
       
       try {
         const resolvedVideo = resolveAssetUrl(manifestData.videoUrl);
@@ -170,6 +183,8 @@ export function PhoneMockup({ config, setConfig, editId }) {
     return () => {
       console.log("Removing Supabase Realtime subscription");
       supabase.removeChannel(channel);
+      // Release the in-memory asset cache when leaving (or switching videos).
+      freeAllAssets();
     };
   }, [editId, setConfig]);
 
@@ -199,6 +214,13 @@ export function PhoneMockup({ config, setConfig, editId }) {
               <span className="text-sm font-mono-label">Loading Video Config...</span>
             </div>
           ) : (
+            <>
+            {buffering && (
+              <div className="absolute top-14 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-black/70 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 pointer-events-none">
+                <span className="material-symbols-outlined text-primary text-[16px] animate-spin">progress_activity</span>
+                <span className="text-xs text-on-surface whitespace-nowrap">Buffering video into memory…</span>
+              </div>
+            )}
             <Player
               ref={playerRef}
               component={RemotionVideo}
@@ -215,6 +237,7 @@ export function PhoneMockup({ config, setConfig, editId }) {
               controls
               loop
             />
+            </>
           )}
         </div>
         
