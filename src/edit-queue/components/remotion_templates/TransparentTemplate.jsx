@@ -6,6 +6,7 @@ import { Subtitles } from '../Subtitles';
 import { StaticText } from '../motion_graphics/StaticText';
 import { resolveAssetUrl } from '../../utils/assetResolver';
 import { ProgressBar } from '../ProgressBar';
+import { TextOverlay } from '../TextOverlay';
 
 const ImageOverlayInternal = ({ src, startFrame, durationInFrames, index, position }) => {
     const frame = useCurrentFrame();
@@ -112,22 +113,12 @@ export const TransparentTemplate = ({ config }) => {
                 if (overlay.type === 'Text') {
                     return (
                         <Sequence key={`text-${index}`} from={startFrame} durationInFrames={durationFrames}>
-                            <div style={{ 
-                                    position: 'absolute', 
-                                    left: overlay.position?.x !== undefined ? overlay.position.x : '50%',
-                                    top: overlay.position?.y !== undefined ? overlay.position.y : TEMPLATE_DEFAULTS.textOverlayTop, 
-                                    width: overlay.position?.x !== undefined ? 'auto' : '100%',
-                                    display: 'flex',
-                                    justifyContent: overlay.position?.x !== undefined ? 'flex-start' : 'center',
-                                    transform: `${overlay.position?.x !== undefined || overlay.position?.y !== undefined ? 'translate(-50%, -50%) ' : ''}scale(${!isNaN(parseFloat(overlay.position?.scale)) ? parseFloat(overlay.position.scale) / 100 : 1}) rotate(${overlay.position?.rotation || 0}deg)`,
-                                    padding: overlay.position?.x !== undefined ? '0' : '0 50px'
-                                }}>
-                                <StaticText 
-                                    text={overlay.props.text} 
-                                    styleVariation={config.textOverlayStyle || TEMPLATE_DEFAULTS.textOverlayStyle}
-                                    fontSize={TEMPLATE_DEFAULTS.textOverlaySize}
-                                />
-                            </div>
+                            <TextOverlay
+                                overlay={overlay}
+                                styleVariation={config.textOverlayStyle || TEMPLATE_DEFAULTS.textOverlayStyle}
+                                fontSize={TEMPLATE_DEFAULTS.textOverlaySize}
+                                defaultTop={TEMPLATE_DEFAULTS.textOverlayTop}
+                            />
                         </Sequence>
                     );
                 }
