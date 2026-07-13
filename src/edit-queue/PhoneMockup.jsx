@@ -14,7 +14,10 @@ export function PhoneMockup({ config, setConfig, editId }) {
   const [durationInFrames, setDurationInFrames] = useState(1702); // Fallback to 68s at 25fps
   const [loading, setLoading] = useState(!config);
   // One-time buffer: true until the main video is fully downloaded into RAM.
+  // The Player is only mounted after this, so playback can never stall on
+  // the network — it reads entirely from memory.
   const [buffering, setBuffering] = useState(true);
+  const [bufferPct, setBufferPct] = useState(null);
   const playerRef = useRef(null);
 
   useEffect(() => {
@@ -97,7 +100,11 @@ export function PhoneMockup({ config, setConfig, editId }) {
       // player never re-fetches from R2 — template switches become instant.
       const mainVideoUrl = resolveAssetUrl(manifestData.videoUrl);
       try {
-        if (manifestData.videoUrl) prefetchAsset(mainVideoUrl);
+        if (manifestData.videoUrl) {
+          prefetchAsset(mainVideoUrl, (loaded, total) => {
+            if (total) setBufferPct(Math.round((loaded / total) * 100));
+          });
+        }
         if (manifestData.backgroundMusicUrl) prefetchAsset(resolveAssetUrl(manifestData.backgroundMusicUrl));
 
         manifestData.overlays.forEach(overlay => {
@@ -213,14 +220,23 @@ export function PhoneMockup({ config, setConfig, editId }) {
               <span className="material-symbols-outlined text-4xl animate-spin">sync</span>
               <span className="text-sm font-mono-label">Loading Video Config...</span>
             </div>
-          ) : (
-            <>
-            {buffering && (
-              <div className="absolute top-14 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-black/70 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 pointer-events-none">
-                <span className="material-symbols-outlined text-primary text-[16px] animate-spin">progress_activity</span>
-                <span className="text-xs text-on-surface whitespace-nowrap">Buffering video into memory…</span>
+          ) : buffering ? (
+            /* One-time buffer: the player mounts only after the whole video
+               is in RAM, so playback afterwards never touches the network. */
+            <div className="flex flex-col items-center gap-4 text-on-surface-variant px-8 w-full">
+              <span className="material-symbols-outlined text-4xl text-primary animate-spin">progress_activity</span>
+              <span className="text-sm font-mono-label text-center">
+                Buffering video into memory{bufferPct !== null ? ` (${bufferPct}%)` : '…'}
+              </span>
+              <div className="w-3/4 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${bufferPct ?? 5}%` }}
+                />
               </div>
-            )}
+              <span className="text-[11px] opacity-60 text-center">One-time load — editing will be instant after this</span>
+            </div>
+          ) : (
             <Player
               ref={playerRef}
               component={RemotionVideo}
@@ -237,7 +253,6 @@ export function PhoneMockup({ config, setConfig, editId }) {
               controls
               loop
             />
-            </>
           )}
         </div>
         

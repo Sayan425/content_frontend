@@ -15,11 +15,16 @@ import { prefetch } from 'remotion';
 // url -> { free, waitUntilDone } handle returned by prefetch()
 const handles = new Map();
 
-export function prefetchAsset(url) {
+export function prefetchAsset(url, onProgress) {
   if (!url) return null;
   if (handles.has(url)) return handles.get(url);
 
-  const handle = prefetch(url, { method: 'blob-url' });
+  const handle = prefetch(url, {
+    method: 'blob-url',
+    onProgress: onProgress
+      ? ({ loadedBytes, totalBytes }) => onProgress(loadedBytes, totalBytes)
+      : undefined,
+  });
   handles.set(url, handle);
 
   // A failed download shouldn't poison the cache — drop it so a later
