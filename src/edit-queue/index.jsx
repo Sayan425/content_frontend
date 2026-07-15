@@ -8,6 +8,14 @@ export function mountEditQueue(containerId = 'react-root') {
   const container = document.getElementById(containerId);
   if (!container) return;
 
+  // The editor is full-bleed: enforce it here too, so a stale/cached
+  // workspace.js can never bring the padded "floating island" back.
+  const main = document.getElementById('main-content');
+  if (main) {
+    main.classList.remove('p-8', 'overflow-y-auto');
+    main.classList.add('overflow-hidden');
+  }
+
   if (currentRoot) {
     currentRoot.unmount();
   }
