@@ -211,6 +211,8 @@ export const FullScreenOverlayTemplate = ({ config }) => {
                             ) : (
                                 <DynamicGraphicRenderer
                                     code={overlay.props.code}
+                                    opacity={overlay.opacity}
+                                    backdrop={overlay.backdrop}
                                     durationInFrames={durationFrames}
                                     position={overlay.position}
                                 />

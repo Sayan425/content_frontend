@@ -1,10 +1,14 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useCurrentFrame, useVideoConfig, interpolate, spring, AbsoluteFill } from 'remotion';
 import * as Babel from '@babel/standalone';
+import { useMeasuredBackdropStyle } from './backdropMeasure';
 
-export const DynamicGraphicRenderer = ({ code, durationInFrames, position }) => {
+export const DynamicGraphicRenderer = ({ code, durationInFrames, position, opacity, backdrop }) => {
     const frame = useCurrentFrame();
     const { fps } = useVideoConfig();
+    const outerRef = useRef(null);
+    const innerRef = useRef(null);
+    const contentRef = useRef(null);
 
     const Component = useMemo(() => {
         if (!code) return () => null;
@@ -39,16 +43,30 @@ export const DynamicGraphicRenderer = ({ code, durationInFrames, position }) => 
     const parsedScale = parseFloat(position?.scale);
     const finalScale = !isNaN(parsedScale) ? parsedScale / 100 : 1;
     const finalRotation = position?.rotation || 0;
+    const rawOpacity = opacity !== undefined ? opacity : 100;
+    const finalOpacity = rawOpacity > 1 ? rawOpacity / 100 : rawOpacity;
+
+    // Optional backdrop card behind the graphic (shared logic — see
+    // backdropMeasure.js).
+    const backdropStyle = useMeasuredBackdropStyle({
+        backdrop,
+        ready: !!code,
+        outerRef,
+        innerRef,
+        contentRef,
+        userScale: finalScale,
+    });
 
     return (
-        <AbsoluteFill style={{
+        <AbsoluteFill ref={outerRef} style={{
             display: 'flex',
             justifyContent: isAbsolute ? 'flex-start' : 'center',
             alignItems: isAbsolute ? 'flex-start' : 'center',
             pointerEvents: 'none',
+            opacity: finalOpacity,
             zIndex: 9999
         }}>
-            <div style={{
+            <div ref={innerRef} style={{
                 position: isAbsolute ? 'absolute' : 'relative',
                 left: position?.x !== undefined ? (typeof position.x === 'number' ? `${position.x}%` : position.x) : 'auto',
                 top: position?.y !== undefined ? (typeof position.y === 'number' ? `${position.y}%` : position.y) : 'auto',
@@ -58,9 +76,11 @@ export const DynamicGraphicRenderer = ({ code, durationInFrames, position }) => 
                 justifyContent: 'center',
                 alignItems: 'center',
                 transform: `${isAbsolute ? 'translate(-50%, -50%) ' : ''}scale(${finalScale}) rotate(${finalRotation}deg)`,
-                border: '2px dashed red' // For debugging visibility
             }}>
-                <Component />
+                {backdropStyle && <div style={backdropStyle} />}
+                <div ref={contentRef} style={{ display: 'contents' }}>
+                    <Component />
+                </div>
             </div>
         </AbsoluteFill>
     );

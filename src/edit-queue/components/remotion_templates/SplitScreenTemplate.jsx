@@ -203,6 +203,8 @@ export const SplitScreenTemplate = ({ config }) => {
                             ) : (
                                 <DynamicGraphicRenderer
                                     code={overlay.props.code}
+                                    opacity={overlay.opacity}
+                                    backdrop={overlay.backdrop}
                                     durationInFrames={durationFrames}
                                     position={overlay.position}
                                 />
