@@ -83,6 +83,23 @@ const ToggleInput = ({ label, value, onChange }) => (
   </div>
 );
 
+// Pre-written instruction for ChatGPT so generated code lands in exactly the
+// format the frame-based renderer expects. The user describes their graphic
+// after it.
+const AI_CODE_PROMPT = `You are a motion-graphics code generator for a Remotion-based video editor. Write the BODY of a JavaScript function (no function declaration, no imports, no exports) that ends with a return statement returning JSX.
+
+Strict rules:
+- The code is executed once per video frame. These variables are in scope: frame (current frame number), fps, durationInFrames, interpolate(value, inputRange, outputRange, options), spring({frame, fps, config}), React.
+- Drive ALL animation from the frame number, e.g. const t = Math.min(frame / Math.max(durationInFrames - 1, 1), 1). The same frame must always produce the same picture.
+- NEVER use performance.now, Date, setTimeout, setInterval, requestAnimationFrame, document, window, event listeners, useState or useEffect.
+- JSX with inline styles only: style={{ ... }} with camelCase properties (boxShadow, borderRadius). No <script> or <style> tags, no CSS classes, no external files or images.
+- The graphic overlays a 1080x1920 vertical video and must have a transparent background. Give the root element an explicit width and height in px (around 900x500 unless asked otherwise) with position relative, and position children absolutely inside it.
+- Reply with ONLY the code. No explanations, no markdown fences.
+
+Here is what I want the motion graphic to be: `;
+
+const chatGptUrl = () => `https://chatgpt.com/?q=${encodeURIComponent(AI_CODE_PROMPT)}`;
+
 const isHexColor = (v) =>
   typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.trim());
 
@@ -287,7 +304,6 @@ export function OverlaysPanel({ config, setConfig, editId }) {
     const [addType, setAddType] = useState('Image');
     const [addText, setAddText] = useState('');
     const [addHtml, setAddHtml] = useState('');
-    const [addCodeType, setAddCodeType] = useState('html'); // 'html' | 'js'
     const [addMediaUrl, setAddMediaUrl] = useState('');
     const [addStart, setAddStart] = useState(0);
     const [addDuration, setAddDuration] = useState(4);
@@ -367,11 +383,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
             overlay = { ...base, type: 'Text', props: { text: addText.trim() }, animationIn: 'pop' };
         } else if (addType === 'MotionGraphic') {
             if (!addHtml.trim()) return alert('Please paste your code first.');
-            overlay = {
-                ...base,
-                type: 'MotionGraphic',
-                props: addCodeType === 'js' ? { code: addHtml } : { html: addHtml }
-            };
+            overlay = { ...base, type: 'MotionGraphic', props: { code: addHtml } };
         } else {
             if (!addMediaUrl) return alert('Please upload the file first.');
             overlay = {
@@ -512,37 +524,27 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                     )}
 
                     {addType === 'MotionGraphic' && (
-                        <>
-                            <SelectInput
-                                label="Code Type"
-                                value={addCodeType}
-                                onChange={setAddCodeType}
-                                options={[
-                                    { value: 'html', label: 'HTML / CSS (static or CSS animations)' },
-                                    { value: 'js', label: 'Frame-based JS (synced to video time)' }
-                                ]}
+                        <div className="flex flex-col gap-2 mb-4">
+                            <label className="text-sm font-medium text-on-surface-variant">Frame-based Code</label>
+                            <textarea
+                                value={addHtml}
+                                onChange={e => setAddHtml(e.target.value)}
+                                placeholder={'// frame, fps, durationInFrames, interpolate, spring are available\nconst t = Math.min(frame / (fps * 5), 1);\nreturn (\n  <div style={{ color: "#22e07a", fontSize: 80 }}>\n    {Math.round(t * 100)}%\n  </div>\n);'}
+                                rows={10}
+                                spellCheck={false}
+                                className="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-3 text-xs font-mono min-h-[180px] outline-none focus:border-primary"
                             />
-                            <div className="flex flex-col gap-2 mb-4">
-                                <label className="text-sm font-medium text-on-surface-variant">
-                                    {addCodeType === 'js' ? 'Frame-based Code' : 'HTML / CSS Code'}
-                                </label>
-                                <textarea
-                                    value={addHtml}
-                                    onChange={e => setAddHtml(e.target.value)}
-                                    placeholder={addCodeType === 'js'
-                                        ? '// frame, fps, durationInFrames, interpolate, spring are available\nconst t = Math.min(frame / (fps * 5), 1);\nreturn (\n  <div style={{ color: "#22e07a", fontSize: 80 }}>\n    {Math.round(t * 100)}%\n  </div>\n);'
-                                        : '<div style="color:#22e07a;font-size:80px;font-weight:bold">\n  Your graphic here\n</div>\n<style>\n  /* CSS animations work too */\n</style>'}
-                                    rows={10}
-                                    spellCheck={false}
-                                    className="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-3 text-xs font-mono min-h-[180px] outline-none focus:border-primary"
-                                />
-                                <p className="text-[11px] text-on-surface-variant/70">
-                                    {addCodeType === 'js'
-                                        ? 'JS returning JSX, driven by the video frame — pauses, scrubs, and renders in sync. Note: <script> tags do not run in HTML mode; use this mode for JS.'
-                                        : 'Lives only inside this video\'s manifest — nothing is uploaded or saved elsewhere. <script> tags will NOT run; use Frame-based JS for scripted motion.'}
-                                </p>
-                            </div>
-                        </>
+                            <p className="text-[11px] text-on-surface-variant/70">
+                                Click{' '}
+                                <a
+                                    href={chatGptUrl()}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary font-semibold underline hover:text-primary-hover"
+                                >here</a>
+                                {' '}to generate the code with AI — describe your graphic at the end of the prompt, then paste the result above.
+                            </p>
+                        </div>
                     )}
 
                     {(addType === 'Image' || addType === 'Video') && (
