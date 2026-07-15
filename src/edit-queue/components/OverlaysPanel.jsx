@@ -287,6 +287,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
     const [addType, setAddType] = useState('Image');
     const [addText, setAddText] = useState('');
     const [addHtml, setAddHtml] = useState('');
+    const [addCodeType, setAddCodeType] = useState('html'); // 'html' | 'js'
     const [addMediaUrl, setAddMediaUrl] = useState('');
     const [addStart, setAddStart] = useState(0);
     const [addDuration, setAddDuration] = useState(4);
@@ -365,8 +366,12 @@ export function OverlaysPanel({ config, setConfig, editId }) {
             if (!addText.trim()) return alert('Please enter the text first.');
             overlay = { ...base, type: 'Text', props: { text: addText.trim() }, animationIn: 'pop' };
         } else if (addType === 'MotionGraphic') {
-            if (!addHtml.trim()) return alert('Please paste your HTML/CSS code first.');
-            overlay = { ...base, type: 'MotionGraphic', props: { html: addHtml } };
+            if (!addHtml.trim()) return alert('Please paste your code first.');
+            overlay = {
+                ...base,
+                type: 'MotionGraphic',
+                props: addCodeType === 'js' ? { code: addHtml } : { html: addHtml }
+            };
         } else {
             if (!addMediaUrl) return alert('Please upload the file first.');
             overlay = {
@@ -507,20 +512,37 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                     )}
 
                     {addType === 'MotionGraphic' && (
-                        <div className="flex flex-col gap-2 mb-4">
-                            <label className="text-sm font-medium text-on-surface-variant">HTML / CSS Code</label>
-                            <textarea
-                                value={addHtml}
-                                onChange={e => setAddHtml(e.target.value)}
-                                placeholder={'<div style="color:#22e07a;font-size:80px;font-weight:bold">\n  Your graphic here\n</div>\n<style>\n  /* CSS animations work too */\n</style>'}
-                                rows={10}
-                                spellCheck={false}
-                                className="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-3 text-xs font-mono min-h-[180px] outline-none focus:border-primary"
+                        <>
+                            <SelectInput
+                                label="Code Type"
+                                value={addCodeType}
+                                onChange={setAddCodeType}
+                                options={[
+                                    { value: 'html', label: 'HTML / CSS (static or CSS animations)' },
+                                    { value: 'js', label: 'Frame-based JS (synced to video time)' }
+                                ]}
                             />
-                            <p className="text-[11px] text-on-surface-variant/70">
-                                Lives only inside this video's manifest — nothing is uploaded or saved elsewhere.
-                            </p>
-                        </div>
+                            <div className="flex flex-col gap-2 mb-4">
+                                <label className="text-sm font-medium text-on-surface-variant">
+                                    {addCodeType === 'js' ? 'Frame-based Code' : 'HTML / CSS Code'}
+                                </label>
+                                <textarea
+                                    value={addHtml}
+                                    onChange={e => setAddHtml(e.target.value)}
+                                    placeholder={addCodeType === 'js'
+                                        ? '// frame, fps, durationInFrames, interpolate, spring are available\nconst t = Math.min(frame / (fps * 5), 1);\nreturn (\n  <div style={{ color: "#22e07a", fontSize: 80 }}>\n    {Math.round(t * 100)}%\n  </div>\n);'
+                                        : '<div style="color:#22e07a;font-size:80px;font-weight:bold">\n  Your graphic here\n</div>\n<style>\n  /* CSS animations work too */\n</style>'}
+                                    rows={10}
+                                    spellCheck={false}
+                                    className="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-3 text-xs font-mono min-h-[180px] outline-none focus:border-primary"
+                                />
+                                <p className="text-[11px] text-on-surface-variant/70">
+                                    {addCodeType === 'js'
+                                        ? 'JS returning JSX, driven by the video frame — pauses, scrubs, and renders in sync. Note: <script> tags do not run in HTML mode; use this mode for JS.'
+                                        : 'Lives only inside this video\'s manifest — nothing is uploaded or saved elsewhere. <script> tags will NOT run; use Frame-based JS for scripted motion.'}
+                                </p>
+                            </div>
+                        </>
                     )}
 
                     {(addType === 'Image' || addType === 'Video') && (
@@ -623,12 +645,14 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     <p className="text-[11px] text-on-surface-variant/70 mb-4 font-mono">{selectedOverlay.templateId}</p>
                                 )}
                                 <div className="flex flex-col gap-1">
-                                    {selectedOverlay.props?.html !== undefined ? (
+                                    {(selectedOverlay.props?.html !== undefined || selectedOverlay.props?.code !== undefined) ? (
                                         <div className="flex flex-col gap-2 mb-2">
-                                            <label className="text-sm font-medium text-on-surface-variant">HTML / CSS Code</label>
+                                            <label className="text-sm font-medium text-on-surface-variant">
+                                                {selectedOverlay.props?.code !== undefined ? 'Frame-based Code' : 'HTML / CSS Code'}
+                                            </label>
                                             <textarea
-                                                value={selectedOverlay.props.html}
-                                                onChange={e => updateOverlayProp('html', e.target.value)}
+                                                value={selectedOverlay.props?.code !== undefined ? selectedOverlay.props.code : selectedOverlay.props.html}
+                                                onChange={e => updateOverlayProp(selectedOverlay.props?.code !== undefined ? 'code' : 'html', e.target.value)}
                                                 rows={10}
                                                 spellCheck={false}
                                                 className="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-3 text-xs font-mono min-h-[180px] outline-none focus:border-primary"
