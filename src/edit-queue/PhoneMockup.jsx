@@ -6,6 +6,7 @@ import { getVideoMetadata } from '@remotion/media-utils';
 import { supabase } from '../lib/supabase';
 import { isRecentLocalSave } from './utils/localSaveTracker';
 import { prefetchAsset, waitForAsset, freeAllAssets } from './utils/assetPrefetcher';
+import { normalizeManifest } from './utils/manifestNormalizer';
 
 export function PhoneMockup({ config, setConfig, editId }) {
   const videoWidth = 1080;
@@ -63,6 +64,10 @@ export function PhoneMockup({ config, setConfig, editId }) {
       if (!manifestData.overlays) {
         manifestData.overlays = [];
       }
+
+      // Canonicalize position formats and float-noise durations
+      // (see MANIFEST_REFERENCE.md).
+      normalizeManifest(manifestData);
       
       // Download every asset into RAM once (video, BGM, overlay media) so the
       // player never re-fetches from R2 — template switches become instant.

@@ -276,11 +276,116 @@ export function OverlaysPanel({ config, setConfig, editId }) {
         });
     }
 
-    if (!config || overlays.length === 0) {
-        return <div className="p-6 text-on-surface-variant">No overlays found in manifest.</div>;
+    if (!config) {
+        return <div className="p-6 text-on-surface-variant">Loading configuration...</div>;
     }
 
     const selectedOverlay = selectedOverlayIndex !== '' ? overlays[selectedOverlayIndex] : null;
+
+    // ---- Add Overlay flow ----
+    const [addMode, setAddMode] = useState(false);
+    const [addType, setAddType] = useState('Image');
+    const [addText, setAddText] = useState('');
+    const [addHtml, setAddHtml] = useState('');
+    const [addMediaUrl, setAddMediaUrl] = useState('');
+    const [addStart, setAddStart] = useState(0);
+    const [addDuration, setAddDuration] = useState(4);
+    const [addUploading, setAddUploading] = useState(false);
+    const addFileRef = useRef(null);
+
+    const resetAddForm = () => {
+        setAddMode(false);
+        setAddType('Image');
+        setAddText('');
+        setAddHtml('');
+        setAddMediaUrl('');
+        setAddStart(0);
+        setAddDuration(4);
+    };
+
+    // Upload destination derived from the main videoUrl:
+    // <avatar>/<topic>/google-images/ for images, <avatar>/<topic>/videos/ for videos.
+    const uploadAddMedia = async (file) => {
+        setAddUploading(true);
+        try {
+            let customBucket = 'video-folder';
+            let customPath = '';
+            let customPublicUrlBase = 'https://pub-2003936f6b0342a8afd9e538b2f27d12.r2.dev';
+
+            if (config.videoUrl) {
+                const urlObj = new URL(config.videoUrl);
+                customPublicUrlBase = urlObj.origin;
+                const parts = urlObj.pathname.split('/').filter(Boolean);
+                if (parts.length >= 2) {
+                    const mediaType = file.type.startsWith('video') ? 'videos' : 'google-images';
+                    customPath = `${decodeURIComponent(parts[0])}/${decodeURIComponent(parts[1])}/${mediaType}/`;
+                }
+            }
+
+            const res = await fetch('/api/get-r2-upload-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileName: file.name,
+                    contentType: file.type || 'application/octet-stream',
+                    type: 'overlay',
+                    customBucket,
+                    customPath,
+                    customPublicUrlBase
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
+            const uploadRes = await fetch(data.signedUrl, {
+                method: 'PUT',
+                body: file,
+                headers: { 'Content-Type': file.type || 'application/octet-stream' }
+            });
+            if (!uploadRes.ok) throw new Error('Upload to R2 failed');
+
+            setAddMediaUrl(data.publicUrl);
+        } catch (err) {
+            alert('Upload Error: ' + err.message);
+        } finally {
+            setAddUploading(false);
+        }
+    };
+
+    const createOverlay = () => {
+        const base = {
+            opacity: 100,
+            position: { x: '50%', y: '50%', scale: 100, rotation: 0 },
+            startInSeconds: parseFloat(addStart) || 0,
+            durationInSeconds: parseFloat(addDuration) || 4,
+        };
+
+        let overlay = null;
+        if (addType === 'Text') {
+            if (!addText.trim()) return alert('Please enter the text first.');
+            overlay = { ...base, type: 'Text', props: { text: addText.trim() }, animationIn: 'pop' };
+        } else if (addType === 'MotionGraphic') {
+            if (!addHtml.trim()) return alert('Please paste your HTML/CSS code first.');
+            overlay = { ...base, type: 'MotionGraphic', props: { html: addHtml } };
+        } else {
+            if (!addMediaUrl) return alert('Please upload the file first.');
+            overlay = {
+                ...base,
+                type: addType, // 'Image' | 'Video'
+                props: { src: addMediaUrl, url: addMediaUrl },
+                ...(addType === 'Image' ? { animationIn: 'fade', borderPreset: 'photographic' } : {})
+            };
+        }
+
+        setConfig(prev => {
+            const updated = { ...prev, overlays: [...(prev.overlays || []), overlay] };
+            autoSaveToSupabase(updated);
+            // Select the newly added overlay for immediate editing
+            setSelectedOverlayIndex(String(updated.overlays.length - 1));
+            return updated;
+        });
+        resetAddForm();
+    };
 
     const deleteOverlay = async () => {
         if (selectedOverlayIndex === '') return;
@@ -300,6 +405,12 @@ export function OverlaysPanel({ config, setConfig, editId }) {
     };
 
     const handleSelectOverlay = (val) => {
+        if (val === '__add__') {
+            setSelectedOverlayIndex('');
+            setAddMode(true);
+            return;
+        }
+        setAddMode(false);
         setSelectedOverlayIndex(val);
         if (val !== '') {
             const index = parseInt(val);
@@ -323,6 +434,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                     onChange={handleSelectOverlay}
                     options={[
                         { value: '', label: 'Select an overlay...' },
+                        { value: '__add__', label: '＋ Add Overlay…' },
                         ...overlays.map((o, i) => {
                             const start = typeof o.startInSeconds === 'number' ? o.startInSeconds : 0;
                             const duration = typeof o.durationInSeconds === 'number' ? o.durationInSeconds : 0;
@@ -334,6 +446,125 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                     ]}
                 />
             </section>
+
+            {/* Add Overlay form */}
+            {addMode && (
+                <section className="bg-surface p-4 rounded-xl border border-primary/20 shadow-sm">
+                    <h4 className="text-on-surface font-semibold mb-4 text-sm flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary text-[18px]">add_circle</span>
+                        Add Overlay
+                    </h4>
+
+                    <SelectInput
+                        label="Overlay Type"
+                        value={addType}
+                        onChange={v => { setAddType(v); setAddMediaUrl(''); }}
+                        options={[
+                            { value: 'Image', label: 'Image' },
+                            { value: 'Video', label: 'Video' },
+                            { value: 'Text', label: 'Text' },
+                            { value: 'MotionGraphic', label: 'Motion Graphic (custom HTML/CSS)' }
+                        ]}
+                    />
+
+                    {addType === 'Text' && (
+                        <TextInput
+                            label="Text"
+                            value={addText}
+                            onChange={setAddText}
+                            placeholder="Enter overlay text..."
+                        />
+                    )}
+
+                    {addType === 'MotionGraphic' && (
+                        <div className="flex flex-col gap-2 mb-4">
+                            <label className="text-sm font-medium text-on-surface-variant">HTML / CSS Code</label>
+                            <textarea
+                                value={addHtml}
+                                onChange={e => setAddHtml(e.target.value)}
+                                placeholder={'<div style="color:#22e07a;font-size:80px;font-weight:bold">\n  Your graphic here\n</div>\n<style>\n  /* CSS animations work too */\n</style>'}
+                                rows={10}
+                                spellCheck={false}
+                                className="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-3 text-xs font-mono min-h-[180px] outline-none focus:border-primary"
+                            />
+                            <p className="text-[11px] text-on-surface-variant/70">
+                                Lives only inside this video's manifest — nothing is uploaded or saved elsewhere.
+                            </p>
+                        </div>
+                    )}
+
+                    {(addType === 'Image' || addType === 'Video') && (
+                        <div className="flex flex-col gap-2 mb-4">
+                            <label className="text-sm font-medium text-on-surface-variant">{addType} File</label>
+                            <input
+                                type="file"
+                                ref={addFileRef}
+                                className="hidden"
+                                accept={addType === 'Image' ? 'image/*' : 'video/*'}
+                                onChange={e => { const f = e.target.files[0]; if (f) uploadAddMedia(f); }}
+                            />
+                            {addMediaUrl ? (
+                                <div className="flex items-center gap-3">
+                                    <div className="w-16 h-16 bg-black/50 rounded-lg overflow-hidden border border-white/10 shrink-0">
+                                        {addType === 'Video'
+                                            ? <video src={addMediaUrl} className="w-full h-full object-cover" />
+                                            : <img src={addMediaUrl} className="w-full h-full object-cover" />}
+                                    </div>
+                                    <span className="text-xs text-green-400 flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[16px]">check_circle</span> Uploaded
+                                    </span>
+                                    <button
+                                        onClick={() => addFileRef.current?.click()}
+                                        className="text-xs text-primary hover:underline ml-auto"
+                                    >Replace</button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => addFileRef.current?.click()}
+                                    disabled={addUploading}
+                                    className="h-20 bg-surface-container border border-dashed border-white/20 rounded-xl text-on-surface-variant hover:text-white hover:border-white/40 transition flex flex-col items-center justify-center gap-1 disabled:opacity-50"
+                                >
+                                    <span className="material-symbols-outlined text-[24px]">{addUploading ? 'progress_activity' : 'upload'}</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider">{addUploading ? 'Uploading…' : `Upload ${addType}`}</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <NumberInput
+                            label="Start (seconds)"
+                            value={addStart}
+                            onChange={setAddStart}
+                            min={0}
+                            step={0.1}
+                        />
+                        <NumberInput
+                            label="Duration (seconds)"
+                            value={addDuration}
+                            onChange={setAddDuration}
+                            min={0.5}
+                            step={0.1}
+                        />
+                    </div>
+
+                    <div className="flex gap-3 mt-2">
+                        <button
+                            onClick={createOverlay}
+                            disabled={addUploading}
+                            className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary-hover text-on-primary font-medium rounded-lg transition-colors text-sm disabled:opacity-50"
+                        >
+                            Add Overlay
+                        </button>
+                        <button
+                            onClick={resetAddForm}
+                            className="px-4 py-2.5 bg-surface-container hover:bg-surface-container-high text-on-surface-variant border border-white/10 rounded-lg transition-colors text-sm"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </section>
+            )}
 
             {selectedOverlay && (
                 <>
@@ -362,7 +593,18 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     <p className="text-[11px] text-on-surface-variant/70 mb-4 font-mono">{selectedOverlay.templateId}</p>
                                 )}
                                 <div className="flex flex-col gap-1">
-                                    {selectedOverlay.props && Object.keys(selectedOverlay.props).length > 0 ? (
+                                    {selectedOverlay.props?.html !== undefined ? (
+                                        <div className="flex flex-col gap-2 mb-2">
+                                            <label className="text-sm font-medium text-on-surface-variant">HTML / CSS Code</label>
+                                            <textarea
+                                                value={selectedOverlay.props.html}
+                                                onChange={e => updateOverlayProp('html', e.target.value)}
+                                                rows={10}
+                                                spellCheck={false}
+                                                className="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-3 text-xs font-mono min-h-[180px] outline-none focus:border-primary"
+                                            />
+                                        </div>
+                                    ) : selectedOverlay.props && Object.keys(selectedOverlay.props).length > 0 ? (
                                         Object.entries(selectedOverlay.props).map(([key, value]) => (
                                             <PropField
                                                 key={key}

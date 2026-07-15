@@ -1,6 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, OffthreadVideo, Video, Audio, interpolate, useCurrentFrame, useVideoConfig, Img, spring, Sequence } from 'remotion';
 import { DynamicGraphicRenderer } from '../motion_graphics/DynamicGraphicRenderer';
+import { HtmlGraphicRenderer } from '../motion_graphics/HtmlGraphicRenderer';
 import { CompositionRenderer } from '../motion_graphics/CompositionRenderer';
 import { Subtitles } from '../Subtitles';
 import { StaticText } from '../motion_graphics/StaticText';
@@ -331,6 +332,13 @@ export const BasicTemplate = ({ config }) => {
                                 <CompositionRenderer
                                     templateId={overlay.templateId}
                                     props={overlay.props}
+                                    position={overlay.position}
+                                    opacity={overlay.opacity}
+                                    backdrop={overlay.backdrop}
+                                />
+                            ) : overlay.props?.html ? (
+                                <HtmlGraphicRenderer
+                                    html={overlay.props.html}
                                     position={overlay.position}
                                     opacity={overlay.opacity}
                                     backdrop={overlay.backdrop}
