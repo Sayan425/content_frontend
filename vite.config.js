@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -35,6 +35,49 @@ const r2ApiPlugin = () => ({
   name: 'r2-api',
   configureServer(server) {
     server.middlewares.use(async (req, res, next) => {
+      if (req.url === '/api/delete-r2-object' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+          try {
+            const { publicUrl, customBucket } = JSON.parse(body);
+            if (!publicUrl) {
+              res.statusCode = 400;
+              return res.end(JSON.stringify({ error: 'Missing publicUrl' }));
+            }
+
+            // The object key is the URL path without the leading slash.
+            const key = decodeURIComponent(new URL(publicUrl).pathname.replace(/^\//, ''));
+            if (!key) {
+              res.statusCode = 400;
+              return res.end(JSON.stringify({ error: 'Could not derive object key from URL' }));
+            }
+
+            const s3Client = new S3Client({
+              region: 'auto',
+              endpoint: process.env.CLOUDFARE_ENDPOINT,
+              credentials: {
+                accessKeyId: process.env.CLOUDFARE_ACCESS_KEY_ID,
+                secretAccessKey: process.env.CLOUDFARE_SECRET_ACCESS_KEY,
+              },
+            });
+
+            await s3Client.send(new DeleteObjectCommand({
+              Bucket: customBucket || 'video-folder',
+              Key: key,
+            }));
+
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ success: true, deletedKey: key }));
+          } catch (err) {
+            console.error('R2 delete error:', err);
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: err.message }));
+          }
+        });
+        return;
+      }
+
       if (req.url === '/api/generate-overlay-image' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });

@@ -390,8 +390,14 @@ export function OverlaysPanel({ config, setConfig, editId }) {
     const deleteOverlay = async () => {
         if (selectedOverlayIndex === '') return;
         const index = parseInt(selectedOverlayIndex);
+        const target = overlays[index];
+        const isMedia = target && (target.type === 'Image' || target.type === 'Video');
+        const mediaUrl = isMedia ? (target.props?.src || target.props?.url) : null;
+
         const confirmed = await showCustomConfirm(
-            'This overlay will be permanently deleted and cannot be restored. Delete it?',
+            mediaUrl
+                ? 'This overlay AND its file in storage will be permanently deleted. This cannot be restored. Delete it?'
+                : 'This overlay will be permanently deleted and cannot be restored. Delete it?',
             'Delete Overlay'
         );
         if (!confirmed) return;
@@ -402,6 +408,30 @@ export function OverlaysPanel({ config, setConfig, editId }) {
             return updated;
         });
         setSelectedOverlayIndex('');
+
+        // Also remove the file from R2 — but only if nothing else still uses it:
+        // never the main video, and not a URL shared by another overlay.
+        if (mediaUrl && mediaUrl !== config.videoUrl) {
+            const usedElsewhere = overlays.some((o, i) =>
+                i !== index && (o.props?.src === mediaUrl || o.props?.url === mediaUrl)
+            );
+            if (!usedElsewhere) {
+                try {
+                    const res = await fetch('/api/delete-r2-object', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ publicUrl: mediaUrl, customBucket: 'video-folder' })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error);
+                    console.log('Deleted R2 object:', data.deletedKey);
+                } catch (err) {
+                    // The overlay itself is already gone; a failed file cleanup
+                    // shouldn't block the user — just report it.
+                    console.error('Failed to delete file from R2:', err);
+                }
+            }
+        }
     };
 
     const handleSelectOverlay = (val) => {
