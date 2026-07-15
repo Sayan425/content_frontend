@@ -116,6 +116,7 @@ export const TransparentTemplate = ({ config }) => {
                         <Sequence key={`text-${index}`} from={startFrame} durationInFrames={durationFrames}>
                             <TextOverlay
                                 overlay={overlay}
+                                durationInFrames={durationFrames}
                                 styleVariation={config.textOverlayStyle || TEMPLATE_DEFAULTS.textOverlayStyle}
                                 fontSize={TEMPLATE_DEFAULTS.textOverlaySize}
                                 defaultTop={TEMPLATE_DEFAULTS.textOverlayTop}

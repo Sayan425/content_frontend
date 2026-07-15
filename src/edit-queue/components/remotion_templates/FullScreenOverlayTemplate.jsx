@@ -182,6 +182,7 @@ export const FullScreenOverlayTemplate = ({ config }) => {
                         >
                             <TextOverlay
                                 overlay={overlay}
+                                durationInFrames={durationFrames}
                                 styleVariation={config.textOverlayStyle || TEMPLATE_DEFAULTS.textOverlayStyle}
                                 fontSize={TEMPLATE_DEFAULTS.textOverlaySize}
                                 defaultTop={TEMPLATE_DEFAULTS.textOverlayTop}

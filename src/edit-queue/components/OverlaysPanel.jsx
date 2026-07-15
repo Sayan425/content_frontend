@@ -1105,6 +1105,18 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     label: val === 'none' ? 'None' : val.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
                                 }))}
                             />
+                            {(selectedOverlay.type === 'Text' || selectedOverlay.type === 'TextOverlay') ? (
+                                <SelectInput
+                                    label="Text Style"
+                                    value={selectedOverlay.props?.style || ''}
+                                    onChange={v => updateOverlayProp('style', v)}
+                                    options={[
+                                        { value: '', label: 'Template Default' },
+                                        ...['Classic', 'Highlight', 'Glassmorphism', 'Sticker', 'Retro', 'Bubble', 'Cyberpunk', 'Minimalist', 'Press']
+                                            .map(s => ({ value: s, label: s }))
+                                    ]}
+                                />
+                            ) : (
                             <SelectInput
                                 label="Border Preset"
                                 value={selectedOverlay.borderPreset || 'none'}
@@ -1123,6 +1135,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     { value: 'retro_vhs', label: 'Retro VHS Glitch' }
                                 ]}
                             />
+                            )}
                             <RangeInput
                                 label="Opacity (%)"
                                 value={selectedOverlay.opacity !== undefined ? selectedOverlay.opacity : 100}

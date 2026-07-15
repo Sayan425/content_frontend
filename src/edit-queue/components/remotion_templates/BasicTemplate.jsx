@@ -6,6 +6,7 @@ import { CompositionRenderer } from '../motion_graphics/CompositionRenderer';
 import { Subtitles } from '../Subtitles';
 import { StaticText } from '../motion_graphics/StaticText';
 import { resolveAssetUrl } from '../../utils/assetResolver';
+import { getAnimationState, getBorderPresetStyle, normalizeOpacity } from '../overlayFx';
 import { ProgressBar } from '../ProgressBar';
 import { TextOverlay } from '../TextOverlay';
 
@@ -147,75 +148,79 @@ const ImageOverlayInternal = ({ src, startFrame, durationInFrames, index, positi
     );
 };
 
-const VideoOverlayAnimated = ({ src, durationInFrames, index, position }) => {
+const VideoOverlayAnimated = ({ src, durationInFrames, index, position, animationIn, animationOut, borderPreset, opacityVal }) => {
     const frame = useCurrentFrame();
     const { fps } = useVideoConfig();
-
-    // Organic "Throw" animation
-    const springEntry = spring({
-        frame,
-        fps,
-        config: { damping: 12, stiffness: 100 }
-    });
-
-    const opacity = interpolate(
-        frame,
-        [0, 10, durationInFrames - 15, durationInFrames],
-        [0, 1, 1, 0],
-        { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
-    );
 
     const defaultRotation = (index % 2 === 0 ? 3 : -3) + (index % 3);
     const finalRotation = position?.rotation !== undefined ? position.rotation : defaultRotation;
     const parsedScale = parseFloat(position?.scale);
-    const baseScaleRaw = !isNaN(parsedScale) ? parsedScale : 100;
-    const baseScale = baseScaleRaw / 100;
+    const baseScale = (!isNaN(parsedScale) ? parsedScale : 100) / 100;
 
-    const userOpacityRaw = position?.opacity !== undefined ? position.opacity : 1;
-    const userOpacity = userOpacityRaw > 1 ? userOpacityRaw / 100 : userOpacityRaw;
-
-    const finalScale = springEntry * baseScale;
+    // Same panel-driven animation/border/opacity behavior as Image overlays.
+    // Legacy videos without animation fields keep the old pop-in / fade-out.
+    const anim = getAnimationState({
+        relativeFrame: frame,
+        durationInFrames,
+        fps,
+        animationIn: animationIn || 'pop',
+        animationOut: animationOut || 'fade',
+        baseScale,
+        userOpacity: normalizeOpacity(opacityVal),
+    });
+    const containerStyle = getBorderPresetStyle(borderPreset || 'photographic');
 
     const isAbsolute = position?.x !== undefined || position?.y !== undefined;
 
     return (
-        <AbsoluteFill style={{ 
-            display: 'flex', 
-            justifyContent: isAbsolute ? 'flex-start' : 'center', 
+        <AbsoluteFill style={{
+            display: 'flex',
+            justifyContent: isAbsolute ? 'flex-start' : 'center',
             alignItems: isAbsolute ? 'flex-start' : 'center',
-            opacity 
+            opacity: anim.opacity,
+            filter: anim.blurAmt > 0 ? `blur(${anim.blurAmt}px)` : 'none'
         }}>
             <div style={{
                 position: isAbsolute ? 'absolute' : 'relative',
                 left: position?.x !== undefined ? position.x : 'auto',
                 top: position?.y !== undefined ? position.y : 'auto',
                 width: '75%',
-                transform: `${isAbsolute ? 'translate(-50%, -50%) ' : ''}scale(${finalScale}) rotate(${finalRotation}deg)`,
-                backgroundColor: 'white',
-                padding: '20px 20px 60px 20px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                border: '1px solid #ddd'
+                transform: `${isAbsolute ? 'translate(-50%, -50%) ' : ''}scale(${anim.scale}) rotate(${finalRotation + anim.extraRotation}deg) rotateY(${anim.flipRotation}deg) translateX(${anim.translateX}px) translateY(${anim.translateY}px)`,
+                ...containerStyle
             }}>
-                <Tape style={{ top: '-15px', left: '-30px', rotate: '-40deg' }} />
-                <Tape style={{ bottom: '-10px', right: '-30px', rotate: '-30deg' }} />
-                
-                <OffthreadVideo 
-                    src={resolveAssetUrl(src)} 
-                    style={{ 
-                        width: '100%', 
-                        height: 'auto', 
+                {(!borderPreset || borderPreset === 'photographic') && (
+                    <>
+                        <Tape style={{ top: '-15px', left: '-30px', rotate: '-40deg' }} />
+                        <Tape style={{ bottom: '-10px', right: '-30px', rotate: '-30deg' }} />
+                    </>
+                )}
+
+                <OffthreadVideo
+                    src={resolveAssetUrl(src)}
+                    style={{
+                        width: '100%',
+                        height: 'auto',
                         display: 'block'
-                    }} 
+                    }}
                 />
             </div>
         </AbsoluteFill>
     );
 };
 
-const VideoOverlayInternal = ({ src, startFrame, durationInFrames, index, position }) => {
+const VideoOverlayInternal = ({ src, startFrame, durationInFrames, index, position, animationIn, animationOut, borderPreset, opacityVal }) => {
     return (
         <Sequence from={startFrame} durationInFrames={durationInFrames}>
-            <VideoOverlayAnimated src={src} durationInFrames={durationInFrames} index={index} position={position} />
+            <VideoOverlayAnimated
+                src={src}
+                durationInFrames={durationInFrames}
+                index={index}
+                position={position}
+                animationIn={animationIn}
+                animationOut={animationOut}
+                borderPreset={borderPreset}
+                opacityVal={opacityVal}
+            />
         </Sequence>
     );
 };
@@ -297,13 +302,17 @@ export const BasicTemplate = ({ config }) => {
 
                 if (overlay.type === 'Video') {
                     return (
-                        <VideoOverlayInternal 
+                        <VideoOverlayInternal
                             key={`overlay-${index}`}
                             index={index}
                             src={overlay.props.src || overlay.props.url}
                             startFrame={startFrame}
                             durationInFrames={durationFrames}
                             position={overlay.position}
+                            animationIn={overlay.animationIn}
+                            animationOut={overlay.animationOut}
+                            borderPreset={overlay.borderPreset}
+                            opacityVal={overlay.opacity}
                         />
                     );
                 }
@@ -317,6 +326,7 @@ export const BasicTemplate = ({ config }) => {
                         >
                             <TextOverlay
                                 overlay={overlay}
+                                durationInFrames={durationFrames}
                                 styleVariation={config.textOverlayStyle || TEMPLATE_DEFAULTS.textOverlayStyle}
                                 fontSize={TEMPLATE_DEFAULTS.textOverlaySize}
                                 defaultTop={TEMPLATE_DEFAULTS.textOverlayTop}
