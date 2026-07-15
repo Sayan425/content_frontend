@@ -94,11 +94,21 @@ Strict rules:
 - NEVER use performance.now, Date, setTimeout, setInterval, requestAnimationFrame, document, window, event listeners, useState or useEffect.
 - JSX with inline styles only: style={{ ... }} with camelCase properties (boxShadow, borderRadius). No <script> or <style> tags, no CSS classes, no external files or images.
 - The graphic overlays a 1080x1920 vertical video and must have a transparent background. Give the root element an explicit width and height in px (around 900x500 unless asked otherwise) with position relative, and position children absolutely inside it.
-- Reply with ONLY the code. No explanations, no markdown fences.
+- Reply with ONLY the code. No explanations.
+- Present the final code inside a single easy-to-copy code canvas / code block.
 
 Here is what I want the motion graphic to be: `;
 
-const chatGptUrl = () => `https://chatgpt.com/?q=${encodeURIComponent(AI_CODE_PROMPT)}`;
+// Services that accept a pre-filled prompt straight from the URL open with it
+// injected; the rest (copy: true) get the prompt copied to the clipboard and
+// the site opened for pasting.
+const AI_PROVIDERS = [
+    { name: 'ChatGPT', url: () => `https://chatgpt.com/?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
+    { name: 'Claude', url: () => `https://claude.ai/new?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
+    { name: 'Perplexity', url: () => `https://www.perplexity.ai/search?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
+    { name: 'Gemini', copy: true, url: () => 'https://gemini.google.com/app' },
+    { name: 'DeepSeek', copy: true, url: () => 'https://chat.deepseek.com/' },
+];
 
 const isHexColor = (v) =>
   typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.trim());
@@ -304,6 +314,19 @@ export function OverlaysPanel({ config, setConfig, editId }) {
     const [addType, setAddType] = useState('Image');
     const [addText, setAddText] = useState('');
     const [addHtml, setAddHtml] = useState('');
+    const [showAiMenu, setShowAiMenu] = useState(false);
+
+    const openAiProvider = async (provider) => {
+        if (provider.copy) {
+            try {
+                await navigator.clipboard.writeText(AI_CODE_PROMPT);
+            } catch (err) {
+                console.warn('Could not copy prompt to clipboard:', err);
+            }
+        }
+        window.open(provider.url(), '_blank', 'noopener,noreferrer');
+        setShowAiMenu(false);
+    };
     const [addMediaUrl, setAddMediaUrl] = useState('');
     const [addStart, setAddStart] = useState(0);
     const [addDuration, setAddDuration] = useState(4);
@@ -482,14 +505,20 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                     options={[
                         { value: '', label: 'Select an overlay...' },
                         { value: '__add__', label: '＋ Add Overlay…' },
-                        ...overlays.map((o, i) => {
-                            const start = typeof o.startInSeconds === 'number' ? o.startInSeconds : 0;
-                            const duration = typeof o.durationInSeconds === 'number' ? o.durationInSeconds : 0;
-                            return {
-                                value: i.toString(),
-                                label: `${o.type} (${parseFloat(start.toFixed(2))}s - ${parseFloat((start + duration).toFixed(2))}s)`
-                            };
-                        })
+                        // Sorted by start time for display; `value` keeps the
+                        // real array index so selection still targets the
+                        // right overlay in the manifest.
+                        ...overlays
+                            .map((o, i) => ({ overlay: o, index: i }))
+                            .sort((a, b) => (a.overlay.startInSeconds || 0) - (b.overlay.startInSeconds || 0))
+                            .map(({ overlay: o, index: i }) => {
+                                const start = typeof o.startInSeconds === 'number' ? o.startInSeconds : 0;
+                                const duration = typeof o.durationInSeconds === 'number' ? o.durationInSeconds : 0;
+                                return {
+                                    value: i.toString(),
+                                    label: `${o.type} (${parseFloat(start.toFixed(2))}s - ${parseFloat((start + duration).toFixed(2))}s)`
+                                };
+                            })
                     ]}
                 />
             </section>
@@ -510,9 +539,37 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                             { value: 'Image', label: 'Image' },
                             { value: 'Video', label: 'Video' },
                             { value: 'Text', label: 'Text' },
-                            { value: 'MotionGraphic', label: 'Motion Graphic (custom HTML/CSS)' }
+                            { value: 'MotionGraphic', label: 'Motion Graphic' }
                         ]}
                     />
+
+                    {addType === 'MotionGraphic' && (
+                        <div className="relative mb-4 -mt-1">
+                            <p className="text-xs text-on-surface-variant">
+                                Click{' '}
+                                <button
+                                    onClick={() => setShowAiMenu(v => !v)}
+                                    className="text-primary font-semibold underline hover:text-primary-hover"
+                                >here</button>
+                                {' '}to generate the code with AI — describe your graphic at the end of the prompt, then paste the result below.
+                            </p>
+                            {showAiMenu && (
+                                <div className="absolute left-0 top-full mt-2 z-50 bg-surface-container-high border border-white/10 rounded-xl shadow-2xl p-2 w-64">
+                                    <p className="text-[11px] text-on-surface-variant px-2 pb-2">Choose an AI service:</p>
+                                    {AI_PROVIDERS.map(p => (
+                                        <button
+                                            key={p.name}
+                                            onClick={() => openAiProvider(p)}
+                                            className="w-full text-left px-3 py-2 rounded-lg text-sm text-on-surface hover:bg-primary/10 hover:text-primary transition-colors flex items-center justify-between"
+                                        >
+                                            <span>{p.name}</span>
+                                            {p.copy && <span className="text-[10px] text-on-surface-variant">copies prompt</span>}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {addType === 'Text' && (
                         <TextInput
@@ -534,16 +591,6 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                 spellCheck={false}
                                 className="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-3 text-xs font-mono min-h-[180px] outline-none focus:border-primary"
                             />
-                            <p className="text-[11px] text-on-surface-variant/70">
-                                Click{' '}
-                                <a
-                                    href={chatGptUrl()}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary font-semibold underline hover:text-primary-hover"
-                                >here</a>
-                                {' '}to generate the code with AI — describe your graphic at the end of the prompt, then paste the result above.
-                            </p>
                         </div>
                     )}
 
