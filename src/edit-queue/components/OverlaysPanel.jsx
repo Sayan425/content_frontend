@@ -1108,15 +1108,9 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                 options={[
                                     { value: 'none', label: 'None' },
                                     { value: 'photographic', label: 'Photographic (Classic)' },
-                                    { value: 'polaroid_modern', label: 'Polaroid (Modern)' },
-                                    { value: 'neon', label: 'Neon Glow' },
-                                    { value: 'cyberpunk', label: 'Cyberpunk Red' },
-                                    { value: 'cinematic', label: 'Cinematic Minimalist' },
                                     { value: 'minimal_shadow', label: 'Minimal Drop Shadow' },
                                     { value: 'glass', label: 'Soft Glass' },
-                                    { value: 'gold_frame', label: 'Luxurious Gold' },
-                                    { value: 'comic_book', label: 'Comic Book Halftone' },
-                                    { value: 'retro_vhs', label: 'Retro VHS Glitch' }
+                                    { value: 'comic_book', label: 'Comic Book Halftone' }
                                 ]}
                             />
                             )}
