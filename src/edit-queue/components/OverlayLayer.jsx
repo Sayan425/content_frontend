@@ -50,9 +50,18 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
         userOpacity: normalizeOpacity(overlay.opacity),
     });
 
-    const containerStyle = getBorderPresetStyle(overlay.borderPreset || 'photographic');
     const isAbsolute = position.x !== undefined || position.y !== undefined;
     const src = mediaSrc(overlay);
+    const isBlurBg = overlay.borderPreset === 'blur_bg';
+
+    // "Frameless Blurred Background": a blurred, enlarged copy of the media
+    // fills the square area behind the sharp, contained copy — so any aspect
+    // ratio fits with no hard frame. (Two media layers, same source.)
+    const containerStyle = isBlurBg
+        ? { position: 'relative', overflow: 'hidden', display: 'grid', width: '100%', aspectRatio: '1' }
+        : getBorderPresetStyle(overlay.borderPreset || 'photographic');
+
+    const MediaTag = isVideo ? OffthreadVideo : Img;
 
     return (
         <AbsoluteFill style={{
@@ -70,15 +79,22 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
                 transform: `${isAbsolute ? 'translate(-50%, -50%) ' : ''}scale(${anim.scale}) rotate(${finalRotation + anim.extraRotation}deg) rotateY(${anim.flipRotation}deg) translateX(${anim.translateX}px) translateY(${anim.translateY}px)`,
                 ...containerStyle,
             }}>
-                {(!overlay.borderPreset || overlay.borderPreset === 'photographic') && (
+                {isBlurBg ? (
                     <>
-                        <Tape style={{ top: '-15px', left: '-30px', rotate: '-40deg' }} />
-                        <Tape style={{ bottom: '-10px', right: '-30px', rotate: '-30deg' }} />
+                        <MediaTag src={src} style={{ gridArea: '1/1', width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(0.8) blur(40px)', transform: 'scale(1.3)' }} />
+                        <MediaTag src={src} style={{ gridArea: '1/1', margin: 'auto', width: '78%', height: '78%', objectFit: 'contain', boxShadow: '0 0 20px #0005', zIndex: 1 }} />
+                    </>
+                ) : (
+                    <>
+                        {(!overlay.borderPreset || overlay.borderPreset === 'photographic') && (
+                            <>
+                                <Tape style={{ top: '-15px', left: '-30px', rotate: '-40deg' }} />
+                                <Tape style={{ bottom: '-10px', right: '-30px', rotate: '-30deg' }} />
+                            </>
+                        )}
+                        <MediaTag src={src} style={{ width: '100%', height: 'auto', display: 'block' }} />
                     </>
                 )}
-                {isVideo
-                    ? <OffthreadVideo src={src} style={{ width: '100%', height: 'auto', display: 'block' }} />
-                    : <Img src={src} style={{ width: '100%', height: 'auto', display: 'block' }} />}
             </div>
         </AbsoluteFill>
     );

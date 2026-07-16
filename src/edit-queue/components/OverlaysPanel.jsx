@@ -1111,7 +1111,8 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     { value: 'minimal_shadow', label: 'Minimal Drop Shadow' },
                                     { value: 'glass', label: 'Soft Glass' },
                                     { value: 'comic_book', label: 'Comic Book Halftone' },
-                                    { value: 'airmail', label: 'Retro Airmail Envelope' }
+                                    { value: 'airmail', label: 'Retro Airmail Envelope' },
+                                    { value: 'blur_bg', label: 'Frameless Blurred Background' }
                                 ]}
                             />
                             )}
