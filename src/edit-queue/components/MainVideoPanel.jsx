@@ -271,8 +271,6 @@ const ToggleInput = ({ label, value, onChange }) => (
 export function MainVideoPanel({ config, setConfig, editId }) {
   const saveTimeoutRef = useRef(null);
   const [bgmTracks, setBgmTracks] = useState([]);
-  const audioRef = useRef(new Audio());
-  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
       const fetchTracks = async () => {
@@ -323,20 +321,6 @@ export function MainVideoPanel({ config, setConfig, editId }) {
       autoSaveToSupabase(updated);
       return updated;
     });
-  };
-
-  const togglePreview = () => {
-      if(isPlaying) {
-          audioRef.current.pause();
-          setIsPlaying(false);
-      } else {
-          if(config.bgmUrl) {
-              audioRef.current.src = config.bgmUrl;
-              audioRef.current.volume = config.bgmVolume !== undefined ? config.bgmVolume : 0.35;
-              audioRef.current.play();
-              setIsPlaying(true);
-          }
-      }
   };
 
   if (!config) return null;

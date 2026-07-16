@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useRef } from 'react';
+import { supabase } from '../../lib/supabase';
+import { markLocalSave } from '../utils/localSaveTracker';
 
 export function SubtitlesPanel({ config, setConfig, editId }) {
+    const saveTimeoutRef = useRef(null);
     if (!config || !config.subtitleData) {
         return (
             <div className="flex flex-col h-full bg-surface-container/50">
@@ -37,12 +40,28 @@ export function SubtitlesPanel({ config, setConfig, editId }) {
     const updateConfigData = (newData) => {
         const newConfig = { ...config, subtitleData: newData };
         setConfig(newConfig);
+        autoSaveToSupabase(newConfig);
+    };
 
-        // Sync to Supabase via custom event or let a parent component handle it
-        // The PhoneMockup or EditQueue wrapper usually listens to config changes or we can dispatch an event
-        if (window.updateSupabaseManifest) {
-            window.updateSupabaseManifest(newConfig);
-        }
+    // Debounced auto-save of the manifest, matching the other editor panels.
+    const autoSaveToSupabase = (newConfig) => {
+        if (!editId) return;
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = setTimeout(async () => {
+            try {
+                markLocalSave();
+                // Persist into the manifest AND the dedicated `subtitle` column,
+                // because the loader (PhoneMockup) restores subtitles from that
+                // column and it would otherwise overwrite manifest edits.
+                const { error } = await supabase
+                    .from('edit_queue')
+                    .update({ manifest: newConfig, subtitle: newConfig.subtitleData })
+                    .eq('content_id', editId);
+                if (error) console.error('Failed to auto-save subtitles:', error);
+            } catch (err) {
+                console.error('Failed to auto-save subtitles:', err);
+            }
+        }, 600);
     };
 
     return (
