@@ -45,7 +45,7 @@ export const RangeInput = ({ label, value, onChange, min, max, step }) => {
           onChange={e => setText(e.target.value)}
           onBlur={commit}
           onKeyDown={e => { if (e.key === 'Enter') { commit(); e.target.blur(); } }}
-          className="w-14 text-right tabular-nums bg-transparent border-0 border-b border-transparent text-on-surface font-semibold text-sm px-1 py-0 rounded-none hover:border-white/20 focus:border-primary focus:text-primary outline-none transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+          className="w-16 text-center tabular-nums bg-white/5 border border-white/15 text-on-surface font-semibold text-sm px-2 py-1 rounded-md hover:border-white/30 hover:bg-white/10 focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none transition-colors cursor-text [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
         />
       </label>
       <input
