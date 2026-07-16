@@ -1110,7 +1110,8 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     { value: 'photographic', label: 'Photographic (Classic)' },
                                     { value: 'minimal_shadow', label: 'Minimal Drop Shadow' },
                                     { value: 'glass', label: 'Soft Glass' },
-                                    { value: 'comic_book', label: 'Comic Book Halftone' }
+                                    { value: 'comic_book', label: 'Comic Book Halftone' },
+                                    { value: 'airmail', label: 'Retro Airmail Envelope' }
                                 ]}
                             />
                             )}

@@ -95,6 +95,15 @@ export function getBorderPresetStyle(borderPreset) {
   if (borderPreset === 'comic_book') return { backgroundColor: 'white', border: '4px solid black', padding: '10px', boxShadow: '10px 10px 0px black' };
   if (borderPreset === 'retro_vhs') return { backgroundColor: 'black', border: '1px solid #555', padding: '15px', filter: 'contrast(1.2) sepia(0.3) hue-rotate(-20deg)', boxShadow: '3px 0px 0px red, -3px 0px 0px blue' };
   if (borderPreset === 'polaroid_modern') return { backgroundColor: 'white', padding: '15px 15px 45px 15px', boxShadow: '0 15px 35px rgba(0,0,0,0.1)', borderRadius: '8px' };
+  if (borderPreset === 'airmail') return {
+    backgroundColor: '#eee6d3',
+    padding: '12px',
+    borderStyle: 'solid',
+    borderWidth: '2.4rem',
+    borderImageSource: 'repeating-linear-gradient(142deg, #d22f47 0px 30px, transparent 30px 50px, #315f9b 50px 80px, transparent 80px 100px)',
+    borderImageSlice: 40,
+    borderImageWidth: '2.4rem',
+  };
   // default: classic photographic scrapbook frame
   return { backgroundColor: 'white', padding: '20px 20px 60px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', border: '1px solid #ddd' };
 }
