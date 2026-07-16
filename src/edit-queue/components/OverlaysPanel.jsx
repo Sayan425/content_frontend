@@ -1114,7 +1114,10 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     { value: 'airmail', label: 'Retro Airmail Envelope' },
                                     { value: 'blur_bg', label: 'Frameless Blurred Background' },
                                     { value: 'electric', label: 'Electric Border (Glow)' },
-                                    { value: 'wavy', label: 'Wavy Edges' }
+                                    { value: 'wavy', label: 'Wavy Edges' },
+                                    { value: 'lined', label: 'Infinite Lined Borders' },
+                                    { value: 'artdeco', label: 'Art Deco Corners' },
+                                    { value: 'vintage', label: 'Vintage Triple Frame' }
                                 ]}
                             />
                             )}

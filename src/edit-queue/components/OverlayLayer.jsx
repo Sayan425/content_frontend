@@ -54,13 +54,17 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
     const src = mediaSrc(overlay);
     const isBlurBg = overlay.borderPreset === 'blur_bg';
     const isWavy = overlay.borderPreset === 'wavy';
+    const isLined = overlay.borderPreset === 'lined';
+    const isArtDeco = overlay.borderPreset === 'artdeco';
+    const isVintage = overlay.borderPreset === 'vintage';
+    const isStructural = isWavy || isLined || isArtDeco || isVintage;
 
     // "Frameless Blurred Background": a blurred, enlarged copy of the media
     // fills the square area behind the sharp, contained copy — so any aspect
     // ratio fits with no hard frame. (Two media layers, same source.)
     const containerStyle = isBlurBg
         ? { position: 'relative', overflow: 'hidden', display: 'grid', width: '100%', aspectRatio: '1' }
-        : isWavy
+        : isStructural
         ? { backgroundColor: 'transparent' }
         : getBorderPresetStyle(overlay.borderPreset || 'photographic');
 
@@ -79,6 +83,29 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
         WebkitMask: wavyMask, mask: wavyMask,
         WebkitMaskSize: `${4 * s}px ${4 * s}px`, maskSize: `${4 * s}px ${4 * s}px`,
     };
+
+    // "Infinite Lined Borders": concentric rings drawn with a repeating radial
+    // border-image in a thick transparent border band.
+    const lb = 16, ln = 5, lc = '#774F38';
+    const lp = lb * ln;
+    const lsz = 460;
+    const ld = lsz / (2 * ln) + lb;
+    const linedStyle = {
+        width: `${lsz}px`, aspectRatio: '1.2', objectFit: 'cover', display: 'block',
+        boxSizing: 'border-box', border: `${lp}px solid transparent`,
+        borderRadius: `${lp + lb / 4}px`,
+        borderImage: `repeating-radial-gradient(${lc} 0,#0000 2px calc(${(ld / 2).toFixed(2)}px - 2px),${lc} ${(ld / 2).toFixed(2)}px ${ld.toFixed(2)}px) 49.8%/${lp}px`,
+        clipPath: `inset(0 round ${lp}px)`,
+    };
+
+    // "Art Deco Corners": thin gold frame with L-shaped corner brackets.
+    const deco = '#e8d3a0';
+    const cornerStyle = (corner) => ({
+        position: 'absolute', width: '22px', height: '22px', borderStyle: 'solid',
+        borderColor: deco, borderWidth: 0,
+        ...(corner.includes('t') ? { top: '-5px', borderTopWidth: '1px' } : { bottom: '-5px', borderBottomWidth: '1px' }),
+        ...(corner.includes('l') ? { left: '-5px', borderLeftWidth: '1px' } : { right: '-5px', borderRightWidth: '1px' }),
+    });
 
     const MediaTag = isVideo ? OffthreadVideo : Img;
 
@@ -105,6 +132,21 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
                     </>
                 ) : isWavy ? (
                     <MediaTag src={src} style={wavyStyle} />
+                ) : isLined ? (
+                    <MediaTag src={src} style={linedStyle} />
+                ) : isArtDeco ? (
+                    <div style={{ position: 'relative', border: `1px solid ${deco}`, padding: '14px', backgroundColor: '#17121c', display: 'flex' }}>
+                        <MediaTag src={src} style={{ width: '100%', height: 'auto', display: 'block' }} />
+                        {['tl', 'tr', 'bl', 'br'].map(c => <span key={c} style={cornerStyle(c)} />)}
+                    </div>
+                ) : isVintage ? (
+                    <div style={{ border: '2px solid #DE9B72', padding: '6px', backgroundColor: '#0d0b10' }}>
+                        <div style={{ border: '6px solid #DE9B72', padding: '6px' }}>
+                            <div style={{ border: '2px solid #DE9B72', display: 'flex' }}>
+                                <MediaTag src={src} style={{ width: '100%', height: 'auto', display: 'block' }} />
+                            </div>
+                        </div>
+                    </div>
                 ) : (
                     <>
                         {(!overlay.borderPreset || overlay.borderPreset === 'photographic') && (
