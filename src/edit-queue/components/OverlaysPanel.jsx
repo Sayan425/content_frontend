@@ -94,6 +94,18 @@ const AI_PROVIDERS = [
     { name: 'DeepSeek', copy: true, url: () => 'https://chat.deepseek.com/' },
 ];
 
+// External services for generating image/video assets. We never generate on
+// our end — clicking just opens the tool in a new tab; the user creates the
+// asset there, then comes back and uploads it.
+const MEDIA_AI_PROVIDERS = [
+    { name: 'ChatGPT', kind: 'Image', color: '#10a37f', url: 'https://chatgpt.com/' },
+    { name: 'Google Flow', kind: 'Video', color: '#4285f4', url: 'https://labs.google/flow/' },
+    { name: 'Higgsfield', kind: 'Video', color: '#8b5cf6', url: 'https://higgsfield.ai/' },
+    { name: 'Midjourney', kind: 'Image', color: '#4a4a4a', url: 'https://www.midjourney.com/' },
+    { name: 'Leonardo AI', kind: 'Image', color: '#7c3aed', url: 'https://leonardo.ai/' },
+    { name: 'Runway', kind: 'Video', color: '#00c2a8', url: 'https://runwayml.com/' },
+];
+
 const isHexColor = (v) =>
   typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.trim());
 
@@ -229,12 +241,13 @@ export function OverlaysPanel({ config, setConfig, editId }) {
     const [selectedOverlayIndex, setSelectedOverlayIndex] = useState('');
     const saveTimeoutRef = useRef(null);
     const fileInputRef = useRef(null);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [aiPrompt, setAiPrompt] = useState('');
-    const [showAIPrompt, setShowAIPrompt] = useState(false);
-    const [aiSize, setAiSize] = useState('1024x1024');
-    const [generatedImages, setGeneratedImages] = useState([]);
-    const [isUploading, setIsUploading] = useState(false);
+    // Media generation is off-platform: this just opens a provider picker.
+    const [showMediaAi, setShowMediaAi] = useState(false);
+
+    const openMediaProvider = (provider) => {
+        window.open(provider.url, '_blank', 'noopener,noreferrer');
+        setShowMediaAi(false);
+    };
 
     const overlays = config?.overlays || [];
     
@@ -604,14 +617,23 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     >Replace</button>
                                 </div>
                             ) : (
-                                <button
-                                    onClick={() => addFileRef.current?.click()}
-                                    disabled={addUploading}
-                                    className="h-20 bg-surface-container border border-dashed border-white/20 rounded-xl text-on-surface-variant hover:text-white hover:border-white/40 transition flex flex-col items-center justify-center gap-1 disabled:opacity-50"
-                                >
-                                    <span className="material-symbols-outlined text-[24px]">{addUploading ? 'progress_activity' : 'upload'}</span>
-                                    <span className="text-[10px] font-bold uppercase tracking-wider">{addUploading ? 'Uploading…' : `Upload ${addType}`}</span>
-                                </button>
+                                <div className="flex gap-2 h-20">
+                                    <button
+                                        onClick={() => addFileRef.current?.click()}
+                                        disabled={addUploading}
+                                        className="flex-1 bg-surface-container border border-dashed border-white/20 rounded-xl text-on-surface-variant hover:text-white hover:border-white/40 transition flex flex-col items-center justify-center gap-1 disabled:opacity-50"
+                                    >
+                                        <span className="material-symbols-outlined text-[24px]">{addUploading ? 'progress_activity' : 'upload'}</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-wider">{addUploading ? 'Uploading…' : `Upload ${addType}`}</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setShowMediaAi(true)}
+                                        className="flex-1 bg-primary/5 border border-dashed border-primary/30 rounded-xl text-primary/80 hover:text-primary hover:border-primary hover:bg-primary/10 transition flex flex-col items-center justify-center gap-1 group"
+                                    >
+                                        <span className="material-symbols-outlined text-[24px] group-hover:rotate-12 transition-transform">auto_awesome</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-wider">AI Gen</span>
+                                    </button>
+                                </div>
                             )}
                         </div>
                     )}
@@ -808,9 +830,9 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                             <span className="text-[10px] font-bold uppercase tracking-wider">Upload File</span>
                                         </button>
 
-                                        {/* AI Generate Toggle */}
-                                        <button 
-                                            onClick={() => setShowAIPrompt(true)}
+                                        {/* AI Generate → external provider picker */}
+                                        <button
+                                            onClick={() => setShowMediaAi(true)}
                                             className="flex-1 h-full bg-primary/5 border border-dashed border-primary/30 rounded-xl text-primary/80 hover:text-primary hover:border-primary hover:bg-primary/10 transition flex flex-col items-center justify-center gap-1 group"
                                         >
                                             <span className="material-symbols-outlined text-[24px] group-hover:rotate-12 transition-transform">auto_awesome</span>
@@ -822,220 +844,6 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                         )}
                     </section>
 
-                    {/* Premium AI Generation Modal */}
-                    {/* Premium AI Generation Modal */}
-                    {showAIPrompt && createPortal(
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                            <div className="bg-surface-container-highest w-full max-w-[600px] h-[600px] rounded-3xl shadow-2xl border border-white/10 overflow-hidden flex flex-col">
-                                <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-black/20 shrink-0">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-bold text-on-surface tracking-tight">Generate Image with AI</h2>
-                                            <p className="text-xs text-on-surface-variant mt-0.5">Create unique, high-quality visuals instantly.</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setShowAIPrompt(false)} className="text-on-surface-variant hover:text-white transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">
-                                        <span className="material-symbols-outlined text-[20px]">close</span>
-                                    </button>
-                                </div>
-                                
-                                <div className="p-6 flex flex-col flex-1 overflow-y-auto">
-                                    {generatedImages.length > 0 ? (
-                                        <div className="flex flex-col h-full">
-                                            <h3 className="text-sm font-semibold text-on-surface mb-4 flex items-center gap-2">
-                                                <span className="material-symbols-outlined text-primary">photo_library</span>
-                                                Select an image to use
-                                            </h3>
-                                            <div className="grid grid-cols-2 gap-4 flex-1">
-                                                {generatedImages.map((b64, idx) => (
-                                                    <button 
-                                                        key={idx}
-                                                        onClick={async () => {
-                                                            setIsUploading(true);
-                                                            try {
-                                                                let customBucket = 'video-folder';
-                                                                let customPath = '';
-                                                                let customPublicUrlBase = 'https://pub-2003936f6b0342a8afd9e538b2f27d12.r2.dev';
-
-                                                                if (config.videoUrl) {
-                                                                    const urlObj = new URL(config.videoUrl);
-                                                                    customPublicUrlBase = urlObj.origin;
-                                                                    const parts = urlObj.pathname.split('/').filter(Boolean);
-                                                                    if (parts.length >= 2) {
-                                                                        customPath = `${parts[0]}/${parts[1]}/images/`;
-                                                                    }
-                                                                }
-
-                                                                const res = await fetch('/api/upload-overlay-image', {
-                                                                    method: 'POST',
-                                                                    headers: { 'Content-Type': 'application/json' },
-                                                                    body: JSON.stringify({
-                                                                        imageBase64: b64,
-                                                                        customBucket,
-                                                                        customPath,
-                                                                        customPublicUrlBase
-                                                                    })
-                                                                });
-                                                                const data = await res.json();
-                                                                if(!res.ok) throw new Error(data.error);
-                                                                
-                                                                updateOverlayProp('src', data.publicUrl);
-                                                                updateOverlayProp('url', data.publicUrl);
-                                                                setAiPrompt('');
-                                                                setGeneratedImages([]);
-                                                                setShowAIPrompt(false);
-                                                            } catch (err) {
-                                                                showCustomAlert(err.message, "Upload Error");
-                                                            } finally {
-                                                                setIsUploading(false);
-                                                            }
-                                                        }}
-                                                        disabled={isUploading}
-                                                        className={`relative rounded-xl overflow-hidden border-2 transition-all group aspect-square bg-black/50 ${isUploading ? 'opacity-50 cursor-not-allowed border-transparent' : 'border-transparent hover:border-primary'}`}
-                                                    >
-                                                        <img src={`data:image/jpeg;base64,${b64}`} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
-                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <span className="bg-primary text-on-primary text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2">
-                                                                <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                                                                Use Image
-                                                            </span>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <div className="pt-4 mt-4 flex items-center justify-between border-t border-white/5 shrink-0">
-                                                <button 
-                                                    onClick={() => setGeneratedImages([])}
-                                                    disabled={isUploading}
-                                                    className="px-5 py-2 text-xs font-medium text-on-surface-variant hover:text-white transition rounded-lg hover:bg-white/5 flex items-center gap-2"
-                                                >
-                                                    <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                                                    Back to Prompt
-                                                </button>
-                                                {isUploading && (
-                                                    <span className="text-primary text-xs flex items-center gap-2 font-semibold">
-                                                        <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                                                        Applying image to video...
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {/* Dimensions */}
-                                            <div className="flex items-center justify-between mb-4 shrink-0">
-                                                <label className="text-sm font-semibold text-on-surface flex items-center gap-2">
-                                                    <span className="material-symbols-outlined text-primary text-[18px]">aspect_ratio</span>
-                                                    Dimensions
-                                                </label>
-                                                <div className="flex items-center gap-2 bg-surface-container p-1 rounded-lg border border-white/5">
-                                                    {['1024x1024', '1024x1792', '1792x1024'].map(dim => {
-                                                        const labels = {
-                                                            '1024x1024': 'Square',
-                                                            '1024x1792': 'Portrait',
-                                                            '1792x1024': 'Landscape'
-                                                        };
-                                                        return (
-                                                            <button
-                                                                key={dim}
-                                                                onClick={() => setAiSize(dim)}
-                                                                className={`px-3 py-1.5 rounded-md text-[10px] uppercase tracking-wider font-bold transition flex items-center justify-center ${aiSize === dim ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
-                                                            >
-                                                                {labels[dim]}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-
-                                            {/* Prompt Area */}
-                                            <div className="flex flex-col flex-1 gap-2 mb-4">
-                                                <label className="text-sm font-semibold text-on-surface flex items-center gap-2 shrink-0">
-                                                    <span className="material-symbols-outlined text-primary text-[18px]">edit_note</span>
-                                                    Your Prompt
-                                                </label>
-                                                <textarea
-                                                    value={aiPrompt}
-                                                    onChange={(e) => setAiPrompt(e.target.value)}
-                                                    placeholder="A highly detailed futuristic city at sunset, neon lights reflecting on wet streets, cinematic lighting, photorealistic..."
-                                                    className="w-full flex-1 bg-surface-container-high border-2 border-transparent text-on-surface rounded-xl p-4 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none shadow-inner"
-                                                />
-                                            </div>
-
-                                            {/* Best Practices */}
-                                            <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 shrink-0 mb-6 flex gap-4 text-[12px] text-on-surface-variant">
-                                                <div className="flex-1">
-                                                    <strong className="text-primary block mb-1.5 uppercase tracking-wider text-[10px]">Do:</strong>
-                                                    <ul className="list-disc pl-4 space-y-1">
-                                                        <li>Be highly descriptive (lighting, mood)</li>
-                                                        <li>Clearly specify the main subject</li>
-                                                        <li>Use modifiers like "4k", "detailed"</li>
-                                                    </ul>
-                                                </div>
-                                                <div className="flex-1">
-                                                    <strong className="text-orange-400 block mb-1.5 uppercase tracking-wider text-[10px]">Don't:</strong>
-                                                    <ul className="list-disc pl-4 space-y-1">
-                                                        <li>Request exact text or typography</li>
-                                                        <li>Use vague or conflicting phrases</li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-
-                                            {/* Buttons */}
-                                            <div className="pt-4 flex items-center justify-end gap-3 shrink-0 border-t border-white/5">
-                                                <button 
-                                                    onClick={() => setShowAIPrompt(false)}
-                                                    className="px-5 py-2 text-xs font-medium text-on-surface-variant hover:text-white transition rounded-lg hover:bg-white/5"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button 
-                                                    disabled={!aiPrompt || isGenerating}
-                                                    onClick={async () => {
-                                                        if (!aiPrompt) return;
-                                                        setIsGenerating(true);
-                                                        try {
-                                                            const res = await fetch('/api/generate-overlay-image', {
-                                                                method: 'POST',
-                                                                headers: { 'Content-Type': 'application/json' },
-                                                                body: JSON.stringify({
-                                                                    prompt: aiPrompt,
-                                                                    size: aiSize
-                                                                })
-                                                            });
-                                                            
-                                                            const data = await res.json();
-                                                            if(!res.ok) throw new Error(data.error);
-                                                            
-                                                            if (data.images && data.images.length > 0) {
-                                                                setGeneratedImages(data.images);
-                                                            } else {
-                                                                throw new Error("No images were returned from Gemini.");
-                                                            }
-                                                        } catch(err) {
-                                                            showCustomAlert(err.message, "Generation Error");
-                                                        } finally {
-                                                            setIsGenerating(false);
-                                                        }
-                                                    }}
-                                                    className={`px-6 py-2 rounded-lg text-xs font-bold shadow-lg transition flex items-center justify-center gap-2 min-w-[140px] ${isGenerating ? 'bg-primary/50 cursor-not-allowed text-white' : 'bg-primary text-on-primary hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-[0_5px_15px_rgba(177,156,217,0.3)]'}`}
-                                                >
-                                                    <span className={`material-symbols-outlined text-[16px] ${isGenerating ? 'animate-spin' : ''}`}>
-                                                        {isGenerating ? 'sync' : 'auto_awesome'}
-                                                    </span>
-                                                    {isGenerating ? 'Generating...' : 'Generate Options'}
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </div>,
-                        document.body
-                    )}
 
                     {/* Timing */}
                     <section className="bg-surface p-4 rounded-xl border border-white/5 shadow-sm">
@@ -1268,6 +1076,51 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                         </button>
                     </section>
                 </>
+            )}
+
+            {/* Media generation provider picker (off-platform — just redirects) */}
+            {showMediaAi && createPortal(
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setShowMediaAi(false)}
+                >
+                    <div
+                        className="bg-surface-container-highest w-full max-w-[440px] rounded-3xl shadow-2xl border border-white/10 overflow-hidden"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="px-6 py-4 border-b border-white/5">
+                            <h3 className="text-on-surface font-bold text-base flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
+                                Where do you want to create the media?
+                            </h3>
+                            <p className="text-xs text-on-surface-variant mt-1">
+                                Opens the tool in a new tab. Create your asset there, then come back and upload it.
+                            </p>
+                        </div>
+                        <div className="p-3 grid grid-cols-1 gap-1.5 max-h-[60vh] overflow-y-auto">
+                            {MEDIA_AI_PROVIDERS.map(p => (
+                                <button
+                                    key={p.name}
+                                    onClick={() => openMediaProvider(p)}
+                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-primary/10 transition-colors group"
+                                >
+                                    <span
+                                        className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
+                                        style={{ backgroundColor: p.color }}
+                                    >
+                                        {p.name.charAt(0)}
+                                    </span>
+                                    <span className="flex-1 min-w-0">
+                                        <span className="block text-sm text-on-surface font-medium group-hover:text-primary">{p.name}</span>
+                                        <span className="block text-[11px] text-on-surface-variant">{p.kind} generation</span>
+                                    </span>
+                                    <span className="material-symbols-outlined text-[18px] text-on-surface-variant group-hover:text-primary">open_in_new</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );
