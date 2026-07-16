@@ -16,23 +16,32 @@ export function SubtitlesPanel({ config, setConfig, editId }) {
 
     const { subtitleData } = config;
 
+    // Rebuild the per-word list from the edited text, spreading the segment's
+    // [start, end] time evenly across each word so word-by-word highlighting
+    // keeps working (instead of the whole line highlighting as one big word).
+    const buildWords = (text, start, end) => {
+        const tokens = (text || '').trim().split(/\s+/).filter(Boolean);
+        if (tokens.length === 0) return [];
+        const span = (end - start) / tokens.length;
+        return tokens.map((word, i) => {
+            const wStart = start + span * i;
+            const wEnd = start + span * (i + 1);
+            return {
+                word,
+                text: word,
+                start: Math.round(wStart * 100) / 100,
+                end: Math.round(wEnd * 100) / 100,
+            };
+        });
+    };
+
     const handleUpdateBlock = (index, field, value) => {
         const newData = [...subtitleData];
-        newData[index] = { ...newData[index], [field]: value };
-        
-        // If text is updated, we must override the words array so the renderer matches
-        if (field === 'text') {
-            newData[index].words = [{
-                start: newData[index].start,
-                end: newData[index].end,
-                text: value
-            }];
-        }
-        
-        // Also update timing of the single word if start/end changes and there's only one word
-        if ((field === 'start' || field === 'end') && newData[index].words?.length === 1) {
-            newData[index].words[0][field] = value;
-        }
+        const block = { ...newData[index], [field]: value };
+
+        // Re-spread word timings whenever the text or the segment timing changes.
+        block.words = buildWords(block.text, block.start, block.end);
+        newData[index] = block;
 
         updateConfigData(newData);
     };
