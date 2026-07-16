@@ -64,7 +64,7 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
     // fills the square area behind the sharp, contained copy — so any aspect
     // ratio fits with no hard frame. (Two media layers, same source.)
     const containerStyle = isBlurBg
-        ? { position: 'relative', overflow: 'hidden', display: 'grid', width: '100%', aspectRatio: '1' }
+        ? { position: 'relative', overflow: 'hidden', padding: '26px', boxSizing: 'border-box', backgroundColor: '#000' }
         : isStructural
         ? { backgroundColor: 'transparent' }
         : getBorderPresetStyle(overlay.borderPreset || 'photographic');
@@ -78,7 +78,8 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
         `conic-gradient(#000 0 0) content-box, ` +
         `radial-gradient(${r}px,#0000 100%,#000 calc(100% + 1px)) ${s}px ${s}px padding-box`;
     const wavyStyle = {
-        width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block',
+        // height:auto keeps the image's natural size (no zoom/crop).
+        width: '100%', height: 'auto', display: 'block',
         boxSizing: 'border-box', padding: `${s}px`, border: `${s}px solid transparent`,
         background: '#BF4D28', borderRadius: `${3.5 * s}px`,
         WebkitMask: wavyMask, mask: wavyMask,
@@ -86,8 +87,8 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
     };
 
     // "Infinite Lined Borders": concentric rings drawn with a repeating radial
-    // border-image in a thick transparent border band.
-    const lb = 16, ln = 5, lc = '#774F38';
+    // border-image. Fewer, bolder rings than the original.
+    const lb = 22, ln = 3, lc = '#774F38';
     const lp = lb * ln;
     const lsz = 460;
     const ld = lsz / (2 * ln) + lb;
@@ -140,8 +141,10 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
             }}>
                 {isBlurBg ? (
                     <>
-                        <MediaTag src={src} style={{ gridArea: '1/1', width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(0.8) blur(40px)', transform: 'scale(1.3)' }} />
-                        <MediaTag src={src} style={{ gridArea: '1/1', margin: 'auto', width: '78%', height: '78%', objectFit: 'contain', boxShadow: '0 0 20px #0005', zIndex: 1 }} />
+                        {/* Blurred fill spans the whole box (incl. the even padding);
+                            sharp copy sits on top with uniform padding around it. */}
+                        <MediaTag src={src} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(0.95) blur(14px)', transform: 'scale(1.08)' }} />
+                        <MediaTag src={src} style={{ position: 'relative', width: '100%', height: 'auto', display: 'block', zIndex: 1, boxShadow: '0 0 16px #0006' }} />
                     </>
                 ) : isWavy ? (
                     <MediaTag src={src} style={wavyStyle} />
