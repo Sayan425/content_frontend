@@ -57,7 +57,8 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
     const isLined = overlay.borderPreset === 'lined';
     const isArtDeco = overlay.borderPreset === 'artdeco';
     const isVintage = overlay.borderPreset === 'vintage';
-    const isStructural = isWavy || isLined || isArtDeco || isVintage;
+    const isEightBit = overlay.borderPreset === 'eightbit';
+    const isStructural = isWavy || isLined || isArtDeco || isVintage || isEightBit;
 
     // "Frameless Blurred Background": a blurred, enlarged copy of the media
     // fills the square area behind the sharp, contained copy — so any aspect
@@ -107,6 +108,18 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
         ...(corner.includes('l') ? { left: '-5px', borderLeftWidth: '1px' } : { right: '-5px', borderRightWidth: '1px' }),
     });
 
+    // "8-Bit Pixel Border": stepped pixel frame with notched corners, built
+    // from the SCSS step1 mixin expanded to a two-level box-shadow (one color).
+    const pw = 8, pc = '#000';
+    const eightBitStyle = {
+        width: '88%', height: 'auto', display: 'block', objectFit: 'cover',
+        boxShadow: [
+            `${pw}px 0 ${pc}`, `-${pw}px 0 ${pc}`, `0 -${pw}px ${pc}`, `0 ${pw}px ${pc}`,
+            `${2 * pw}px 0 ${pc}`, `-${2 * pw}px 0 ${pc}`, `0 -${2 * pw}px ${pc}`, `0 ${2 * pw}px ${pc}`,
+            `0 0 0 ${pw}px ${pc}`,
+        ].join(', '),
+    };
+
     const MediaTag = isVideo ? OffthreadVideo : Img;
 
     return (
@@ -134,6 +147,8 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
                     <MediaTag src={src} style={wavyStyle} />
                 ) : isLined ? (
                     <MediaTag src={src} style={linedStyle} />
+                ) : isEightBit ? (
+                    <MediaTag src={src} style={eightBitStyle} />
                 ) : isArtDeco ? (
                     <div style={{ position: 'relative', border: `1px solid ${deco}`, padding: '14px', backgroundColor: '#17121c', display: 'flex' }}>
                         <MediaTag src={src} style={{ width: '100%', height: 'auto', display: 'block' }} />

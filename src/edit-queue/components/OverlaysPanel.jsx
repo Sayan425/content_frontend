@@ -1117,7 +1117,8 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     { value: 'wavy', label: 'Wavy Edges' },
                                     { value: 'lined', label: 'Infinite Lined Borders' },
                                     { value: 'artdeco', label: 'Art Deco Corners' },
-                                    { value: 'vintage', label: 'Vintage Triple Frame' }
+                                    { value: 'vintage', label: 'Vintage Triple Frame' },
+                                    { value: 'eightbit', label: '8-Bit Pixel Border' }
                                 ]}
                             />
                             )}
