@@ -86,24 +86,26 @@ Here is what I want the motion graphic to be: `;
 // Services that accept a pre-filled prompt straight from the URL open with it
 // injected; the rest (copy: true) get the prompt copied to the clipboard and
 // the site opened for pasting.
+const ICON_BASE = 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons';
+
 const AI_PROVIDERS = [
-    { name: 'ChatGPT', url: () => `https://chatgpt.com/?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
-    { name: 'Claude', url: () => `https://claude.ai/new?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
-    { name: 'Perplexity', url: () => `https://www.perplexity.ai/search?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
-    { name: 'Gemini', copy: true, url: () => 'https://gemini.google.com/app' },
-    { name: 'DeepSeek', copy: true, url: () => 'https://chat.deepseek.com/' },
+    { name: 'ChatGPT', icon: `${ICON_BASE}/chatgpt%20icon.png`, url: () => `https://chatgpt.com/?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
+    { name: 'Claude', icon: `${ICON_BASE}/claude%20icon.png`, url: () => `https://claude.ai/new?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
+    { name: 'Perplexity', icon: `${ICON_BASE}/perplexity%20icon.webp`, url: () => `https://www.perplexity.ai/search?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
+    { name: 'Gemini', icon: `${ICON_BASE}/gemini%20icon.jpg`, copy: true, url: () => 'https://gemini.google.com/app' },
+    { name: 'DeepSeek', icon: `${ICON_BASE}/deepseek%20icon.png`, copy: true, url: () => 'https://chat.deepseek.com/' },
 ];
 
 // External services for generating image/video assets. We never generate on
 // our end — clicking just opens the tool in a new tab; the user creates the
 // asset there, then comes back and uploads it.
 const MEDIA_AI_PROVIDERS = [
-    { name: 'ChatGPT', kind: 'Image', color: '#10a37f', url: 'https://chatgpt.com/' },
-    { name: 'Google Flow', kind: 'Video', color: '#4285f4', url: 'https://labs.google/flow/' },
-    { name: 'Higgsfield', kind: 'Video', color: '#8b5cf6', url: 'https://higgsfield.ai/' },
-    { name: 'Midjourney', kind: 'Image', color: '#4a4a4a', url: 'https://www.midjourney.com/' },
-    { name: 'Leonardo AI', kind: 'Image', color: '#7c3aed', url: 'https://leonardo.ai/' },
-    { name: 'Runway', kind: 'Video', color: '#00c2a8', url: 'https://runwayml.com/' },
+    { name: 'ChatGPT', kind: 'Image', icon: `${ICON_BASE}/chatgpt%20icon.png`, url: 'https://chatgpt.com/' },
+    { name: 'Google Flow', kind: 'Image & Video', icon: `${ICON_BASE}/google%20flow%20logo.png`, url: 'https://labs.google/flow/' },
+    { name: 'Higgsfield', kind: 'Video', icon: `${ICON_BASE}/higgsfield%20icon.jpg`, url: 'https://higgsfield.ai/' },
+    { name: 'Midjourney', kind: 'Image', icon: `${ICON_BASE}/midjourney%20icon.webp`, url: 'https://www.midjourney.com/' },
+    { name: 'Leonardo AI', kind: 'Image', icon: `${ICON_BASE}/leonardo%20ai%20icon.jpg`, url: 'https://leonardo.ai/' },
+    { name: 'Runway', kind: 'Video', icon: `${ICON_BASE}/runway%20ml%20icon.png`, url: 'https://runwayml.com/' },
 ];
 
 const isHexColor = (v) =>
@@ -557,9 +559,10 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                         <button
                                             key={p.name}
                                             onClick={() => openAiProvider(p)}
-                                            className="w-full text-left px-3 py-2 rounded-lg text-sm text-on-surface hover:bg-primary/10 hover:text-primary transition-colors flex items-center justify-between"
+                                            className="w-full text-left px-3 py-2 rounded-lg text-sm text-on-surface hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-2"
                                         >
-                                            <span>{p.name}</span>
+                                            <img src={p.icon} alt={p.name} className="w-5 h-5 rounded object-cover bg-white/5 shrink-0" />
+                                            <span className="flex-1">{p.name}</span>
                                             {p.copy && <span className="text-[10px] text-on-surface-variant">copies prompt</span>}
                                         </button>
                                     ))}
@@ -1104,12 +1107,11 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     onClick={() => openMediaProvider(p)}
                                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-primary/10 transition-colors group"
                                 >
-                                    <span
-                                        className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
-                                        style={{ backgroundColor: p.color }}
-                                    >
-                                        {p.name.charAt(0)}
-                                    </span>
+                                    <img
+                                        src={p.icon}
+                                        alt={p.name}
+                                        className="w-9 h-9 rounded-lg object-cover bg-white/5 shrink-0"
+                                    />
                                     <span className="flex-1 min-w-0">
                                         <span className="block text-sm text-on-surface font-medium group-hover:text-primary">{p.name}</span>
                                         <span className="block text-[11px] text-on-surface-variant">{p.kind} generation</span>
