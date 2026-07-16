@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabase';
 import { markLocalSave } from '../utils/localSaveTracker';
 import { showCustomConfirm } from '../../../components/notifications.js';
+import { RangeInput } from './RangeInput';
 
 // Reusing generic input components
 const SelectInput = ({ label, value, onChange, options }) => (
@@ -53,23 +54,6 @@ const NumberInput = ({ label, value, onChange, min, max, step }) => {
   );
 };
 
-const RangeInput = ({ label, value, onChange, min, max, step }) => (
-  <div className="flex flex-col gap-2 mb-4">
-    <label className="text-sm font-medium text-on-surface-variant flex justify-between">
-      <span>{label}</span>
-      <span>{value}</span>
-    </label>
-    <input
-      type="range"
-      min={min}
-      max={max}
-      step={step}
-      value={value || 0}
-      onChange={e => onChange(parseFloat(e.target.value))}
-      className="w-full accent-primary"
-    />
-  </div>
-);
 
 const ToggleInput = ({ label, value, onChange }) => (
   <div className="flex items-center justify-between mb-4">

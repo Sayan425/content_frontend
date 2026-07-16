@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { markLocalSave } from '../utils/localSaveTracker';
 import * as Styles from './Subtitles/StyleVariations';
+import { RangeInput } from './RangeInput';
 
 const SelectInput = ({ label, value, onChange, options }) => (
   <div className="flex flex-col gap-2 mb-4">
@@ -266,23 +267,6 @@ const ToggleInput = ({ label, value, onChange }) => (
   </div>
 );
 
-const RangeInput = ({ label, value, onChange, min, max, step }) => (
-  <div className="flex flex-col gap-2 mb-4">
-    <label className="text-sm font-medium text-on-surface-variant flex justify-between">
-      <span>{label}</span>
-      <span>{value}</span>
-    </label>
-    <input
-      type="range"
-      min={min}
-      max={max}
-      step={step}
-      value={value || 0}
-      onChange={e => onChange(parseFloat(e.target.value))}
-      className="w-full accent-primary"
-    />
-  </div>
-);
 
 export function MainVideoPanel({ config, setConfig, editId }) {
   const saveTimeoutRef = useRef(null);
