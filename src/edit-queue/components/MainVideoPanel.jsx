@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { markLocalSave } from '../utils/localSaveTracker';
+import { showCustomAlert } from '../../../components/notifications.js';
 import * as Styles from './Subtitles/StyleVariations';
 import { RangeInput } from './RangeInput';
 
@@ -508,7 +509,7 @@ export function MainVideoPanel({ config, setConfig, editId }) {
                                     
                                 } catch(err) {
                                     console.error("Upload error:", err);
-                                    alert("Error uploading track: " + err.message);
+                                    showCustomAlert(err.message, "Error uploading track");
                                 }
                             }}
                             className="text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 file:cursor-pointer"

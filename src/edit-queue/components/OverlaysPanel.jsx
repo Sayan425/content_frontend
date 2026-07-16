@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabase';
 import { markLocalSave } from '../utils/localSaveTracker';
-import { showCustomConfirm } from '../../../components/notifications.js';
+import { showCustomConfirm, showCustomAlert } from '../../../components/notifications.js';
 import { RangeInput } from './RangeInput';
 
 // Reusing generic input components
@@ -370,7 +370,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
 
             setAddMediaUrl(data.publicUrl);
         } catch (err) {
-            alert('Upload Error: ' + err.message);
+            showCustomAlert(err.message, 'Upload Error');
         } finally {
             setAddUploading(false);
         }
@@ -386,13 +386,13 @@ export function OverlaysPanel({ config, setConfig, editId }) {
 
         let overlay = null;
         if (addType === 'Text') {
-            if (!addText.trim()) return alert('Please enter the text first.');
+            if (!addText.trim()) return showCustomAlert('Please enter the text first.', 'Add Overlay');
             overlay = { ...base, type: 'Text', props: { text: addText.trim() }, animationIn: 'pop' };
         } else if (addType === 'MotionGraphic') {
-            if (!addHtml.trim()) return alert('Please paste your code first.');
+            if (!addHtml.trim()) return showCustomAlert('Please paste your code first.', 'Add Overlay');
             overlay = { ...base, type: 'MotionGraphic', props: { code: addHtml } };
         } else {
-            if (!addMediaUrl) return alert('Please upload the file first.');
+            if (!addMediaUrl) return showCustomAlert('Please upload the file first.', 'Add Overlay');
             overlay = {
                 ...base,
                 type: addType, // 'Image' | 'Video'
@@ -796,7 +796,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                                     updateOverlayProp('src', data.publicUrl);
                                                     updateOverlayProp('url', data.publicUrl);
                                                 } catch(err) {
-                                                    alert("Upload Error: " + err.message);
+                                                    showCustomAlert(err.message, "Upload Error");
                                                 }
                                             }}
                                         />
@@ -888,7 +888,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                                                 setGeneratedImages([]);
                                                                 setShowAIPrompt(false);
                                                             } catch (err) {
-                                                                alert("Upload Error: " + err.message);
+                                                                showCustomAlert(err.message, "Upload Error");
                                                             } finally {
                                                                 setIsUploading(false);
                                                             }
@@ -1016,7 +1016,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                                                 throw new Error("No images were returned from Gemini.");
                                                             }
                                                         } catch(err) {
-                                                            alert("Generation Error: " + err.message);
+                                                            showCustomAlert(err.message, "Generation Error");
                                                         } finally {
                                                             setIsGenerating(false);
                                                         }

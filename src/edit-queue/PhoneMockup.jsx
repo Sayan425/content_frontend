@@ -38,6 +38,12 @@ export function PhoneMockup({ config, setConfig, editId }) {
   useEffect(() => {
     if (!editId) return;
 
+    // Reset the one-time buffer whenever we switch to a different video, so
+    // the loading screen shows for the new video instead of briefly keeping
+    // the previous player.
+    setBuffering(true);
+    setBufferPct(null);
+
     console.log("Loading video manifest from Supabase for edit_id:", editId);
     
     // Function to parse and set config from raw database data
