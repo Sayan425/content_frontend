@@ -1112,7 +1112,9 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     { value: 'glass', label: 'Soft Glass' },
                                     { value: 'comic_book', label: 'Comic Book Halftone' },
                                     { value: 'airmail', label: 'Retro Airmail Envelope' },
-                                    { value: 'blur_bg', label: 'Frameless Blurred Background' }
+                                    { value: 'blur_bg', label: 'Frameless Blurred Background' },
+                                    { value: 'electric', label: 'Electric Border (Glow)' },
+                                    { value: 'wavy', label: 'Wavy Edges' }
                                 ]}
                             />
                             )}

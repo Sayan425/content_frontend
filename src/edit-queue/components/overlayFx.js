@@ -104,6 +104,14 @@ export function getBorderPresetStyle(borderPreset) {
     borderImageSlice: 40,
     borderImageWidth: '2.4rem',
   };
+  if (borderPreset === 'electric') return {
+    backgroundColor: '#0f0f0f',
+    padding: '10px',
+    border: '2px solid #dd8448',
+    borderRadius: '24px',
+    boxShadow: '0 0 6px rgba(221,132,72,0.75), 0 0 16px rgba(221,132,72,0.5), 0 0 30px rgba(221,132,72,0.35)',
+    overflow: 'hidden',
+  };
   // default: classic photographic scrapbook frame
   return { backgroundColor: 'white', padding: '20px 20px 60px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', border: '1px solid #ddd' };
 }

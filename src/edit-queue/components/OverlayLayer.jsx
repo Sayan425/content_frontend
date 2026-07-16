@@ -53,13 +53,32 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
     const isAbsolute = position.x !== undefined || position.y !== undefined;
     const src = mediaSrc(overlay);
     const isBlurBg = overlay.borderPreset === 'blur_bg';
+    const isWavy = overlay.borderPreset === 'wavy';
 
     // "Frameless Blurred Background": a blurred, enlarged copy of the media
     // fills the square area behind the sharp, contained copy — so any aspect
     // ratio fits with no hard frame. (Two media layers, same source.)
     const containerStyle = isBlurBg
         ? { position: 'relative', overflow: 'hidden', display: 'grid', width: '100%', aspectRatio: '1' }
+        : isWavy
+        ? { backgroundColor: 'transparent' }
         : getBorderPresetStyle(overlay.borderPreset || 'photographic');
+
+    // "Wavy Edges": scalloped border via a tiled radial/conic mask, applied to
+    // the image itself (the orange padding shows through the scallops).
+    const s = 14;
+    const r = (Math.SQRT2 * s).toFixed(2);
+    const wavyMask =
+        `radial-gradient(${r}px,#000 calc(100% - 1px),#0000), ` +
+        `conic-gradient(#000 0 0) content-box, ` +
+        `radial-gradient(${r}px,#0000 100%,#000 calc(100% + 1px)) ${s}px ${s}px padding-box`;
+    const wavyStyle = {
+        width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block',
+        boxSizing: 'border-box', padding: `${s}px`, border: `${s}px solid transparent`,
+        background: '#BF4D28', borderRadius: `${3.5 * s}px`,
+        WebkitMask: wavyMask, mask: wavyMask,
+        WebkitMaskSize: `${4 * s}px ${4 * s}px`, maskSize: `${4 * s}px ${4 * s}px`,
+    };
 
     const MediaTag = isVideo ? OffthreadVideo : Img;
 
@@ -84,6 +103,8 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
                         <MediaTag src={src} style={{ gridArea: '1/1', width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(0.8) blur(40px)', transform: 'scale(1.3)' }} />
                         <MediaTag src={src} style={{ gridArea: '1/1', margin: 'auto', width: '78%', height: '78%', objectFit: 'contain', boxShadow: '0 0 20px #0005', zIndex: 1 }} />
                     </>
+                ) : isWavy ? (
+                    <MediaTag src={src} style={wavyStyle} />
                 ) : (
                     <>
                         {(!overlay.borderPreset || overlay.borderPreset === 'photographic') && (
