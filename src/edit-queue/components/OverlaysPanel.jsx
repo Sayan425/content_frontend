@@ -89,7 +89,7 @@ Here is what I want the motion graphic to be: `;
 const ICON_BASE = 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons';
 
 const AI_PROVIDERS = [
-    { name: 'ChatGPT', icon: `${ICON_BASE}/chatgpt%20icon.png`, url: () => `https://chatgpt.com/?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
+    { name: 'ChatGPT', icon: `${ICON_BASE}/ChatGPT%20logo.svg`, url: () => `https://chatgpt.com/?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
     { name: 'Claude', icon: `${ICON_BASE}/claude%20icon.png`, url: () => `https://claude.ai/new?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
     { name: 'Perplexity', icon: `${ICON_BASE}/perplexity%20icon.webp`, url: () => `https://www.perplexity.ai/search?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
     { name: 'Gemini', icon: `${ICON_BASE}/gemini%20icon.jpg`, copy: true, url: () => 'https://gemini.google.com/app' },
@@ -100,7 +100,7 @@ const AI_PROVIDERS = [
 // our end — clicking just opens the tool in a new tab; the user creates the
 // asset there, then comes back and uploads it.
 const MEDIA_AI_PROVIDERS = [
-    { name: 'ChatGPT', kind: 'Image', icon: `${ICON_BASE}/chatgpt%20icon.png`, url: 'https://chatgpt.com/' },
+    { name: 'ChatGPT', kind: 'Image', icon: `${ICON_BASE}/ChatGPT%20logo.svg`, url: 'https://chatgpt.com/' },
     { name: 'Google Flow', kind: 'Image & Video', icon: `${ICON_BASE}/google%20flow%20logo.png`, url: 'https://labs.google/flow/' },
     { name: 'Higgsfield', kind: 'Video', icon: `${ICON_BASE}/higgsfield%20icon.jpg`, url: 'https://higgsfield.ai/' },
     { name: 'Midjourney', kind: 'Image', icon: `${ICON_BASE}/midjourney%20icon.webp`, url: 'https://www.midjourney.com/' },
