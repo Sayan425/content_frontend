@@ -468,7 +468,7 @@ export function MainVideoPanel({ config, setConfig, editId }) {
                                             customPublicUrlBase = urlObj.origin;
                                             const parts = urlObj.pathname.split('/').filter(Boolean);
                                             if (parts.length >= 2) {
-                                                customPath = `${parts[0]}/${parts[1]}/BGM_`;
+                                                customPath = `${decodeURIComponent(parts[0])}/${decodeURIComponent(parts[1])}/bgm/`;
                                             }
                                         } catch (e) {
                                             console.warn("Could not parse config.videoUrl for dynamic pathing", e);

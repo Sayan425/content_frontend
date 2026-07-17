@@ -789,8 +789,8 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                                         customPublicUrlBase = urlObj.origin;
                                                         const parts = urlObj.pathname.split('/').filter(Boolean);
                                                         if (parts.length >= 2) {
-                                                            const mediaType = file.type.startsWith('video') ? 'videos' : 'images';
-                                                            customPath = `${parts[0]}/${parts[1]}/${mediaType}/`;
+                                                            const mediaType = file.type.startsWith('video') ? 'videos' : 'google-images';
+                                                            customPath = `${decodeURIComponent(parts[0])}/${decodeURIComponent(parts[1])}/${mediaType}/`;
                                                         }
                                                     }
 
