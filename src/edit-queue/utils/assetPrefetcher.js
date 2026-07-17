@@ -43,6 +43,16 @@ export function waitForAsset(url) {
   return handle ? handle.waitUntilDone() : Promise.resolve();
 }
 
+/**
+ * Wait for every currently-prefetched asset (main video, BGM, and all overlay
+ * media) to be fully in memory. A single failed download won't block the rest.
+ */
+export function waitForAllAssets() {
+  return Promise.allSettled(
+    [...handles.values()].map((h) => h.waitUntilDone())
+  );
+}
+
 /** Release all cached blobs (called when the editor unmounts). */
 export function freeAllAssets() {
   handles.forEach((h) => {

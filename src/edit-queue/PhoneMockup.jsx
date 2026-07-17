@@ -5,7 +5,7 @@ import { resolveAssetUrl } from './utils/assetResolver';
 import { getVideoMetadata } from '@remotion/media-utils';
 import { supabase } from '../lib/supabase';
 import { isRecentLocalSave } from './utils/localSaveTracker';
-import { prefetchAsset, waitForAsset, freeAllAssets } from './utils/assetPrefetcher';
+import { prefetchAsset, waitForAllAssets, freeAllAssets } from './utils/assetPrefetcher';
 import { normalizeManifest } from './utils/manifestNormalizer';
 
 export function PhoneMockup({ config, setConfig, editId }) {
@@ -18,7 +18,6 @@ export function PhoneMockup({ config, setConfig, editId }) {
   // The Player is only mounted after this, so playback can never stall on
   // the network — it reads entirely from memory.
   const [buffering, setBuffering] = useState(true);
-  const [bufferPct, setBufferPct] = useState(null);
   const playerRef = useRef(null);
 
   useEffect(() => {
@@ -42,7 +41,6 @@ export function PhoneMockup({ config, setConfig, editId }) {
     // the loading screen shows for the new video instead of briefly keeping
     // the previous player.
     setBuffering(true);
-    setBufferPct(null);
 
     console.log("Loading video manifest from Supabase for edit_id:", editId);
     
@@ -77,13 +75,8 @@ export function PhoneMockup({ config, setConfig, editId }) {
       
       // Download every asset into RAM once (video, BGM, overlay media) so the
       // player never re-fetches from R2 — template switches become instant.
-      const mainVideoUrl = resolveAssetUrl(manifestData.videoUrl);
       try {
-        if (manifestData.videoUrl) {
-          prefetchAsset(mainVideoUrl, (loaded, total) => {
-            if (total) setBufferPct(Math.round((loaded / total) * 100));
-          });
-        }
+        if (manifestData.videoUrl) prefetchAsset(resolveAssetUrl(manifestData.videoUrl));
         if (manifestData.backgroundMusicUrl) prefetchAsset(resolveAssetUrl(manifestData.backgroundMusicUrl));
 
         manifestData.overlays.forEach(overlay => {
@@ -99,15 +92,9 @@ export function PhoneMockup({ config, setConfig, editId }) {
       setConfig(manifestData);
       setLoading(false);
 
-      // Keep the "Buffering" badge up until the main video is fully in
-      // memory; if the download fails we still let the player try normally.
-      if (manifestData.videoUrl) {
-        waitForAsset(mainVideoUrl)
-          .catch(() => {})
-          .finally(() => setBuffering(false));
-      } else {
-        setBuffering(false);
-      }
+      // Show "Loading" until EVERY asset (video, BGM, all overlay media) is
+      // fully in memory, so nothing streams or pops in during playback.
+      waitForAllAssets().finally(() => setBuffering(false));
       
       try {
         const resolvedVideo = resolveAssetUrl(manifestData.videoUrl);
@@ -194,26 +181,13 @@ export function PhoneMockup({ config, setConfig, editId }) {
 
         {/* Screen Area */}
         <div className="rounded-[2.2rem] overflow-hidden bg-black relative h-full w-full flex items-center justify-center border-[4px] border-black shadow-[inset_0_0_20px_rgba(0,0,0,1)]">
-          {loading ? (
+          {(loading || buffering) ? (
+            /* One screen for both phases: fetching the manifest and loading
+               every asset into memory. The player mounts only once all assets
+               are in RAM, so playback never streams or pops in. */
             <div className="flex flex-col items-center gap-4 text-on-surface-variant">
-              <span className="material-symbols-outlined text-4xl animate-spin">sync</span>
-              <span className="text-sm font-mono-label">Loading Video Config...</span>
-            </div>
-          ) : buffering ? (
-            /* One-time buffer: the player mounts only after the whole video
-               is in RAM, so playback afterwards never touches the network. */
-            <div className="flex flex-col items-center gap-4 text-on-surface-variant px-8 w-full">
               <span className="material-symbols-outlined text-4xl text-primary animate-spin">progress_activity</span>
-              <span className="text-sm font-mono-label text-center">
-                Buffering video into memory{bufferPct !== null ? ` (${bufferPct}%)` : '…'}
-              </span>
-              <div className="w-3/4 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-300"
-                  style={{ width: `${bufferPct ?? 5}%` }}
-                />
-              </div>
-              <span className="text-[11px] opacity-60 text-center">One-time load — editing will be instant after this</span>
+              <span className="text-sm font-mono-label">Loading</span>
             </div>
           ) : (
             <Player
