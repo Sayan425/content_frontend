@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabase';
 import { markLocalSave } from '../utils/localSaveTracker';
 import { showCustomConfirm, showCustomAlert } from '../../../components/notifications.js';
 import { RangeInput } from './RangeInput';
+import { ICON_BASE, MediaAiPicker } from './MediaAiPicker';
 
 // Reusing generic input components
 const SelectInput = ({ label, value, onChange, options }) => (
@@ -85,27 +85,13 @@ Here is what I want the motion graphic to be: `;
 
 // Services that accept a pre-filled prompt straight from the URL open with it
 // injected; the rest (copy: true) get the prompt copied to the clipboard and
-// the site opened for pasting.
-const ICON_BASE = 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons';
-
+// the site opened for pasting. (ICON_BASE / media providers live in MediaAiPicker.)
 const AI_PROVIDERS = [
     { name: 'ChatGPT', icon: `${ICON_BASE}/ChatGPT%20logo.svg`, url: () => `https://chatgpt.com/?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
     { name: 'Claude', icon: `${ICON_BASE}/claude%20icon.png`, url: () => `https://claude.ai/new?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
     { name: 'Perplexity', icon: `${ICON_BASE}/perplexity%20icon.webp`, url: () => `https://www.perplexity.ai/search?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
     { name: 'Gemini', icon: `${ICON_BASE}/gemini%20icon.jpg`, copy: true, url: () => 'https://gemini.google.com/app' },
     { name: 'DeepSeek', icon: `${ICON_BASE}/deepseek%20icon.png`, copy: true, url: () => 'https://chat.deepseek.com/' },
-];
-
-// External services for generating image/video assets. We never generate on
-// our end — clicking just opens the tool in a new tab; the user creates the
-// asset there, then comes back and uploads it.
-const MEDIA_AI_PROVIDERS = [
-    { name: 'ChatGPT', kind: 'Image', icon: `${ICON_BASE}/ChatGPT%20logo.svg`, url: 'https://chatgpt.com/' },
-    { name: 'Google Flow', kind: 'Image & Video', icon: `${ICON_BASE}/google%20flow%20logo.png`, url: 'https://labs.google/flow/' },
-    { name: 'Higgsfield', kind: 'Video', icon: `${ICON_BASE}/higgsfield%20icon.jpg`, url: 'https://higgsfield.ai/' },
-    { name: 'Midjourney', kind: 'Image', icon: `${ICON_BASE}/midjourney%20icon.webp`, url: 'https://www.midjourney.com/' },
-    { name: 'Leonardo AI', kind: 'Image', icon: `${ICON_BASE}/leonardo%20ai%20icon.jpg`, url: 'https://leonardo.ai/' },
-    { name: 'Runway', kind: 'Video', icon: `${ICON_BASE}/runway%20ml%20icon.png`, url: 'https://runwayml.com/' },
 ];
 
 const isHexColor = (v) =>
@@ -245,11 +231,6 @@ export function OverlaysPanel({ config, setConfig, editId }) {
     const fileInputRef = useRef(null);
     // Media generation is off-platform: this just opens a provider picker.
     const [showMediaAi, setShowMediaAi] = useState(false);
-
-    const openMediaProvider = (provider) => {
-        window.open(provider.url, '_blank', 'noopener,noreferrer');
-        setShowMediaAi(false);
-    };
 
     const overlays = config?.overlays || [];
     
@@ -1082,48 +1063,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
             )}
 
             {/* Media generation provider picker (off-platform — just redirects) */}
-            {showMediaAi && createPortal(
-                <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
-                    onClick={() => setShowMediaAi(false)}
-                >
-                    <div
-                        className="bg-surface-container-highest w-full max-w-[440px] rounded-3xl shadow-2xl border border-white/10 overflow-hidden"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <div className="px-6 py-4 border-b border-white/5">
-                            <h3 className="text-on-surface font-bold text-base flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
-                                Where do you want to create the media?
-                            </h3>
-                            <p className="text-xs text-on-surface-variant mt-1">
-                                Opens the tool in a new tab. Create your asset there, then come back and upload it.
-                            </p>
-                        </div>
-                        <div className="p-3 grid grid-cols-1 gap-1.5 max-h-[60vh] overflow-y-auto">
-                            {MEDIA_AI_PROVIDERS.map(p => (
-                                <button
-                                    key={p.name}
-                                    onClick={() => openMediaProvider(p)}
-                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-primary/10 transition-colors group"
-                                >
-                                    <img
-                                        src={p.icon}
-                                        alt={p.name}
-                                        className="w-9 h-9 rounded-lg object-cover bg-white/5 shrink-0"
-                                    />
-                                    <span className="flex-1 min-w-0">
-                                        <span className="block text-sm text-on-surface font-medium group-hover:text-primary">{p.name}</span>
-                                        <span className="block text-[11px] text-on-surface-variant">{p.kind} generation</span>
-                                    </span>
-                                    <span className="material-symbols-outlined text-[18px] text-on-surface-variant group-hover:text-primary">open_in_new</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
+            <MediaAiPicker open={showMediaAi} onClose={() => setShowMediaAi(false)} />
         </div>
     );
 }

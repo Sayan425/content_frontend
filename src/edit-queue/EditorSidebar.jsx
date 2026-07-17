@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MainVideoPanel } from './components/MainVideoPanel';
 import { OverlaysPanel } from './components/OverlaysPanel';
 import { SubtitlesPanel } from './components/SubtitlesPanel';
+import { CoverPanel } from './components/CoverPanel';
 import { supabase } from '../../supabaseClient.js';
 import { showCustomAlert, showCustomConfirm } from '../../components/notifications.js';
 
@@ -120,6 +121,16 @@ export function EditorSidebar({ config, setConfig, editId }) {
           >
             Subtitles
           </button>
+          <button
+            onClick={() => setActiveTab('cover')}
+            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === 'cover'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-on-surface-variant hover:text-on-surface'
+            }`}
+          >
+            Cover
+          </button>
         </div>
       </div>
 
@@ -133,6 +144,9 @@ export function EditorSidebar({ config, setConfig, editId }) {
         )}
         {activeTab === 'subtitles' && (
           <SubtitlesPanel config={config} setConfig={setConfig} editId={editId} />
+        )}
+        {activeTab === 'cover' && (
+          <CoverPanel config={config} editId={editId} />
         )}
       </div>
 
