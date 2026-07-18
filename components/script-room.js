@@ -1,6 +1,9 @@
 import { supabase } from '../supabaseClient.js';
 import systemPrompts from '../system-prompts.json';
 import { showCustomAlert, showCustomConfirm } from './notifications.js';
+import { escapeHtml } from '../utils/escape-html.js';
+import { PROMPTS, OPENROUTER_MODEL } from './script-room-prompts.js';
+import { callOpenRouterJson } from '../utils/openrouter.js';
 
 export function initScriptRoom() {
     const avatarId = localStorage.getItem('activeAvatarId');
@@ -538,14 +541,14 @@ export function initScriptRoom() {
             if (filterPlatform) {
                 filterPlatform.innerHTML = '<option value="all">Filter by Platform</option>';
                 Array.from(platforms).sort().forEach(p => {
-                    filterPlatform.innerHTML += `<option value="${p}">${p}</option>`;
+                    filterPlatform.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`;
                 });
             }
 
             if (filterCreator) {
                 filterCreator.innerHTML = '<option value="all">Filter by Creator</option>';
                 Array.from(creators).sort().forEach(c => {
-                    filterCreator.innerHTML += `<option value="${c}">${c}</option>`;
+                    filterCreator.innerHTML += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`;
                 });
             }
 
@@ -605,7 +608,7 @@ export function initScriptRoom() {
                     <div class="relative group break-inside-avoid mb-12 pt-6 w-full max-w-[320px] mx-auto" style="transform: rotate(${rotation}deg) translateY(${offsetY}px) translateZ(0); will-change: transform;" data-id="${item.content_id}">
                         
                         <!-- Stacked Premium Paper Container (Animates smoothly on hover) -->
-                        <div class="w-full min-h-[220px] relative cursor-pointer transition-transform duration-300 ease-out group-hover:-translate-y-2 drop-shadow-[0_10px_20px_rgba(0,0,0,0.7)] btn-generate-takes group/card" data-topic="${topic.replace(/"/g, '&quot;')}">
+                        <div class="w-full min-h-[220px] relative cursor-pointer transition-transform duration-300 ease-out group-hover:-translate-y-2 drop-shadow-[0_10px_20px_rgba(0,0,0,0.7)] btn-generate-takes group/card" data-topic="${escapeHtml(topic)}">
                             
                             <!-- Hyper-Realistic Pushpin (Anchored to the paper container so it moves with it) -->
                             <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-50 w-6 h-6 flex items-center justify-center pointer-events-none">
@@ -642,7 +645,7 @@ export function initScriptRoom() {
                             </button>
                             
                             <!-- Platform Inspiration Icon (Top Right) -->
-                            <button class="platform-link-btn absolute top-5 right-5 w-9 h-9 rounded-full ${platformData.borderBg} border flex items-center justify-center transition-all z-30 shadow-inner group/btn hover:scale-110" data-link="${item.content_link}" title="Inspiration Source">
+                            <button class="platform-link-btn absolute top-5 right-5 w-9 h-9 rounded-full ${platformData.borderBg} border flex items-center justify-center transition-all z-30 shadow-inner group/btn hover:scale-110" data-link="${escapeHtml(item.content_link || '')}" title="Inspiration Source">
                                 <span class="${platformData.color} transition-transform group-hover/btn:scale-110 flex items-center justify-center">${platformData.html}</span>
                             </button>
                             
@@ -655,7 +658,7 @@ export function initScriptRoom() {
                                     </div>
                                     <!-- Premium dark glass box for Topic -->
                                     <div class="bg-black/20 p-4 rounded-xl border border-white/5 shadow-[inset_1px_1px_4px_rgba(0,0,0,0.4)] backdrop-blur-sm min-h-[70px] flex flex-col justify-center transition-all group-hover/card:bg-black/40 group-hover/card:border-primary/50 relative overflow-hidden">
-                                        <p class="font-headline-sm text-white text-[15px] font-bold leading-snug line-clamp-3 group-hover/card:text-primary transition-all duration-300 relative z-10">${topic}</p>
+                                        <p class="font-headline-sm text-white text-[15px] font-bold leading-snug line-clamp-3 group-hover/card:text-primary transition-all duration-300 relative z-10">${escapeHtml(topic)}</p>
                                     </div>
                                 </div>
                                 
@@ -744,36 +747,36 @@ export function initScriptRoom() {
                     const id = btn.dataset.id;
                     const cardParent = btn.closest('[data-id]');
                     
-                    showCustomConfirm(
+                    const confirmed = await showCustomConfirm(
                         'If you want, this will be permanently deleted and cannot be reversed.',
-                        'Delete Idea?',
-                        async () => {
-                            try {
-                                const { error: err1 } = await supabase
-                                    .from('content_pipeline')
-                                    .delete()
-                                    .eq('content_id', id);
-                                if (err1) throw err1;
-                                
-                                const { error: err2 } = await supabase
-                                    .from('watchlist_results')
-                                    .delete()
-                                    .eq('content_id', id);
-                                if (err2) throw err2;
-                                
-                                if (cardParent) {
-                                    cardParent.style.opacity = '0';
-                                    cardParent.style.transform = 'scale(0.9)';
-                                    setTimeout(() => {
-                                        loadSavedIdeas();
-                                    }, 300);
-                                }
-                            } catch (error) {
-                                console.error('Error deleting idea:', error);
-                                await showCustomAlert('Failed to delete idea: ' + error.message, 'Error');
-                            }
-                        }
+                        'Delete Idea?'
                     );
+                    if (!confirmed) return;
+
+                    try {
+                        const { error: err1 } = await supabase
+                            .from('content_pipeline')
+                            .delete()
+                            .eq('content_id', id);
+                        if (err1) throw err1;
+
+                        const { error: err2 } = await supabase
+                            .from('watchlist_results')
+                            .delete()
+                            .eq('content_id', id);
+                        if (err2) throw err2;
+
+                        if (cardParent) {
+                            cardParent.style.opacity = '0';
+                            cardParent.style.transform = 'scale(0.9)';
+                            setTimeout(() => {
+                                loadSavedIdeas();
+                            }, 300);
+                        }
+                    } catch (error) {
+                        console.error('Error deleting idea:', error);
+                        await showCustomAlert('Failed to delete idea: ' + error.message, 'Error');
+                    }
                 });
             });
 
@@ -1160,56 +1163,46 @@ export function initScriptRoom() {
         return fetch(url, options);
     }
 
+    // --- Real AI generation via OpenRouter. The prompts live in
+    // --- components/script-room-prompts.js so they can be edited directly.
+
     async function generateTakesFromGroq(topic, prevTakes = []) {
-        await new Promise(r => setTimeout(r, 1500)); // Simulate API delay
-        return [
-            `Demo Take 1: An exciting angle on ${topic}`,
-            `Demo Take 2: A contrarian perspective about ${topic}`,
-            `Demo Take 3: The hidden truth behind ${topic}`
-        ];
+        const result = await callOpenRouterJson(PROMPTS.takes(topic, prevTakes), OPENROUTER_MODEL);
+        if (!Array.isArray(result) || result.length === 0) {
+            throw new Error('The AI did not return a list of takes. Please try again.');
+        }
+        return result.slice(0, 5).map(t => String(typeof t === 'object' ? (t.take || t.text || JSON.stringify(t)) : t));
     }
 
     async function generateStructuresFromGroq(topic, take, prevStructures = []) {
-        await new Promise(r => setTimeout(r, 1500)); // Simulate API delay
-        return [
-            {
-                name: "The Problem-Solution Framework",
-                description: "Highlight a burning pain point, then offer the perfect resolution.",
-                flow: ["Hook: The Problem", "Agitate: Why it hurts", "Solution: The fix", "CTA: Next steps"]
-            },
-            {
-                name: "The Myth-Buster Approach",
-                description: "Challenge a common misconception and reveal the actual truth.",
-                flow: ["Hook: The Lie", "The Truth Revealed", "The Evidence", "CTA: Share the truth"]
-            }
-        ];
+        const result = await callOpenRouterJson(PROMPTS.structures(topic, take, prevStructures), OPENROUTER_MODEL);
+        if (!Array.isArray(result) || result.length === 0) {
+            throw new Error('The AI did not return a list of structures. Please try again.');
+        }
+        return result.slice(0, 3).map(s => ({
+            name: String(s.name || 'Untitled Structure'),
+            description: String(s.description || ''),
+            flow: Array.isArray(s.flow) ? s.flow.map(String) : ['Hook', 'Body', 'CTA'],
+        }));
     }
 
     async function generateHooksFromOpenAI(topic, take, structure, prevHooks = []) {
-        await new Promise(r => setTimeout(r, 1500)); // Simulate API delay
-        return [
-            {
-                hook: "Stop scrolling! Here is a secret nobody is telling you.",
-                psychology: "Pattern Interrupt / Curiosity"
-            },
-            {
-                hook: "If you want to master this, you need to hear what I have to say.",
-                psychology: "Desire / FOMO"
-            },
-            {
-                hook: "This one simple trick completely changed everything for me.",
-                psychology: "Relatability / Social Proof"
-            }
-        ];
+        const result = await callOpenRouterJson(PROMPTS.hooks(topic, take, structure, prevHooks), OPENROUTER_MODEL);
+        if (!Array.isArray(result) || result.length === 0) {
+            throw new Error('The AI did not return a list of hooks. Please try again.');
+        }
+        return result.slice(0, 3).map(h => ({
+            hook: String(h.hook || h.text || h),
+            psychology: String(h.psychology || 'Curiosity'),
+        }));
     }
 
     async function generatePersonasFromOpenAI(topic, take, structure, hook) {
-        await new Promise(r => setTimeout(r, 1500)); // Simulate API delay
-        return [
-            "The High-Energy Expert",
-            "The Calm & Relatable Friend",
-            "The No-Nonsense Truth Teller"
-        ];
+        const result = await callOpenRouterJson(PROMPTS.personas(topic, take, structure, hook), OPENROUTER_MODEL);
+        if (!Array.isArray(result) || result.length === 0) {
+            throw new Error('The AI did not return a list of personas. Please try again.');
+        }
+        return result.slice(0, 4).map(p => String(typeof p === 'object' ? (p.persona || p.name || JSON.stringify(p)) : p));
     }
 
     async function runHooksGeneration() {
@@ -1235,10 +1228,10 @@ export function initScriptRoom() {
                 btn.innerHTML = `
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-white/50 font-mono-label mr-2">0${idx+1}</span>
-                        <span class="text-[10px] uppercase tracking-widest px-2 py-1 bg-white/10 rounded-md font-bold text-white/80 border border-white/20">${hookItem.psychology}</span>
+                        <span class="text-[10px] uppercase tracking-widest px-2 py-1 bg-white/10 rounded-md font-bold text-white/80 border border-white/20">${escapeHtml(hookItem.psychology)}</span>
                     </div>
                     <div class="leading-relaxed text-sm">
-                        "${hookItem.hook}"
+                        "${escapeHtml(hookItem.hook)}"
                     </div>
                 `;
                 
@@ -1367,29 +1360,26 @@ export function initScriptRoom() {
     }
 
     async function generateScriptFromOpenAI(topic, take, format, hook, persona, cta) {
-        await new Promise(r => setTimeout(r, 2000)); // Simulate API delay
-        return {
-            meta: {
-                hook_archetype: "Pattern Interrupt",
-                target_emotion: "Excitement",
-                psychological_triggers: ["Curiosity", "Social Proof"],
-                body_structure: "Problem -> Solution -> Value",
-                persona_lens: persona || "The High-Energy Expert"
-            },
-            script: {
-                hook: hook ? hook.hook : "Stop scrolling! Here is a secret nobody is telling you.",
-                body: "I spent the last 5 years figuring out how this works, and the answer is so simple. First, you need to understand the core mechanics. Once you have that locked in, you just repeat the process. It's literally a cheat code for success.",
-                outro: cta || "Save this video so you don't lose it, and follow for more!",
-                full_script: `${hook ? hook.hook : "Stop scrolling! Here is a secret nobody is telling you."}\n\nI spent the last 5 years figuring out how this works, and the answer is so simple. First, you need to understand the core mechanics. Once you have that locked in, you just repeat the process. It's literally a cheat code for success.\n\n${cta || "Save this video so you don't lose it, and follow for more!"}`
-            },
-            delivery: {
-                word_count: 65,
-                estimated_runtime_seconds: 22,
-                rehook_locations: ["Middle of the body text"],
-                key_delivery_note: "Speak with passion and slightly faster pacing than usual.",
-                bolded_line: "It's literally a cheat code for success."
-            }
+        const result = await callOpenRouterJson(PROMPTS.script(topic, take, format, hook, persona, cta), OPENROUTER_MODEL);
+        if (!result || typeof result !== 'object' || !result.script) {
+            throw new Error('The AI did not return a script. Please try again.');
+        }
+
+        // Fill any pieces the model omitted so the UI never breaks
+        const script = result.script;
+        if (!script.full_script) {
+            script.full_script = [script.hook, script.body, script.outro].filter(Boolean).join('\n\n');
+        }
+        const wordCount = script.full_script.split(/\s+/).filter(Boolean).length;
+        result.meta = result.meta || {};
+        result.delivery = {
+            word_count: result.delivery?.word_count || wordCount,
+            estimated_runtime_seconds: result.delivery?.estimated_runtime_seconds || Math.round(wordCount / 2.8),
+            rehook_locations: result.delivery?.rehook_locations || [],
+            key_delivery_note: result.delivery?.key_delivery_note || '',
+            bolded_line: result.delivery?.bolded_line || '',
         };
+        return result;
     }
 
     async function runScriptGeneration() {
@@ -1417,7 +1407,7 @@ export function initScriptRoom() {
             // Populate Metadata
             if (scriptMetadataContainer) {
                 scriptMetadataContainer.innerHTML = `
-                    <div class="bg-black/40 border border-white/10 text-white/80 px-2.5 py-1 rounded-md text-[11px] font-mono-label tracking-wide flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-primary/70">lightbulb</span> Topic: ${currentTakesTopic}</div>
+                    <div class="bg-black/40 border border-white/10 text-white/80 px-2.5 py-1 rounded-md text-[11px] font-mono-label tracking-wide flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-primary/70">lightbulb</span> Topic: ${escapeHtml(currentTakesTopic)}</div>
                     <div class="bg-black/40 border border-white/10 text-white/80 px-2.5 py-1 rounded-md text-[11px] font-mono-label tracking-wide flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-white/50">description</span> ${result.delivery.word_count} words</div>
                     <div class="bg-black/40 border border-white/10 text-white/80 px-2.5 py-1 rounded-md text-[11px] font-mono-label tracking-wide flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-white/50">schedule</span> ~${result.delivery.estimated_runtime_seconds} sec</div>
                 `;
@@ -1657,7 +1647,7 @@ export function initScriptRoom() {
             takes.forEach((take, idx) => {
                 const btn = document.createElement('button');
                 btn.className = 'w-full text-left p-4 rounded-xl bg-black/40 border border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all text-white text-[15px] takes-option-btn';
-                btn.innerHTML = `<span class="text-primary/50 font-mono-label mr-2 font-bold">0${idx+1}</span> ${take}`;
+                btn.innerHTML = `<span class="text-primary/50 font-mono-label mr-2 font-bold">0${idx+1}</span> ${escapeHtml(take)}`;
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.takes-option-btn').forEach(b => {
                         b.classList.remove('border-primary', 'bg-primary/10');
@@ -1712,12 +1702,12 @@ export function initScriptRoom() {
                 const btn = document.createElement('button');
                 btn.className = 'w-full text-left p-4 rounded-xl bg-black/40 border border-white/10 hover:border-secondary/50 hover:bg-white/5 transition-all text-white text-[15px] structures-option-btn';
                 
-                let flowHTML = struct.flow.map(step => `<span class="text-white/80">${step}</span>`).join('<span class="text-secondary/50 mx-2 font-bold text-[16px]">➔</span>');
-                
+                let flowHTML = struct.flow.map(step => `<span class="text-white/80">${escapeHtml(step)}</span>`).join('<span class="text-secondary/50 mx-2 font-bold text-[16px]">➔</span>');
+
                 btn.innerHTML = `
                     <div class="font-bold text-secondary mb-3 flex items-center gap-2">
                         <span class="text-secondary/50 font-mono-label mr-2">0${idx+1}</span>
-                        ${struct.name}
+                        ${escapeHtml(struct.name)}
                     </div>
                     <div class="px-2 py-1 leading-relaxed text-sm bg-black/20 rounded-lg">
                         ${flowHTML}
@@ -1765,16 +1755,9 @@ export function initScriptRoom() {
         customCtaInputEl.addEventListener('input', checkStep4Completion);
     }
 
-    if (btnRegenerate) {
-        btnRegenerate.addEventListener('click', () => {
-            if (generatorStep === 1) runTakesGeneration();
-            else if (generatorStep === 2) runStructuresGeneration();
-            else if (generatorStep === 3) runHooksGeneration();
-            else if (generatorStep === 4) runPersonasGeneration();
-            else if (generatorStep === 5) runScriptGeneration();
-        });
-    }
-    
+    // NOTE: the Regenerate click handler (with its 3-attempt rate limit) is
+    // attached further below — do not add a second listener here.
+
     if (btnConfirmSelection) {
         btnConfirmSelection.addEventListener('click', () => {
             if (generatorStep === 4 && currentSelectedPersona) {

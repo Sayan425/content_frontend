@@ -113,6 +113,14 @@ export function initHomeAnalytics() {
         }
     }
 
+    // Turn a yyyy-mm-dd input value into the last millisecond of that day so
+    // custom ranges include the whole end date.
+    const endOfDay = (value) => {
+        const d = new Date(value);
+        d.setHours(23, 59, 59, 999);
+        return d;
+    };
+
     function applyFiltersAndRender(followerHistoryData) {
         const platform = platformFilter.value;
         const dateRange = dateFilter.value;
@@ -138,7 +146,9 @@ export function initHomeAnalytics() {
         } else if (dateRange === 'custom') {
             if (dateStart.value) cutoff = new Date(dateStart.value);
             if (dateEnd.value) {
+                // Include the whole end day, not just midnight of it
                 const end = new Date(dateEnd.value);
+                end.setHours(23, 59, 59, 999);
                 filteredPosts = filteredPosts.filter(p => new Date(p.posted_at) <= end);
             }
         }
@@ -181,7 +191,7 @@ export function initHomeAnalytics() {
         
         Object.keys(followerHistoryData).forEach(plat => {
             if (platform === 'all' || platform === plat) {
-                const historyForPlatform = followerHistoryData[plat].filter(entry => new Date(entry.date) >= cutoff && new Date(entry.date) <= (dateRange === 'custom' && dateEnd.value ? new Date(dateEnd.value) : now));
+                const historyForPlatform = followerHistoryData[plat].filter(entry => new Date(entry.date) >= cutoff && new Date(entry.date) <= (dateRange === 'custom' && dateEnd.value ? endOfDay(dateEnd.value) : now));
                 filteredHistoryData[plat] = historyForPlatform;
                 
                 if (historyForPlatform.length > 0) {
@@ -202,7 +212,7 @@ export function initHomeAnalytics() {
         
         kpiFollowers.textContent = (filteredFollowersGained > 0 ? '+' : '') + filteredFollowersGained.toLocaleString();
 
-        renderCharts(filteredHistoryData, platform, { totalLikes, totalComments, totalShares, totalSaves }, cutoff, (dateRange === 'custom' && dateEnd.value ? new Date(dateEnd.value) : now));
+        renderCharts(filteredHistoryData, platform, { totalLikes, totalComments, totalShares, totalSaves }, cutoff, (dateRange === 'custom' && dateEnd.value ? endOfDay(dateEnd.value) : now));
         
         // Ensure Top Posts renders on first load
         renderTopPosts();

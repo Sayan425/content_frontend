@@ -10,34 +10,41 @@ export const DynamicGraphicRenderer = ({ code, durationInFrames, position, opaci
     const innerRef = useRef(null);
     const contentRef = useRef(null);
 
-    const Component = useMemo(() => {
-        if (!code) return () => null;
+    // Compile ONCE per code change. The compiled function receives the current
+    // frame at render time — putting `frame` in the deps would re-run Babel on
+    // every single frame of playback.
+    const compiled = useMemo(() => {
+        if (!code) return { generateElement: null, compileError: null };
 
         try {
             // Wrap in a function to avoid 'return outside function' errors during Babel parsing
             const wrappedCode = `function __render__(React, frame, fps, durationInFrames, interpolate, spring) { \n${code}\n }`;
-            
+
             const transpiled = Babel.transform(wrappedCode, {
                 presets: ['react']
             }).code;
 
             // Extract the function safely using new Function
             const getFunction = new Function(`${transpiled}\nreturn __render__;`);
-            const generateElement = getFunction();
-
-            return () => {
-                try {
-                    return generateElement(React, frame, fps, durationInFrames, interpolate, spring);
-                } catch (e) {
-                    console.error("DynamicGraphic runtime error:", e);
-                    return <div style={{ color: 'red', backgroundColor: 'black', padding: '10px' }}>Runtime Error: {e.message}</div>;
-                }
-            };
+            return { generateElement: getFunction(), compileError: null };
         } catch (e) {
             console.error("DynamicGraphic compile error:", e);
-            return () => <div style={{ color: 'red', backgroundColor: 'black', padding: '10px' }}>Compile Error: {e.message}</div>;
+            return { generateElement: null, compileError: e.message };
         }
-    }, [code, frame, fps, durationInFrames]);
+    }, [code]);
+
+    const Component = () => {
+        if (compiled.compileError) {
+            return <div style={{ color: 'red', backgroundColor: 'black', padding: '10px' }}>Compile Error: {compiled.compileError}</div>;
+        }
+        if (!compiled.generateElement) return null;
+        try {
+            return compiled.generateElement(React, frame, fps, durationInFrames, interpolate, spring);
+        } catch (e) {
+            console.error("DynamicGraphic runtime error:", e);
+            return <div style={{ color: 'red', backgroundColor: 'black', padding: '10px' }}>Runtime Error: {e.message}</div>;
+        }
+    };
 
     const isAbsolute = position?.x !== undefined || position?.y !== undefined;
     const parsedScale = parseFloat(position?.scale);

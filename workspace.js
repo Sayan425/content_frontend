@@ -255,8 +255,8 @@ async function initWorkspace() {
 
     window.addEventListener('popstate', () => {
         const newParts = window.location.pathname.split('/').filter(Boolean);
-        let newTool = newParts[0] || 'idea-labs';
-        if (!validTools.includes(newTool)) newTool = 'idea-labs';
+        let newTool = newParts[0] || 'analytics';
+        if (!validTools.includes(newTool)) newTool = 'analytics';
         renderTool(newTool);
     });
 }

@@ -346,24 +346,26 @@ export function OverlaysPanel({ config, setConfig, editId }) {
         }, 500);
     };
 
+    // Immutable updates: copy the overlays array, the overlay object, and any
+    // nested object being written to, so React always sees new references.
     const updateOverlay = (key, value) => {
         if (selectedOverlayIndex === '') return;
-        
+
         setConfig(prev => {
-            const updated = { ...prev };
             const index = parseInt(selectedOverlayIndex);
-            
+            const newOverlays = [...(prev.overlays || [])];
+            const overlay = { ...newOverlays[index] };
+
             if (key.includes('.')) {
                 // Nested update like "position.x"
                 const [parent, child] = key.split('.');
-                if (!updated.overlays[index][parent]) {
-                    updated.overlays[index][parent] = {};
-                }
-                updated.overlays[index][parent][child] = value;
+                overlay[parent] = { ...(overlay[parent] || {}), [child]: value };
             } else {
-                updated.overlays[index][key] = value;
+                overlay[key] = value;
             }
-            
+
+            newOverlays[index] = overlay;
+            const updated = { ...prev, overlays: newOverlays };
             autoSaveToSupabase(updated);
             return updated;
         });
@@ -372,10 +374,12 @@ export function OverlaysPanel({ config, setConfig, editId }) {
     const updateOverlayProp = (key, value) => {
         if (selectedOverlayIndex === '') return;
         setConfig(prev => {
-            const updated = { ...prev };
             const index = parseInt(selectedOverlayIndex);
-            if (!updated.overlays[index].props) updated.overlays[index].props = {};
-            updated.overlays[index].props[key] = value;
+            const newOverlays = [...(prev.overlays || [])];
+            const overlay = { ...newOverlays[index] };
+            overlay.props = { ...(overlay.props || {}), [key]: value };
+            newOverlays[index] = overlay;
+            const updated = { ...prev, overlays: newOverlays };
             autoSaveToSupabase(updated);
             return updated;
         });
@@ -1199,7 +1203,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
             )}
 
             {/* Media generation provider picker (off-platform — just redirects) */}
-            <MediaAiPicker open={showMediaAi} onClose={() => setShowMediaAi(false)} />
+            <MediaAiPicker open={showMediaAi} onClose={() => setShowMediaAi(false)} editId={editId} />
         </div>
     );
 }

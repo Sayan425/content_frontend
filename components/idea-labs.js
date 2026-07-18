@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient.js';
+import { escapeHtml } from '../utils/escape-html.js';
 
 export function initIdeaLabs() {
     const avatarId = localStorage.getItem('activeAvatarId');
@@ -417,19 +418,19 @@ export function initIdeaLabs() {
                 }
 
                 html += `
-                    <div class="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group watchlist-item" data-name="${(item.competitor_name || '').toLowerCase()}" data-platform="${item.competitor_platform}">
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group watchlist-item" data-name="${escapeHtml((item.competitor_name || '').toLowerCase())}" data-platform="${escapeHtml(item.competitor_platform)}">
                         <div class="flex items-center gap-4">
                             <div class="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center ${platformColor} shadow-inner">
                                 ${iconHtml}
                             </div>
                             <div>
-                                <h4 class="font-semibold text-white text-sm">${item.competitor_name}</h4>
-                                <a href="#" onclick="window.open('${item.competitor_link}', 'socialPopup', 'width=800,height=600,scrollbars=yes,resizable=yes'); return false;" class="text-xs text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1 mt-0.5">
-                                    ${item.competitor_platform} <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                                <h4 class="font-semibold text-white text-sm">${escapeHtml(item.competitor_name)}</h4>
+                                <a href="#" class="btn-open-competitor text-xs text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1 mt-0.5" data-link="${escapeHtml(item.competitor_link || '')}">
+                                    ${escapeHtml(item.competitor_platform)} <span class="material-symbols-outlined text-[12px]">open_in_new</span>
                                 </a>
                             </div>
                         </div>
-                        <button class="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-on-surface-variant hover:bg-error/20 hover:text-error hover:border-error/50 transition-all flex items-center justify-center btn-delete-account shadow-sm" data-id="${item.competitor_id}" title="Stop Tracking">
+                        <button class="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-on-surface-variant hover:bg-error/20 hover:text-error hover:border-error/50 transition-all flex items-center justify-center btn-delete-account shadow-sm" data-id="${escapeHtml(item.competitor_id)}" title="Stop Tracking">
                             <span class="material-symbols-outlined text-[16px] pointer-events-none">delete</span>
                         </button>
                     </div>
@@ -444,6 +445,17 @@ export function initIdeaLabs() {
             if (clearSearchBtn) clearSearchBtn.classList.add('hidden');
             if (platformFilter) platformFilter.value = 'All';
 
+            // Attach competitor-link listeners (only opens http(s) URLs)
+            manageWatchlistContainer.querySelectorAll('.btn-open-competitor').forEach(a => {
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const link = a.dataset.link;
+                    if (link && /^https?:\/\//i.test(link)) {
+                        window.open(link, 'socialPopup', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                    }
+                });
+            });
+
             // Attach delete listeners
             const deleteButtons = manageWatchlistContainer.querySelectorAll('.btn-delete-account');
             deleteButtons.forEach(btn => {
@@ -457,7 +469,7 @@ export function initIdeaLabs() {
             console.error('Error loading watchlist:', error);
             manageWatchlistContainer.innerHTML = `
                 <div class="text-error text-center p-4 bg-error/10 rounded-lg border border-error/20 mt-4">
-                    Failed to load creators: ${error.message}
+                    Failed to load creators: ${escapeHtml(error.message)}
                 </div>`;
         }
     }
@@ -498,11 +510,11 @@ export function initIdeaLabs() {
         const uniquePlatforms = [...new Set(allFeedIdeas.map(d => d._extracted_platform))].sort();
         const uniqueCreators = [...new Set(allFeedIdeas.map(d => d._extracted_creator))].sort();
 
-        platformSelect.innerHTML = '<option value="all">Filter by Platform</option>' + 
-            uniquePlatforms.map(p => `<option value="${p}">${p}</option>`).join('');
-            
-        creatorSelect.innerHTML = '<option value="all">Filter by Creator</option>' + 
-            uniqueCreators.map(c => `<option value="${c}">${c}</option>`).join('');
+        platformSelect.innerHTML = '<option value="all">Filter by Platform</option>' +
+            uniquePlatforms.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+
+        creatorSelect.innerHTML = '<option value="all">Filter by Creator</option>' +
+            uniqueCreators.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 
         if (uniquePlatforms.includes(currentPlatform)) platformSelect.value = currentPlatform;
         if (uniqueCreators.includes(currentCreator)) creatorSelect.value = currentCreator;
@@ -594,7 +606,7 @@ export function initIdeaLabs() {
                 html += `
                     <tr class="watchlist-feed-row hover:bg-white/10 transition-colors group cursor-pointer backdrop-blur-sm" data-id="${item.content_id}">
                         <td class="px-6 py-5 font-mono-label text-mono-label text-outline text-center">${(index + 1).toString().padStart(2, '0')}</td>
-                        <td class="px-6 py-5 font-medium text-white w-full truncate text-[15px] drop-shadow-sm">${item.content_topic || 'Unknown Topic'}</td>
+                        <td class="px-6 py-5 font-medium text-white w-full truncate text-[15px] drop-shadow-sm">${escapeHtml(item.content_topic || 'Unknown Topic')}</td>
                         <td class="px-6 py-5 text-center font-mono-label text-mono-label text-primary font-bold">${impressions}</td>
                         <td class="px-6 py-5 text-center font-mono-label text-mono-label text-secondary font-bold">${engagement}</td>
                         <td class="px-6 py-5">
@@ -615,7 +627,7 @@ export function initIdeaLabs() {
                         </td>
                         <td class="pl-6 pr-9 py-5" onclick="event.stopPropagation()">
                             <div class="flex items-center justify-center gap-2">
-                                <button class="btn-view-link px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/20 hover:text-secondary transition-all flex items-center gap-1 shadow-sm" data-link="${item.content_link}" title="View on Platform">
+                                <button class="btn-view-link px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/20 hover:text-secondary transition-all flex items-center gap-1 shadow-sm" data-link="${escapeHtml(item.content_link || '')}" title="View on Platform">
                                     <span class="material-symbols-outlined text-[16px] pointer-events-none">open_in_new</span>
                                     <span class="text-xs font-medium pointer-events-none">View</span>
                                 </button>
@@ -637,19 +649,19 @@ export function initIdeaLabs() {
                                         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                                             <div class="bg-white/5 rounded-xl p-4 border border-white/10 shadow-inner hover:bg-white/10 transition-colors duration-300">
                                                 <h4 class="text-label-caps text-secondary font-bold mb-2 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">view_agenda</span> Format</h4>
-                                                <p class="text-body-sm text-white/80 leading-relaxed">${item.content_format || 'N/A'}</p>
+                                                <p class="text-body-sm text-white/80 leading-relaxed">${escapeHtml(item.content_format || 'N/A')}</p>
                                             </div>
                                             <div class="bg-white/5 rounded-xl p-4 border border-white/10 shadow-inner hover:bg-white/10 transition-colors duration-300">
                                                 <h4 class="text-label-caps text-secondary font-bold mb-2 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">psychology</span> The Take</h4>
-                                                <p class="text-body-sm text-white/80 leading-relaxed">${item.content_take || 'N/A'}</p>
+                                                <p class="text-body-sm text-white/80 leading-relaxed">${escapeHtml(item.content_take || 'N/A')}</p>
                                             </div>
                                             <div class="bg-white/5 rounded-xl p-4 border border-white/10 shadow-inner hover:bg-white/10 transition-colors duration-300">
                                                 <h4 class="text-label-caps text-secondary font-bold mb-2 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">phishing</span> Hook</h4>
-                                                <p class="text-body-sm text-white/80 leading-relaxed">${item.content_hook || 'N/A'}</p>
+                                                <p class="text-body-sm text-white/80 leading-relaxed">${escapeHtml(item.content_hook || 'N/A')}</p>
                                             </div>
                                             <div class="bg-white/5 rounded-xl p-4 border border-white/10 shadow-inner hover:bg-white/10 transition-colors duration-300">
                                                 <h4 class="text-label-caps text-secondary font-bold mb-2 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">ads_click</span> CTA</h4>
-                                                <p class="text-body-sm text-white/80 leading-relaxed">${item.content_cta || 'N/A'}</p>
+                                                <p class="text-body-sm text-white/80 leading-relaxed">${escapeHtml(item.content_cta || 'N/A')}</p>
                                             </div>
                                         </div>
                                         <div class="mt-4 flex justify-end">

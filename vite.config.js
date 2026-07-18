@@ -31,6 +31,14 @@ const htmlRewritePlugin = () => ({
   }
 });
 
+// Drop `..`/`.`/empty segments and illegal characters so a client-supplied
+// path can never escape its intended folder in the bucket.
+const sanitizeR2Path = (p) => String(p)
+  .split('/')
+  .filter(seg => seg && seg !== '.' && seg !== '..')
+  .map(seg => seg.replace(/[^a-zA-Z0-9 _.\-()%]/g, '_'))
+  .join('/');
+
 const r2ApiPlugin = () => ({
   name: 'r2-api',
   configureServer(server) {
@@ -83,7 +91,7 @@ const r2ApiPlugin = () => ({
         req.on('data', chunk => { body += chunk.toString(); });
         req.on('end', async () => {
           try {
-            const { fileName, contentType, avatarName, type, customBucket, customPath, customPublicUrlBase } = JSON.parse(body);
+            const { fileName, contentType, avatarName, userId, type, customBucket, customPath, customPublicUrlBase } = JSON.parse(body);
 
             if (!fileName || !contentType) {
               res.statusCode = 400;
@@ -103,7 +111,8 @@ const r2ApiPlugin = () => ({
             let filePath = '';
 
             if (customPath) {
-              filePath = `${customPath}${safeFileName}`;
+              const safePath = sanitizeR2Path(customPath);
+              filePath = safePath ? `${safePath}/${safeFileName}` : safeFileName;
             } else if (type === 'bgm') {
               filePath = `editing-assets/bgm/${Date.now()}_${safeFileName}`;
             } else {
