@@ -195,7 +195,7 @@
                 </h3>
 
                 <div class="flex flex-col gap-5 flex-1">
-                    
+
                     <div class="grid grid-cols-2 gap-4">
                         <!-- Template -->
                         <div class="flex flex-col gap-2">
@@ -203,11 +203,10 @@
                                 <span class="material-symbols-outlined text-[14px]">view_quilt</span> Template <span class="text-error ml-1">*</span>
                             </label>
                             <select id="setting-template" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full cursor-pointer appearance-none">
-                                <option value="BasicTemplate">Basic Full Screen</option>
-                                <option value="TransparentTemplate">Transparent Background</option>
-                                <option value="SplitScreenTemplate">Top Split-Screen</option>
-                                <option value="BRollTemplate">B-Roll Full Screen</option>
-                                <option value="StorytellingTemplate">Polaroid Storytelling</option>
+                                <option value="BasicTemplate">Basic (Scrapbook)</option>
+                                <option value="FullScreenOverlayTemplate">Full Screen Overlay (B-Roll)</option>
+                                <option value="SplitScreenTemplate">Split-Screen</option>
+                                <option value="TransparentTemplate">Transparent Overlay</option>
                             </select>
                         </div>
 
@@ -227,29 +226,28 @@
                                 <option value="Cyberpunk">Cyberpunk</option>
                                 <option value="Minimalist">Minimalist</option>
                                 <option value="Press">Press</option>
+                                <option value="Butter">Butter</option>
+                                <option value="Layered">Layered</option>
+                                <option value="PaperCutout">Paper Cutout</option>
+                                <option value="Sliced">Sliced</option>
                             </select>
-                            <p class="text-[11px] text-white/40 italic mt-1">Note: You'll be able to change this in the Edit Suite.</p>
                         </div>
                     </div>
 
-                    <!-- Full Screen B-Roll Style -->
+                    <!-- Full Screen Animation Toggle + Animation Style -->
                     <div class="flex flex-col gap-2">
-                        <!-- Top Bar with Toggle -->
                         <div class="flex items-center justify-between">
-                            <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5 cursor-pointer" for="toggle-broll-style">
-                                <span class="material-symbols-outlined text-[14px]">movie</span> Full Screen B-Roll Style
+                            <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5 cursor-pointer" for="toggle-fullscreen-animation">
+                                <span class="material-symbols-outlined text-[14px]">fullscreen</span> Enable Full Screen Animation
                             </label>
-                            
                             <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="toggle-broll-style" class="sr-only peer" />
+                                <input type="checkbox" id="toggle-fullscreen-animation" class="sr-only peer" />
                                 <div class="w-9 h-5 bg-black/50 rounded-full peer peer-checked:bg-primary transition-colors border border-white/20"></div>
                                 <div class="absolute left-[2px] top-[2px] w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4 shadow-sm"></div>
                             </label>
                         </div>
-                        
-                        <!-- Dropdown Box (hidden when unchecked) -->
-                        <div id="broll-style-options" class="hidden transition-all duration-300">
-                            <select id="setting-editing-style" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full cursor-pointer appearance-none">
+                        <div id="animation-style-options" class="hidden transition-all duration-300">
+                            <select id="setting-animation-style" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full cursor-pointer appearance-none">
                                 <option value="BoxAnimation">Box Animation</option>
                                 <option value="Standard">Standard Jump Cuts</option>
                                 <option value="Cinematic">Cinematic Story</option>
@@ -259,14 +257,14 @@
                     </div>
 
                     <!-- Floating Overlays (Multi-Checkbox) -->
-                    <div class="flex flex-col gap-3 mt-4">
+                    <div class="flex flex-col gap-3">
                         <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-[14px]">layers</span> Floating Overlays
                         </label>
-                        <div class="grid grid-cols-2 gap-3" id="setting-overlays">
-                            
+                        <div class="grid grid-cols-3 gap-3" id="setting-overlays">
+
                             <label class="premium-checkbox-wrapper relative cursor-pointer block">
-                                <input type="checkbox" id="motion-graphics-checkbox" value="Motion Graphics Overlay" class="sr-only edit-with-checkbox" />
+                                <input type="checkbox" value="Motion Graphics Overlay" class="sr-only edit-with-checkbox" />
                                 <div class="checkbox-card flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10">
                                     <div class="checkbox-box w-5 h-5 rounded flex items-center justify-center border border-white/30 bg-black/40 transition-colors duration-300 flex-shrink-0">
                                         <span class="material-symbols-outlined checkbox-icon text-white text-[14px] font-bold opacity-0 scale-50 transition-all duration-300">check</span>
@@ -274,27 +272,27 @@
                                     <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">Motion Graphics</span>
                                 </div>
                             </label>
-                            
+
                             <label class="premium-checkbox-wrapper relative cursor-pointer">
-                                <input type="checkbox" value="Images" class="sr-only edit-with-checkbox" />
+                                <input type="checkbox" value="AI Images" class="sr-only edit-with-checkbox" />
                                 <div class="checkbox-card flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10">
                                     <div class="checkbox-box w-5 h-5 rounded flex items-center justify-center border border-white/30 bg-black/40 transition-colors duration-300">
                                         <span class="material-symbols-outlined checkbox-icon text-white text-[14px] font-bold opacity-0 scale-50 transition-all duration-300">check</span>
                                     </div>
-                                    <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">Images</span>
+                                    <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">AI Images</span>
                                 </div>
                             </label>
-                            
+
                             <label class="premium-checkbox-wrapper relative cursor-pointer">
-                                <input type="checkbox" value="Videos" class="sr-only edit-with-checkbox" />
+                                <input type="checkbox" value="Original Images" class="sr-only edit-with-checkbox" />
                                 <div class="checkbox-card flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10">
                                     <div class="checkbox-box w-5 h-5 rounded flex items-center justify-center border border-white/30 bg-black/40 transition-colors duration-300">
                                         <span class="material-symbols-outlined checkbox-icon text-white text-[14px] font-bold opacity-0 scale-50 transition-all duration-300">check</span>
                                     </div>
-                                    <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">Videos</span>
+                                    <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">Original Images</span>
                                 </div>
                             </label>
-                            
+
                             <label class="premium-checkbox-wrapper relative cursor-pointer">
                                 <input type="checkbox" value="Text Overlays" class="sr-only edit-with-checkbox" />
                                 <div class="checkbox-card flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10">
@@ -304,6 +302,51 @@
                                     <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">Text Overlays</span>
                                 </div>
                             </label>
+
+                            <label class="premium-checkbox-wrapper relative cursor-pointer">
+                                <input type="checkbox" value="Stock Videos" class="sr-only edit-with-checkbox" />
+                                <div class="checkbox-card flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10">
+                                    <div class="checkbox-box w-5 h-5 rounded flex items-center justify-center border border-white/30 bg-black/40 transition-colors duration-300">
+                                        <span class="material-symbols-outlined checkbox-icon text-white text-[14px] font-bold opacity-0 scale-50 transition-all duration-300">check</span>
+                                    </div>
+                                    <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">Stock Videos</span>
+                                </div>
+                            </label>
+
+                            <label class="premium-checkbox-wrapper relative cursor-pointer">
+                                <input type="checkbox" value="Memes" class="sr-only edit-with-checkbox" />
+                                <div class="checkbox-card flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 transition-all duration-300 hover:bg-white/10">
+                                    <div class="checkbox-box w-5 h-5 rounded flex items-center justify-center border border-white/30 bg-black/40 transition-colors duration-300">
+                                        <span class="material-symbols-outlined checkbox-icon text-white text-[14px] font-bold opacity-0 scale-50 transition-all duration-300">check</span>
+                                    </div>
+                                    <span class="checkbox-text text-[13px] font-medium text-white/70 transition-colors">Memes</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Time Between Templates -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[14px]">timer</span> Time Between Templates (s)
+                            </label>
+                            <input type="number" id="setting-time-between" value="5" min="0" max="30" step="1" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full">
+                        </div>
+
+                        <!-- Include Character in Cover Image -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[14px]">person_pin</span> Character in Cover
+                            </label>
+                            <div class="flex items-center h-[38px] p-3 rounded-lg border border-white/10 bg-surface-container-high justify-between">
+                                <span class="text-sm text-on-surface-variant">Include character</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="toggle-character-in-cover" class="sr-only peer" checked />
+                                    <div class="w-9 h-5 bg-black/50 rounded-full peer peer-checked:bg-primary transition-colors border border-white/20"></div>
+                                    <div class="absolute left-[2px] top-[2px] w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4 shadow-sm"></div>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -320,73 +363,48 @@
     </div>
 </div>
 
-<!-- Add Look Generation Modal -->
+<!-- Add Look / AI Gen Modal -->
 <div id="modal-add-look" class="fixed inset-0 z-50 hidden opacity-0 transition-opacity duration-300">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-4">
-        <div class="glass-panel rounded-2xl w-full max-w-2xl flex flex-col max-h-[90vh] shadow-2xl overflow-hidden border border-white/10 relative">
-            
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="add-look-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-6">
+        <div class="rounded-3xl w-full max-w-[440px] shadow-2xl border border-white/10 overflow-hidden" style="background: var(--md-sys-color-surface-container-highest, #2b2930);">
+
             <!-- Header -->
-            <div class="flex justify-between items-center p-6 border-b border-white/10 relative overflow-hidden bg-black/20">
-                <div class="absolute inset-0 opacity-[0.15] bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,1)_1px,transparent_0)]" style="background-size: 8px 8px;"></div>
-                <div class="relative z-10">
-                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary text-[24px]">face_retouching_natural</span>
-                        Generate New Avatar Look
-                    </h2>
-                    <p class="text-sm text-on-surface-variant mt-1">Fill in at least one of the fields below to create a new look.</p>
+            <div class="px-6 py-4 border-b border-white/5 flex items-start justify-between gap-3">
+                <div>
+                    <h3 class="text-white font-bold text-base flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
+                        Where do you want to create the look?
+                    </h3>
+                    <p class="text-xs text-on-surface-variant mt-1">
+                        Opens the tool in a new tab. Create your asset there, then come back and upload it.
+                    </p>
                 </div>
-                <button id="btn-close-add-look" class="relative z-10 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors">
+                <button id="btn-close-add-look" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors shrink-0 mt-0.5">
                     <span class="material-symbols-outlined text-white/70 text-[18px]">close</span>
                 </button>
             </div>
 
-            <!-- Body -->
-            <div class="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
-                <!-- Camera Angle -->
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px]">videocam</span> Camera Angle
-                    </label>
-                    <input type="text" id="look-camera" maxlength="1000" class="add-look-input bg-surface-container-high border border-white/10 text-on-surface rounded-xl p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-white/20 text-sm" placeholder="e.g., Close-up shot, Low angle looking up, Over the shoulder">
-                </div>
-
-                <!-- Style / Clothes -->
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px]">styler</span> Style & Clothes
-                    </label>
-                    <input type="text" id="look-style" maxlength="1000" class="add-look-input bg-surface-container-high border border-white/10 text-on-surface rounded-xl p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-white/20 text-sm" placeholder="e.g., Sharp navy blue suit, Casual streetwear hoodie">
-                </div>
-
-                <!-- Background & Lighting -->
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px]">lightbulb</span> Background & Lighting
-                    </label>
-                    <input type="text" id="look-bg" maxlength="1000" class="add-look-input bg-surface-container-high border border-white/10 text-on-surface rounded-xl p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-white/20 text-sm" placeholder="e.g., Neon cyberpunk city at night, Soft studio lighting with a dark backdrop">
-                </div>
-
-                <!-- Props -->
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px]">category</span> Props
-                    </label>
-                    <input type="text" id="look-props" maxlength="1000" class="add-look-input bg-surface-container-high border border-white/10 text-on-surface rounded-xl p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-white/20 text-sm" placeholder="e.g., Holding a cup of coffee, Wearing sunglasses, Modern laptop on desk">
-                </div>
+            <!-- AI Provider List -->
+            <div class="p-3 grid grid-cols-1 gap-1.5 max-h-[60vh] overflow-y-auto" id="add-look-providers">
+                <!-- Providers injected by JS -->
             </div>
 
-            <!-- Footer -->
-            <div class="p-5 border-t border-white/10 bg-black/20 flex justify-end gap-3">
-                <button id="btn-cancel-add-look" class="px-5 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors">
-                    Cancel
+            <!-- Avatar Reference Images (collapsible) -->
+            <div class="border-t border-white/5 px-4 py-3" id="add-look-refs-section" style="display:none;">
+                <button id="btn-toggle-look-refs" class="w-full flex items-center gap-2 text-left group">
+                    <span class="material-symbols-outlined text-primary text-[18px]">face</span>
+                    <span class="flex-1 text-sm text-white font-medium">Need reference images of your character?</span>
+                    <span class="material-symbols-outlined text-sm text-on-surface-variant transition-transform" id="look-refs-chevron">expand_more</span>
                 </button>
-                <button id="btn-proceed-add-look" class="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-inverse-primary hover:bg-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(109,59,215,0.4)] disabled:shadow-none flex items-center gap-2" disabled>
-                    <span class="material-symbols-outlined text-[18px]">auto_fix_high</span> Generate Look
-                </button>
+                <div id="add-look-refs-grid" class="mt-3 grid grid-cols-4 gap-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1" style="display:none;">
+                    <!-- Reference image thumbnails injected by JS -->
+                </div>
             </div>
 
         </div>
+    </div>
+</div>
 
 <!-- Voiceover Intent Modal -->
 <div id="modal-voiceover-intent" class="fixed inset-0 z-[60] hidden opacity-0 transition-opacity duration-300">

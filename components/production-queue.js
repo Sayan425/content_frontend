@@ -8,7 +8,7 @@ export function initProductionQueue() {
     const customScriptInput = document.getElementById('custom-script-input');
     const customScriptLabel = document.getElementById('custom-script-label');
     const btnQueue = document.getElementById('btn-queue-generation');
-    const btnAddLook = document.getElementById('btn-add-look');
+    const btnAddLook = document.getElementById('btn-add-look'); // bound dynamically as btn-add-look-card
     const customVoiceoverInput = document.getElementById('custom-voiceover-input');
     const customVoiceoverFilename = document.getElementById('custom-voiceover-filename');
     const btnClearVoiceover = document.getElementById('btn-clear-voiceover');
@@ -27,9 +27,7 @@ export function initProductionQueue() {
     const btnVoIntentConfirmExisting = document.getElementById('btn-vo-intent-confirm-existing');
     
     let isVoiceoverFromScratch = false;
-    const motionGraphicsCheckbox = document.getElementById('motion-graphics-checkbox');
-    const motionGraphicsOptions = document.getElementById('motion-graphics-options');
-    
+
     // Settings Elements
     const settingTemplate = document.getElementById('setting-template');
     const settingSubtitle = document.getElementById('setting-subtitle');
@@ -83,17 +81,18 @@ export function initProductionQueue() {
         validateForm();
     });
 
-    const toggleBrollStyle = document.getElementById('toggle-broll-style');
-    const brollStyleOptions = document.getElementById('broll-style-options');
+    const settingAnimationStyle = document.getElementById('setting-animation-style');
+    const settingTimeBetween = document.getElementById('setting-time-between');
+    const toggleFullscreenAnimation = document.getElementById('toggle-fullscreen-animation');
+    const toggleCharacterInCover = document.getElementById('toggle-character-in-cover');
+    const animationStyleOptions = document.getElementById('animation-style-options');
 
-    if (toggleBrollStyle && brollStyleOptions) {
-        toggleBrollStyle.addEventListener('change', (e) => {
+    if (toggleFullscreenAnimation && animationStyleOptions) {
+        toggleFullscreenAnimation.addEventListener('change', (e) => {
             if (e.target.checked) {
-                brollStyleOptions.classList.remove('hidden');
-                brollStyleOptions.classList.add('block');
+                animationStyleOptions.classList.remove('hidden');
             } else {
-                brollStyleOptions.classList.add('hidden');
-                brollStyleOptions.classList.remove('block');
+                animationStyleOptions.classList.add('hidden');
             }
         });
     }
@@ -375,35 +374,98 @@ export function initProductionQueue() {
         });
     }
 
-    // Add Look Button & Modal Logic
+    // Add Look Button & Modal Logic (AI Provider + Reference Images)
     const modalAddLook = document.getElementById('modal-add-look');
-    const btnCloseAddLook = document.getElementById('btn-close-add-look');
-    const btnCancelAddLook = document.getElementById('btn-cancel-add-look');
-    const btnProceedAddLook = document.getElementById('btn-proceed-add-look');
-    const addLookInputs = document.querySelectorAll('.add-look-input');
+    const addLookBackdrop = document.getElementById('add-look-backdrop');
+    const addLookProvidersContainer = document.getElementById('add-look-providers');
+    const addLookRefsSection = document.getElementById('add-look-refs-section');
+    const addLookRefsGrid = document.getElementById('add-look-refs-grid');
+    const btnToggleLookRefs = document.getElementById('btn-toggle-look-refs');
+    const lookRefsChevron = document.getElementById('look-refs-chevron');
 
-    function checkAddLookValidation() {
-        let hasValue = false;
-        addLookInputs.forEach(input => {
-            if (input.value.trim().length > 0) hasValue = true;
-        });
-        if (btnProceedAddLook) {
-            if (hasValue) {
-                btnProceedAddLook.removeAttribute('disabled');
-            } else {
-                btnProceedAddLook.setAttribute('disabled', 'true');
-            }
-        }
+    const AI_PROVIDERS = [
+        { name: 'ChatGPT', kind: 'Image', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/ChatGPT%20logo.svg', url: 'https://chatgpt.com/' },
+        { name: 'Google Flow', kind: 'Image & Video', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/google%20flow%20logo.png', url: 'https://labs.google/flow/' },
+        { name: 'Higgsfield', kind: 'Video', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/higgsfield%20icon.jpg', url: 'https://higgsfield.ai/' },
+        { name: 'Midjourney', kind: 'Image', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/midjourney%20icon.webp', url: 'https://www.midjourney.com/' },
+        { name: 'Leonardo AI', kind: 'Image', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/leonardo%20ai%20icon.jpg', url: 'https://leonardo.ai/' },
+        { name: 'Runway', kind: 'Video', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/runway%20ml%20icon.png', url: 'https://runwayml.com/' },
+    ];
+
+    if (addLookProvidersContainer) {
+        addLookProvidersContainer.innerHTML = AI_PROVIDERS.map(p => `
+            <button onclick="window.open('${p.url}', '_blank', 'noopener,noreferrer')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-primary/10 transition-colors group">
+                <img src="${p.icon}" alt="${p.name}" class="w-9 h-9 rounded-lg object-cover bg-white/5 shrink-0">
+                <span class="flex-1 min-w-0">
+                    <span class="block text-sm text-white font-medium group-hover:text-primary">${p.name}</span>
+                    <span class="block text-[11px] text-on-surface-variant">${p.kind} generation</span>
+                </span>
+                <span class="material-symbols-outlined text-[18px] text-on-surface-variant group-hover:text-primary">open_in_new</span>
+            </button>
+        `).join('');
     }
 
-    addLookInputs.forEach(input => {
-        input.addEventListener('input', checkAddLookValidation);
-    });
+    let lookRefsOpen = false;
+
+    if (btnToggleLookRefs) {
+        btnToggleLookRefs.addEventListener('click', () => {
+            lookRefsOpen = !lookRefsOpen;
+            addLookRefsGrid.style.display = lookRefsOpen ? 'grid' : 'none';
+            lookRefsChevron.style.transform = lookRefsOpen ? 'rotate(180deg)' : 'none';
+        });
+    }
+
+    function escAttr(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
 
     function openAddLookModal() {
         if (!modalAddLook) return;
+
+        // Populate reference images from the currently loaded avatar
+        const currentAvatarId = localStorage.getItem('activeAvatarId');
+        if (currentAvatarId && addLookRefsSection && addLookRefsGrid) {
+            supabase.from('avatar_details')
+                .select('name, base_look, other_looks')
+                .eq('avatar_id', currentAvatarId)
+                .single()
+                .then(({ data }) => {
+                    if (!data) { addLookRefsSection.style.display = 'none'; return; }
+                    const allLooks = [];
+                    if (data.base_look) allLooks.push({ name: 'Default Look', url: data.base_look });
+                    if (Array.isArray(data.other_looks)) {
+                        data.other_looks.forEach((look, idx) => {
+                            const url = look.image_url || look.image || look.url || look.link || look.look;
+                            if (url) allLooks.push({ name: look.name || `Look ${idx + 1}`, url });
+                        });
+                    }
+                    if (allLooks.length === 0) { addLookRefsSection.style.display = 'none'; return; }
+                    addLookRefsSection.style.display = '';
+                    addLookRefsGrid.innerHTML = '';
+                    allLooks.forEach(look => {
+                        const btn = document.createElement('button');
+                        btn.className = 'group flex flex-col items-center gap-1';
+                        btn.title = look.name;
+                        btn.addEventListener('click', () => window.open(look.url, '_blank', 'noopener,noreferrer'));
+                        btn.innerHTML = `
+                            <div class="relative w-full aspect-square rounded-lg overflow-hidden border border-white/10 group-hover:border-primary/50 transition-all">
+                                <img src="${escAttr(look.url)}" alt="${escAttr(look.name)}" class="w-full h-full object-cover" loading="lazy">
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-white text-[18px] opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+                                </div>
+                            </div>
+                            <span class="text-[10px] text-on-surface-variant truncate w-full text-center">${escAttr(look.name)}</span>
+                        `;
+                        addLookRefsGrid.appendChild(btn);
+                    });
+                });
+        }
+
+        lookRefsOpen = false;
+        if (addLookRefsGrid) addLookRefsGrid.style.display = 'none';
+        if (lookRefsChevron) lookRefsChevron.style.transform = 'none';
+
         modalAddLook.classList.remove('hidden');
-        // Trigger reflow
         void modalAddLook.offsetWidth;
         modalAddLook.classList.remove('opacity-0');
         modalAddLook.classList.add('opacity-100');
@@ -413,43 +475,18 @@ export function initProductionQueue() {
         if (!modalAddLook) return;
         modalAddLook.classList.remove('opacity-100');
         modalAddLook.classList.add('opacity-0');
-        setTimeout(() => {
-            modalAddLook.classList.add('hidden');
-            // Reset fields
-            addLookInputs.forEach(input => input.value = '');
-            if (btnProceedAddLook) btnProceedAddLook.setAttribute('disabled', 'true');
-        }, 300);
+        setTimeout(() => { modalAddLook.classList.add('hidden'); }, 300);
     }
 
     if (btnAddLook) {
         btnAddLook.addEventListener('click', openAddLookModal);
     }
-    if (btnCloseAddLook) btnCloseAddLook.addEventListener('click', closeAddLookModal);
-    if (btnCancelAddLook) btnCancelAddLook.addEventListener('click', closeAddLookModal);
-
-    if (btnProceedAddLook) {
-        btnProceedAddLook.addEventListener('click', () => {
-            // Collect parameters
-            const camera = document.getElementById('look-camera').value.trim();
-            const style = document.getElementById('look-style').value.trim();
-            const bg = document.getElementById('look-bg').value.trim();
-            const props = document.getElementById('look-props').value.trim();
-
-            const params = { camera, style, bg, props };
-            console.log('Generating new look with params:', params);
-            
-            // Mock Loading State
-            const originalText = btnProceedAddLook.innerHTML;
-            btnProceedAddLook.setAttribute('disabled', 'true');
-            btnProceedAddLook.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">autorenew</span> Generating...';
-
-            // Simulate API Call
-            setTimeout(async () => {
-                await showCustomAlert("Image generation successfully queued! (This is a mock action)", 'Success');
-                btnProceedAddLook.innerHTML = originalText;
-                closeAddLookModal();
-            }, 1500);
-        });
+    if (addLookBackdrop) {
+        addLookBackdrop.addEventListener('click', closeAddLookModal);
+    }
+    const btnCloseAddLook = document.getElementById('btn-close-add-look');
+    if (btnCloseAddLook) {
+        btnCloseAddLook.addEventListener('click', closeAddLookModal);
     }
 
     // Load Data
@@ -582,7 +619,6 @@ export function initProductionQueue() {
             }
 
             // 2. Fetch Scripts
-            // 2. Fetch Scripts
             let scriptQuery = supabase
                 .from('scripts_final')
                 .select(`
@@ -682,16 +718,14 @@ export function initProductionQueue() {
                     overlayOptions.push(cb.value);
                 });
 
-                // Get editing style
-                const enableBRoll = document.getElementById('toggle-broll-style')?.checked || false;
-                const editingStyle = document.getElementById('setting-editing-style')?.value || 'Standard';
-
                 // Construct Edit Settings payload (JSONB)
                 const editSettingsPayload = {
                     templateId: settingTemplate.value,
                     subtitleStyle: settingSubtitle.value,
-                    enableBRoll: enableBRoll,
-                    editingStyle: enableBRoll ? editingStyle : null,
+                    animationStyle: toggleFullscreenAnimation?.checked ? (settingAnimationStyle?.value || '') : '',
+                    timeBetweenTemplates: parseInt(settingTimeBetween?.value) || 5,
+                    enablefullscreenanimation: toggleFullscreenAnimation?.checked || false,
+                    includeCharacterInCoverImage: toggleCharacterInCover?.checked ?? true,
                     overlays: overlayOptions
                 };
 

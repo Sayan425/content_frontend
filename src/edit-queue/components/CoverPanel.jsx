@@ -156,7 +156,7 @@ export function CoverPanel({ config, editId }) {
                 </div>
             </section>
 
-            <MediaAiPicker open={showMediaAi} onClose={() => setShowMediaAi(false)} />
+            <MediaAiPicker open={showMediaAi} onClose={() => setShowMediaAi(false)} editId={editId} />
         </div>
     );
 }
