@@ -1,9 +1,107 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { markLocalSave } from '../utils/localSaveTracker';
 import { showCustomConfirm, showCustomAlert } from '../../../components/notifications.js';
 import { RangeInput } from './RangeInput';
 import { ICON_BASE, MediaAiPicker } from './MediaAiPicker';
+
+function useAudioEffects() {
+  const [effects, setEffects] = useState([]);
+  useEffect(() => {
+    supabase
+      .from('assets')
+      .select('id, file_name, link, description')
+      .eq('type', 'audio_effect')
+      .order('file_name')
+      .then(({ data }) => { if (data) setEffects(data); });
+  }, []);
+  return effects;
+}
+
+function AudioEffectPicker({ effects, selectedUrl, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const [playingId, setPlayingId] = useState(null);
+  const audioRef = useRef(null);
+  const containerRef = useRef(null);
+
+  const selectedLabel = effects.find(a => a.link === selectedUrl)?.file_name || '';
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const stopAudio = () => {
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+    setPlayingId(null);
+  };
+
+  const playPreview = (e, effect) => {
+    e.stopPropagation();
+    if (playingId === effect.id) { stopAudio(); return; }
+    stopAudio();
+    if (audioRef.current) { audioRef.current.src = effect.link; audioRef.current.play(); }
+    setPlayingId(effect.id);
+  };
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    const onEnd = () => setPlayingId(null);
+    el.addEventListener('ended', onEnd);
+    return () => el.removeEventListener('ended', onEnd);
+  }, []);
+
+  const selectEffect = (effect) => {
+    stopAudio();
+    onSelect(effect);
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <audio ref={audioRef} preload="none" />
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2 hover:border-primary/30 transition-all text-left text-sm"
+      >
+        <span className={selectedLabel ? 'text-on-surface' : 'text-on-surface-variant'}>{selectedLabel || 'Select a sound...'}</span>
+        <span className="material-symbols-outlined text-[18px] text-on-surface-variant">{open ? 'expand_less' : 'expand_more'}</span>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-surface-container-high border border-white/10 rounded-xl shadow-2xl max-h-64 overflow-y-auto custom-scrollbar">
+          {effects.length === 0 && (
+            <p className="text-xs text-on-surface-variant p-3">No audio effects found in the assets table.</p>
+          )}
+          {effects.map(effect => (
+            <div
+              key={effect.id}
+              className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors hover:bg-primary/10 ${effect.link === selectedUrl ? 'bg-primary/15 text-primary' : 'text-on-surface'}`}
+            >
+              <button
+                onClick={(e) => playPreview(e, effect)}
+                className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md bg-surface-container border border-white/10 hover:bg-primary/20 hover:border-primary/30 transition-colors text-on-surface-variant hover:text-primary"
+                title={playingId === effect.id ? 'Stop' : 'Preview'}
+              >
+                <span className="material-symbols-outlined text-[16px]">{playingId === effect.id ? 'stop' : 'play_arrow'}</span>
+              </button>
+              <div className="flex-1 min-w-0" onClick={() => selectEffect(effect)}>
+                <p className="text-sm truncate">{effect.file_name}</p>
+                {effect.description && <p className="text-[11px] text-on-surface-variant/70 truncate">{effect.description}</p>}
+              </div>
+              {effect.link === selectedUrl && (
+                <span className="material-symbols-outlined text-primary text-[18px] shrink-0">check</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Reusing generic input components
 const SelectInput = ({ label, value, onChange, options }) => (
@@ -229,8 +327,8 @@ export function OverlaysPanel({ config, setConfig, editId }) {
     const [selectedOverlayIndex, setSelectedOverlayIndex] = useState('');
     const saveTimeoutRef = useRef(null);
     const fileInputRef = useRef(null);
-    // Media generation is off-platform: this just opens a provider picker.
     const [showMediaAi, setShowMediaAi] = useState(false);
+    const audioEffects = useAudioEffects();
 
     const overlays = config?.overlays || [];
     
@@ -857,6 +955,46 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                         </div>
                     </section>
 
+                    {/* Audio Effect */}
+                    <section className="bg-surface p-4 rounded-xl border border-white/5 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-on-surface font-semibold text-sm flex items-center gap-2 m-0">
+                                <span className="material-symbols-outlined text-primary text-[18px]">music_note</span>
+                                Audio Effect
+                            </h4>
+                            <button
+                                onClick={() => updateOverlay('audioEffect.enabled', !selectedOverlay.audioEffect?.enabled)}
+                                className={`relative w-11 h-6 rounded-full transition-colors ${selectedOverlay.audioEffect?.enabled ? 'bg-primary' : 'bg-white/10'}`}
+                            >
+                                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${selectedOverlay.audioEffect?.enabled ? 'left-[22px]' : 'left-0.5'}`} />
+                            </button>
+                        </div>
+
+                        {selectedOverlay.audioEffect?.enabled && (
+                            <>
+                                <div className="flex flex-col gap-2 mb-4">
+                                    <label className="text-sm font-medium text-on-surface-variant">Sound</label>
+                                    <AudioEffectPicker
+                                        effects={audioEffects}
+                                        selectedUrl={selectedOverlay.audioEffect?.url || ''}
+                                        onSelect={(effect) => {
+                                            updateOverlay('audioEffect.url', effect.link);
+                                            updateOverlay('audioEffect.label', effect.file_name);
+                                        }}
+                                    />
+                                </div>
+                                <RangeInput
+                                    label="Volume (%)"
+                                    value={selectedOverlay.audioEffect?.volume !== undefined ? Math.round(selectedOverlay.audioEffect.volume * 100) : 80}
+                                    onChange={v => updateOverlay('audioEffect.volume', v / 100)}
+                                    min={0}
+                                    max={100}
+                                    step={1}
+                                />
+                            </>
+                        )}
+                    </section>
+
                     {selectedOverlay.type !== 'MotionGraphic' && (
                         <section className="bg-surface p-4 rounded-xl border border-white/5 shadow-sm">
                             <h4 className="text-on-surface font-semibold mb-4 text-sm flex items-center gap-2">
@@ -867,7 +1005,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                 label="In Animation"
                                 value={selectedOverlay.animationIn || 'none'}
                                 onChange={v => updateOverlay('animationIn', v)}
-                                options={['none', 'fade', 'pop', 'slide_left', 'slide_right', 'slide_up', 'slide_down', 'zoom_in', 'spin_in', 'drop_down', 'blur_in', 'flip_in'].map(val => ({
+                                options={['none', 'fade', 'pop', 'zoom_in', 'blur_in', 'flip_in', 'bounce_in', 'elastic_in', 'rise_in', 'swing_in'].map(val => ({
                                     value: val,
                                     label: val === 'none' ? 'None' : val.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
                                 }))}
@@ -876,7 +1014,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                 label="Out Animation"
                                 value={selectedOverlay.animationOut || 'none'}
                                 onChange={v => updateOverlay('animationOut', v)}
-                                options={['none', 'fade', 'pop', 'slide_left', 'slide_right', 'slide_up', 'slide_down', 'zoom_out', 'spin_out', 'fly_away', 'blur_out', 'flip_out'].map(val => ({
+                                options={['none', 'fade', 'pop', 'zoom_out', 'blur_out', 'flip_out', 'bounce_out', 'shrink_out', 'sink_out', 'dissolve_out'].map(val => ({
                                     value: val,
                                     label: val === 'none' ? 'None' : val.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
                                 }))}
@@ -888,7 +1026,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     onChange={v => updateOverlayProp('style', v)}
                                     options={[
                                         { value: '', label: 'Template Default' },
-                                        ...['Classic', 'Highlight', 'Glassmorphism', 'Sticker', 'Retro', 'Bubble', 'Cyberpunk', 'Minimalist', 'Press']
+                                        ...['Classic', 'Highlight', 'Glassmorphism', 'Sticker', 'Retro', 'Bubble', 'Cyberpunk', 'Minimalist', 'Press', 'Butter', 'Layered', 'PaperCutout', 'Sliced']
                                             .map(s => ({ value: s, label: s }))
                                     ]}
                                 />
@@ -906,9 +1044,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                     { value: 'airmail', label: 'Retro Airmail Envelope' },
                                     { value: 'blur_bg', label: 'Frameless Blurred Background' },
                                     { value: 'electric', label: 'Electric Border (Glow)' },
-                                    { value: 'wavy', label: 'Wavy Edges' },
                                     { value: 'lined', label: 'Infinite Lined Borders' },
-                                    { value: 'artdeco', label: 'Art Deco Corners' },
                                     { value: 'vintage', label: 'Vintage Triple Frame' },
                                     { value: 'eightbit', label: '8-Bit Pixel Border' }
                                 ]}

@@ -26,8 +26,18 @@ export function CoverPanel({ config, editId }) {
                 .eq('content_id', editId)
                 .single();
             if (!alive) return;
-            if (error) console.error('Failed to load cover image:', error);
-            setCoverUrl(data?.cover_image || null);
+            let url = data?.cover_image || null;
+            if (!url) {
+                const { data: eq } = await supabase
+                    .from('edit_queue')
+                    .select('cover_image')
+                    .eq('content_id', editId)
+                    .single();
+                if (!alive) return;
+                url = eq?.cover_image || null;
+            }
+            if (error && !url) console.error('Failed to load cover image:', error);
+            setCoverUrl(url);
             setLoading(false);
         })();
         return () => { alive = false; };
@@ -74,11 +84,12 @@ export function CoverPanel({ config, editId }) {
             });
             if (!uploadRes.ok) throw new Error('Upload to R2 failed');
 
-            const { error: dbError } = await supabase
-                .from('content_pipeline')
-                .update({ cover_image: data.publicUrl })
-                .eq('content_id', editId);
-            if (dbError) throw dbError;
+            const [{ error: cpError }, { error: eqError }] = await Promise.all([
+                supabase.from('content_pipeline').update({ cover_image: data.publicUrl }).eq('content_id', editId),
+                supabase.from('edit_queue').update({ cover_image: data.publicUrl }).eq('content_id', editId),
+            ]);
+            if (cpError) throw cpError;
+            if (eqError) throw eqError;
 
             setCoverUrl(data.publicUrl);
         } catch (err) {

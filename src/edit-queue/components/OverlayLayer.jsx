@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, OffthreadVideo, Img, useCurrentFrame, useVideoConfig, interpolate, Sequence } from 'remotion';
+import { AbsoluteFill, OffthreadVideo, Img, Audio, useCurrentFrame, useVideoConfig, interpolate, Sequence } from 'remotion';
 import { getAnimationState, getBorderPresetStyle, normalizeOpacity } from './overlayFx';
 import { TextOverlay } from './TextOverlay';
 import { CompositionRenderer } from './motion_graphics/CompositionRenderer';
@@ -53,12 +53,10 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
     const isAbsolute = position.x !== undefined || position.y !== undefined;
     const src = mediaSrc(overlay);
     const isBlurBg = overlay.borderPreset === 'blur_bg';
-    const isWavy = overlay.borderPreset === 'wavy';
     const isLined = overlay.borderPreset === 'lined';
-    const isArtDeco = overlay.borderPreset === 'artdeco';
     const isVintage = overlay.borderPreset === 'vintage';
     const isEightBit = overlay.borderPreset === 'eightbit';
-    const isStructural = isWavy || isLined || isArtDeco || isVintage || isEightBit;
+    const isStructural = isLined || isVintage || isEightBit;
 
     // "Frameless Blurred Background": a blurred, enlarged copy of the media
     // fills the square area behind the sharp, contained copy — so any aspect
@@ -69,22 +67,6 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
         ? { backgroundColor: 'transparent' }
         : getBorderPresetStyle(overlay.borderPreset || 'photographic');
 
-    // "Wavy Edges": scalloped border via a tiled radial/conic mask, applied to
-    // the image itself (the orange padding shows through the scallops).
-    const s = 14;
-    const r = (Math.SQRT2 * s).toFixed(2);
-    const wavyMask =
-        `radial-gradient(${r}px,#000 calc(100% - 1px),#0000), ` +
-        `conic-gradient(#000 0 0) content-box, ` +
-        `radial-gradient(${r}px,#0000 100%,#000 calc(100% + 1px)) ${s}px ${s}px padding-box`;
-    const wavyStyle = {
-        // height:auto keeps the image's natural size (no zoom/crop).
-        width: '100%', height: 'auto', display: 'block',
-        boxSizing: 'border-box', padding: `${s}px`, border: `${s}px solid transparent`,
-        background: '#BF4D28', borderRadius: `${3.5 * s}px`,
-        WebkitMask: wavyMask, mask: wavyMask,
-        WebkitMaskSize: `${4 * s}px ${4 * s}px`, maskSize: `${4 * s}px ${4 * s}px`,
-    };
 
     // "Infinite Lined Borders": concentric rings drawn with a repeating radial
     // border-image. Fewer, bolder rings than the original.
@@ -93,21 +75,12 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
     const lsz = 460;
     const ld = lsz / (2 * ln) + lb;
     const linedStyle = {
-        width: `${lsz}px`, aspectRatio: '1.2', objectFit: 'cover', display: 'block',
+        width: '100%', height: 'auto', display: 'block',
         boxSizing: 'border-box', border: `${lp}px solid transparent`,
         borderRadius: `${lp + lb / 4}px`,
         borderImage: `repeating-radial-gradient(${lc} 0,#0000 2px calc(${(ld / 2).toFixed(2)}px - 2px),${lc} ${(ld / 2).toFixed(2)}px ${ld.toFixed(2)}px) 49.8%/${lp}px`,
         clipPath: `inset(0 round ${lp}px)`,
     };
-
-    // "Art Deco Corners": thin gold frame with L-shaped corner brackets.
-    const deco = '#e8d3a0';
-    const cornerStyle = (corner) => ({
-        position: 'absolute', width: '22px', height: '22px', borderStyle: 'solid',
-        borderColor: deco, borderWidth: 0,
-        ...(corner.includes('t') ? { top: '-5px', borderTopWidth: '1px' } : { bottom: '-5px', borderBottomWidth: '1px' }),
-        ...(corner.includes('l') ? { left: '-5px', borderLeftWidth: '1px' } : { right: '-5px', borderRightWidth: '1px' }),
-    });
 
     // "8-Bit Pixel Border": stepped pixel frame with notched corners, built
     // from the SCSS step1 mixin expanded to a two-level box-shadow (one color).
@@ -146,17 +119,10 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
                         <MediaTag src={src} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(0.95) blur(14px)', transform: 'scale(1.08)' }} />
                         <MediaTag src={src} style={{ position: 'relative', width: '100%', height: 'auto', display: 'block', zIndex: 1, boxShadow: '0 0 16px #0006' }} />
                     </>
-                ) : isWavy ? (
-                    <MediaTag src={src} style={wavyStyle} />
                 ) : isLined ? (
                     <MediaTag src={src} style={linedStyle} />
                 ) : isEightBit ? (
                     <MediaTag src={src} style={eightBitStyle} />
-                ) : isArtDeco ? (
-                    <div style={{ position: 'relative', border: `1px solid ${deco}`, padding: '14px', backgroundColor: '#17121c', display: 'flex' }}>
-                        <MediaTag src={src} style={{ width: '100%', height: 'auto', display: 'block' }} />
-                        {['tl', 'tr', 'bl', 'br'].map(c => <span key={c} style={cornerStyle(c)} />)}
-                    </div>
                 ) : isVintage ? (
                     <div style={{ border: '2px solid #DE9B72', padding: '6px', backgroundColor: '#0d0b10' }}>
                         <div style={{ border: '6px solid #DE9B72', padding: '6px' }}>
@@ -264,6 +230,11 @@ const MotionGraphicRender = ({ overlay, durationInFrames }) => {
     );
 };
 
+const OverlayAudio = ({ overlay }) => {
+    if (!overlay.audioEffect?.enabled || !overlay.audioEffect?.url) return null;
+    return <Audio src={overlay.audioEffect.url} volume={overlay.audioEffect.volume ?? 0.8} />;
+};
+
 export const OverlayLayer = ({ overlays, fps, defaults = {}, mediaMode = 'scrapbook' }) => {
     if (!overlays) return null;
 
@@ -276,6 +247,7 @@ export const OverlayLayer = ({ overlays, fps, defaults = {}, mediaMode = 'scrapb
             const isVideo = overlay.type === 'Video';
             return (
                 <Sequence key={key} from={startFrame} durationInFrames={durationFrames}>
+                    <OverlayAudio overlay={overlay} />
                     {mediaMode === 'scrapbook' ? (
                         <ScrapbookMedia overlay={overlay} index={index} durationInFrames={durationFrames} isVideo={isVideo} />
                     ) : (
@@ -295,6 +267,7 @@ export const OverlayLayer = ({ overlays, fps, defaults = {}, mediaMode = 'scrapb
         if (overlay.type === 'Text' || overlay.type === 'TextOverlay') {
             return (
                 <Sequence key={key} from={startFrame} durationInFrames={durationFrames}>
+                    <OverlayAudio overlay={overlay} />
                     <TextOverlay
                         overlay={overlay}
                         durationInFrames={durationFrames}
@@ -309,6 +282,7 @@ export const OverlayLayer = ({ overlays, fps, defaults = {}, mediaMode = 'scrapb
         if (overlay.type === 'MotionGraphic') {
             return (
                 <Sequence key={key} from={startFrame} durationInFrames={durationFrames}>
+                    <OverlayAudio overlay={overlay} />
                     <MotionGraphicRender overlay={overlay} durationInFrames={durationFrames} />
                 </Sequence>
             );

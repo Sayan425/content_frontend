@@ -59,14 +59,15 @@ const CustomStyleDropdown = ({ label, value, onChange, options }) => {
                     {options.map(opt => {
                         const StyleComp = Styles[opt];
                         return (
-                            <div 
-                                key={opt} 
-                                className={`px-4 py-2 rounded-md cursor-pointer transition-all flex items-center justify-between gap-4 ${value === opt ? 'bg-primary/15' : 'hover:bg-white/5'}`}
+                            <div
+                                key={opt}
+                                className={`px-4 rounded-md cursor-pointer transition-all flex items-center justify-between gap-4 ${value === opt ? 'bg-primary/15' : 'hover:bg-white/5'}`}
+                                style={{ height: '56px', minHeight: '56px' }}
                                 onClick={() => { onChange(opt); setIsOpen(false); }}
                             >
                                 <div className="text-xs font-bold text-white/70 uppercase tracking-wide shrink-0">{opt}</div>
-                                <div className="pointer-events-none flex justify-end items-center grow" style={{ fontSize: '13px' }}>
-                                    <div style={{ transform: 'scale(0.8)', transformOrigin: 'right center' }}>
+                                <div className="pointer-events-none flex justify-end items-center grow overflow-hidden" style={{ fontSize: '13px', maxHeight: '48px' }}>
+                                    <div style={{ transform: 'scale(0.7)', transformOrigin: 'right center' }}>
                                         {StyleComp ? <StyleComp text="This is a PREVIEW" words={MOCK_WORDS} scale={1} opacity={1} /> : opt}
                                     </div>
                                 </div>
@@ -274,32 +275,21 @@ export function MainVideoPanel({ config, setConfig, editId }) {
   const [bgmTracks, setBgmTracks] = useState([]);
 
   useEffect(() => {
-      const fetchTracks = async () => {
-          try {
-              const response = await fetch('https://pub-345e8414642f4b00859c994c81be94de.r2.dev/editing-assets/bgm/bgm_registry.json');
-              if (response.ok) {
-                  const filenames = await response.json();
-                  
-                  const tracks = filenames.map(k => ({
-                      value: `https://pub-345e8414642f4b00859c994c81be94de.r2.dev/editing-assets/bgm/${k}`,
-                      label: k
-                  }));
-                  
-                  if(tracks.length > 0) {
-                      setBgmTracks(tracks);
-                      // Use functional state update or safely check config to avoid closure issues
-                      if(config && !config.backgroundMusicUrl) {
-                          updateConfig('backgroundMusicUrl', tracks[0].value);
-                      }
+      supabase
+          .from('assets')
+          .select('id, file_name, link, description')
+          .eq('type', 'background_music')
+          .order('file_name')
+          .then(({ data, error }) => {
+              if (error) { console.error('Error fetching BGM tracks:', error); return; }
+              if (data && data.length > 0) {
+                  const tracks = data.map(row => ({ value: row.link, label: row.file_name }));
+                  setBgmTracks(tracks);
+                  if (config && !config.backgroundMusicUrl) {
+                      updateConfig('backgroundMusicUrl', tracks[0].value);
                   }
-              } else {
-                  console.warn("Could not find bgm_registry.json in R2 bucket.");
               }
-          } catch (error) {
-              console.error('Error fetching tracks:', error);
-          }
-      };
-      fetchTracks();
+          });
   }, []);
 
   const autoSaveToSupabase = (newConfig) => {
@@ -400,7 +390,7 @@ export function MainVideoPanel({ config, setConfig, editId }) {
                         label="Style Preset"
                         value={config.subtitleStyle || 'Classic'}
                         onChange={v => updateConfig('subtitleStyle', v)}
-                        options={['Classic', 'Highlight', 'Glassmorphism', 'Sticker', 'Retro', 'Bubble', 'Cyberpunk', 'Minimalist', 'Press']}
+                        options={['Classic', 'Highlight', 'Glassmorphism', 'Sticker', 'Retro', 'Bubble', 'Cyberpunk', 'Minimalist', 'Press', 'Butter', 'Layered', 'PaperCutout', 'Sliced']}
                     />
                     <RangeInput
                         label="Font Size"

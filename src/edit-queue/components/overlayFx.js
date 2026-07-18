@@ -6,7 +6,7 @@ import { interpolate, spring } from 'remotion';
  * Mirrors the behavior originally implemented for Image overlays.
  */
 
-const ANIM_FRAMES = 15;
+export const ANIM_FRAMES = 15;
 
 /**
  * Computes the animated visual state for one overlay at a given moment.
@@ -51,6 +51,44 @@ export function getAnimationState({ relativeFrame, durationInFrames, fps, animat
       flipRotation = interpolate(relativeFrame, [0, ANIM_FRAMES], [90, 0], { extrapolateRight: 'clamp' });
       opacity = interpolate(relativeFrame, [0, ANIM_FRAMES], [0, userOpacity], { extrapolateRight: 'clamp' });
     }
+    else if (animationIn === 'bounce_in') {
+      const t = relativeFrame / ANIM_FRAMES;
+      const bounce = t < 0.6 ? t / 0.6 * 1.25 : 1.25 - (t - 0.6) / 0.4 * 0.25;
+      scale = Math.min(bounce, 1.25) * baseScale;
+      if (t >= 1) scale = baseScale;
+    }
+    else if (animationIn === 'elastic_in') {
+      const elasticSpring = spring({ frame: relativeFrame, fps, config: { damping: 8, stiffness: 180, mass: 0.8 } });
+      scale = elasticSpring * baseScale;
+    }
+    else if (animationIn === 'glitch_in') {
+      const seed = (relativeFrame * 7 + 3) % 13;
+      const intensity = interpolate(relativeFrame, [0, ANIM_FRAMES], [1, 0], { extrapolateRight: 'clamp' });
+      translateX = (seed % 5 - 2) * 30 * intensity;
+      translateY = ((seed * 3) % 5 - 2) * 20 * intensity;
+      opacity = relativeFrame % 3 === 0 && relativeFrame < ANIM_FRAMES * 0.7 ? userOpacity * 0.3 : userOpacity;
+      if (relativeFrame >= ANIM_FRAMES - 1) { translateX = 0; translateY = 0; opacity = userOpacity; }
+    }
+    else if (animationIn === 'rise_in') {
+      opacity = interpolate(relativeFrame, [0, ANIM_FRAMES * 0.6], [0, userOpacity], { extrapolateRight: 'clamp' });
+      translateY = interpolate(relativeFrame, [0, ANIM_FRAMES], [80, 0], { extrapolateRight: 'clamp' });
+      scale = interpolate(relativeFrame, [0, ANIM_FRAMES], [0.95, 1], { extrapolateRight: 'clamp' }) * baseScale;
+    }
+    else if (animationIn === 'swing_in') {
+      extraRotation = interpolate(relativeFrame, [0, ANIM_FRAMES], [-90, 0], { extrapolateRight: 'clamp' });
+      opacity = interpolate(relativeFrame, [0, ANIM_FRAMES * 0.3], [0, userOpacity], { extrapolateRight: 'clamp' });
+    }
+    else if (animationIn === 'split_in') {
+      // Handled via clipPath in the renderer — here we just ensure opacity is correct
+      opacity = userOpacity;
+    }
+    else if (animationIn === 'shake_in') {
+      const shakeFrames = Math.min(10, ANIM_FRAMES);
+      if (relativeFrame < shakeFrames) {
+        const intensity = interpolate(relativeFrame, [0, shakeFrames], [15, 0], { extrapolateRight: 'clamp' });
+        translateX = Math.sin(relativeFrame * 4.5) * intensity;
+      }
+    }
   }
 
   const framesLeft = durationInFrames - relativeFrame;
@@ -77,6 +115,47 @@ export function getAnimationState({ relativeFrame, durationInFrames, fps, animat
     else if (animationOut === 'flip_out') {
       flipRotation = interpolate(framesLeft, [0, ANIM_FRAMES], [90, 0], { extrapolateLeft: 'clamp' });
       opacity = interpolate(framesLeft, [0, ANIM_FRAMES], [0, userOpacity], { extrapolateLeft: 'clamp' });
+    }
+    else if (animationOut === 'bounce_out') {
+      const t = 1 - framesLeft / ANIM_FRAMES;
+      if (t < 0.25) {
+        scale = interpolate(t, [0, 0.25], [baseScale, baseScale * 1.15], { extrapolateRight: 'clamp' });
+      } else {
+        scale = interpolate(t, [0.25, 1], [baseScale * 1.15, 0], { extrapolateRight: 'clamp' });
+      }
+    }
+    else if (animationOut === 'shrink_out') {
+      scale = interpolate(framesLeft, [0, ANIM_FRAMES], [0, baseScale], { extrapolateLeft: 'clamp' });
+      opacity = interpolate(framesLeft, [0, ANIM_FRAMES], [0, userOpacity], { extrapolateLeft: 'clamp' });
+    }
+    else if (animationOut === 'glitch_out') {
+      const seed = (framesLeft * 7 + 3) % 13;
+      const intensity = interpolate(framesLeft, [0, ANIM_FRAMES], [0, 1], { extrapolateLeft: 'clamp' });
+      translateX = (seed % 5 - 2) * 30 * (1 - intensity);
+      translateY = ((seed * 3) % 5 - 2) * 20 * (1 - intensity);
+      opacity = framesLeft % 3 === 0 && framesLeft < ANIM_FRAMES * 0.7 ? userOpacity * 0.3 : userOpacity;
+      if (framesLeft <= 0) opacity = 0;
+    }
+    else if (animationOut === 'swing_out') {
+      extraRotation = interpolate(framesLeft, [0, ANIM_FRAMES], [90, 0], { extrapolateLeft: 'clamp' });
+      opacity = interpolate(framesLeft, [0, ANIM_FRAMES * 0.3], [0, userOpacity], { extrapolateLeft: 'clamp' });
+    }
+    else if (animationOut === 'sink_out') {
+      opacity = interpolate(framesLeft, [0, ANIM_FRAMES * 0.6], [0, userOpacity], { extrapolateLeft: 'clamp' });
+      translateY = interpolate(framesLeft, [0, ANIM_FRAMES], [-80, 0], { extrapolateLeft: 'clamp' });
+      scale = interpolate(framesLeft, [0, ANIM_FRAMES], [0.95, 1], { extrapolateLeft: 'clamp' }) * baseScale;
+    }
+    else if (animationOut === 'dissolve_out') {
+      opacity = interpolate(framesLeft, [0, ANIM_FRAMES], [0, userOpacity], { extrapolateLeft: 'clamp' });
+      blurAmt = interpolate(framesLeft, [0, ANIM_FRAMES], [30, 0], { extrapolateLeft: 'clamp' });
+    }
+    else if (animationOut === 'shake_out') {
+      const shakeFrames = Math.min(10, ANIM_FRAMES);
+      if (framesLeft < shakeFrames) {
+        const intensity = interpolate(framesLeft, [0, shakeFrames], [0, 15], { extrapolateLeft: 'clamp' });
+        translateX = Math.sin(framesLeft * 4.5) * intensity;
+      }
+      opacity = interpolate(framesLeft, [0, 3], [0, userOpacity], { extrapolateLeft: 'clamp' });
     }
   }
 
