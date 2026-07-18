@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient.js';
+import { escapeHtml } from '../utils/escape-html.js';
 
 export async function initEditSuite() {
     const awaitingContainer = document.getElementById('awaiting-editing-container');
@@ -48,8 +49,8 @@ export async function initEditSuite() {
                 <div class="video-card w-[180px] shrink-0 glass-panel rounded-xl overflow-hidden shadow-lg border border-white/5 hover:border-primary/50 transition-all duration-300 cursor-pointer group flex flex-col" data-content-id="${item.content_id}">
                     <!-- Thumbnail Placeholder (9:16 aspect ratio) -->
                     <div class="w-full aspect-[9/16] bg-black/50 relative overflow-hidden flex items-center justify-center">
-                        ${item.cover_image 
-                            ? `<img src="${item.cover_image}" class="absolute inset-0 w-full h-full object-cover z-0" alt="Cover Image" loading="lazy" />` 
+                        ${item.cover_image
+                            ? `<img src="${escapeHtml(item.cover_image)}" class="absolute inset-0 w-full h-full object-cover z-0" alt="Cover Image" loading="lazy" />`
                             : `<div class="absolute inset-0 bg-surface-container-highest flex flex-col items-center justify-center text-white/30 z-0">
                                   <span class="material-symbols-outlined text-[32px] mb-2 opacity-40">broken_image</span>
                                   <span class="text-[9px] font-medium tracking-widest uppercase opacity-50 text-center px-2 leading-tight">Cover Not<br/>Generated</span>
@@ -64,7 +65,7 @@ export async function initEditSuite() {
                     <!-- Details -->
                     <div class="p-3 flex flex-col gap-1 flex-1 bg-surface-container-low/50 backdrop-blur-md">
                         <h4 class="font-headline-sm text-white font-semibold text-xs line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                            ${item.topic || 'Untitled Video'}
+                            ${escapeHtml(item.topic || 'Untitled Video')}
                         </h4>
                     </div>
                 </div>

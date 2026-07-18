@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { showCustomAlert, showCustomConfirm } from './notifications.js';
+import { escapeHtml } from '../utils/escape-html.js';
 
 export async function loadSidebar(containerId = 'sidebar-container') {
     const container = document.getElementById(containerId);
@@ -40,9 +41,9 @@ export async function loadSidebar(containerId = 'sidebar-container') {
                 avatarItem.className = 'w-full flex items-center gap-3 px-3 py-2 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 cursor-pointer';
                 avatarItem.innerHTML = `
                     <div class="w-6 h-6 rounded-md overflow-hidden flex-shrink-0 bg-surface border border-white/10">
-                        <img class="w-full h-full object-cover" src="${avatar.base_look || 'https://via.placeholder.com/24'}" alt="Avatar">
+                        <img class="w-full h-full object-cover" src="${escapeHtml(avatar.base_look || 'https://via.placeholder.com/24')}" alt="Avatar">
                     </div>
-                    <span class="text-sm text-on-surface truncate">${avatar.name || 'Unnamed Avatar'}</span>
+                    <span class="text-sm text-on-surface truncate">${escapeHtml(avatar.name || 'Unnamed Avatar')}</span>
                 `;
                 avatarItem.addEventListener('click', (e) => {
                     e.preventDefault();

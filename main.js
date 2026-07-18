@@ -22,10 +22,12 @@ function showToast(message, type = 'success') {
     iconHtml = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
   }
 
-  toast.innerHTML = `
-    ${iconHtml}
-    <span>${message}</span>
-  `;
+  // Icon is trusted static SVG; the message may contain user input or
+  // server error text, so set it via textContent to prevent HTML injection.
+  toast.innerHTML = iconHtml;
+  const msgSpan = document.createElement('span');
+  msgSpan.textContent = message;
+  toast.appendChild(msgSpan);
 
   toastContainer.appendChild(toast);
 

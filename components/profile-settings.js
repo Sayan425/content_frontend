@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { showCustomAlert } from './notifications.js';
+import { escapeHtml } from '../utils/escape-html.js';
 
 export function initProfileSettings() {
     let currentAvatarId = localStorage.getItem('activeAvatarId');
@@ -169,9 +170,9 @@ export function initProfileSettings() {
                     <div class="text-xs text-white/50 uppercase tracking-wider mb-1 font-mono-label">Current Approver</div>
                     <div class="text-white font-medium flex items-center gap-2">
                         <span class="material-symbols-outlined text-[16px]">account_circle</span>
-                        ${user.name || 'Unnamed User'}
+                        ${escapeHtml(user.name || 'Unnamed User')}
                     </div>
-                    <div class="text-white/60 text-sm mt-1">${user.email}</div>
+                    <div class="text-white/60 text-sm mt-1">${escapeHtml(user.email)}</div>
                 </div>
                 <div class="bg-primary/20 text-primary text-xs font-bold px-2 py-1 rounded-md uppercase">Reviewer</div>
             </div>
@@ -205,8 +206,8 @@ export function initProfileSettings() {
                     <div class="flex items-center justify-between gap-4">
                         <div class="flex-1 min-w-0">
                             <div class="text-xs text-[#4cd7f6] uppercase tracking-wider mb-1 font-mono-label">Found Reviewer</div>
-                            <div class="text-white font-medium truncate">${user.name || 'Unnamed User'}</div>
-                            <div class="text-white/60 text-sm truncate">${user.email}</div>
+                            <div class="text-white font-medium truncate">${escapeHtml(user.name || 'Unnamed User')}</div>
+                            <div class="text-white/60 text-sm truncate">${escapeHtml(user.email)}</div>
                         </div>
                         <button id="btn-assign-approver" data-id="${user.user_id}" class="shrink-0 bg-[#4cd7f6] hover:bg-white text-black px-4 py-2 rounded-lg font-semibold text-sm transition-colors shadow-lg">Assign</button>
                     </div>

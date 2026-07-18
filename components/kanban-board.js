@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { showCustomAlert } from './notifications.js';
+import { escapeHtml } from '../utils/escape-html.js';
 
 export function initKanbanBoard() {
     const columns = {
@@ -109,7 +110,7 @@ export function initKanbanBoard() {
 
             let html = '';
             stageItems.forEach(item => {
-                const topic = item.topic || 'Untitled Content';
+                const topic = escapeHtml(item.topic || 'Untitled Content');
                 const dateStr = item.stage_updated_at ? new Date(item.stage_updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
                 const reviewBadge = item.approval_status === 'rejected' ? `<span class="bg-error/20 text-error px-2 py-0.5 rounded text-[10px] font-bold uppercase ml-2">Rejected</span>` : '';
                 const isPending = item.approval_status === 'pending';

@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { showCustomAlert } from './notifications.js';
+import { escapeHtml } from '../utils/escape-html.js';
 
 export function initCompletedVideos() {
     const gridContainer = document.getElementById('completed-videos-grid');
@@ -39,7 +40,7 @@ export function initCompletedVideos() {
                 <div class="col-span-full flex flex-col items-center justify-center py-20 text-center w-full bg-error/10 border border-error/20 rounded-2xl">
                     <span class="material-symbols-outlined text-[40px] text-error mb-2">error</span>
                     <span class="text-error font-medium">Failed to load videos</span>
-                    <span class="text-error/70 text-sm mt-1">${error.message}</span>
+                    <span class="text-error/70 text-sm mt-1">${escapeHtml(error.message)}</span>
                 </div>
             `;
             await showCustomAlert(`Failed to load videos: ${error.message}`, 'Error');
@@ -64,15 +65,15 @@ export function initCompletedVideos() {
 
         let html = '';
         videos.forEach(video => {
-            const topic = video.topic || 'Untitled Video';
+            const topic = escapeHtml(video.topic || 'Untitled Video');
             const dateStr = video.stage_updated_at ? new Date(video.stage_updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-            const videoUrl = video.final_video || '#';
-            
+            const videoUrl = escapeHtml(video.final_video || '#');
+
             // Handle cover image
             let coverBg = '';
             let coverContent = '';
             if (video.cover_image) {
-                coverBg = `background-image: url('${video.cover_image}'); background-size: cover; background-position: center;`;
+                coverBg = `background-image: url('${escapeHtml(video.cover_image).replace(/'/g, '')}'); background-size: cover; background-position: center;`;
             } else {
                 coverBg = `background: linear-gradient(135deg, #1f1f1f 0%, #0a0a0a 100%);`;
                 coverContent = `<span class="material-symbols-outlined text-[48px] text-white/10">play_circle</span>`;

@@ -55,10 +55,20 @@ serve(async (req) => {
 
     // 4. Create secure path based on upload type
     const safeFileName = fileName.replace(/[^a-zA-Z0-9_.-]/g, '_');
+
+    // Drop `..`/`.`/empty segments and illegal characters so a client-supplied
+    // path can never escape its intended folder in the bucket.
+    const sanitizeR2Path = (p: string) => String(p)
+      .split('/')
+      .filter((seg) => seg && seg !== '.' && seg !== '..')
+      .map((seg) => seg.replace(/[^a-zA-Z0-9 _.\-()%]/g, '_'))
+      .join('/');
+
     let path = '';
 
     if (customPath) {
-      path = `${customPath}${safeFileName}`;
+      const safePath = sanitizeR2Path(customPath);
+      path = safePath ? `${safePath}/${safeFileName}` : safeFileName;
     } else if (type === 'bgm') {
       path = `editing-assets/bgm/${Date.now()}_${safeFileName}`;
     } else {

@@ -1,3 +1,5 @@
+import { escapeHtml } from '../utils/escape-html.js';
+
 export function showCustomAlert(message, title = 'Notice') {
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
@@ -9,9 +11,9 @@ export function showCustomAlert(message, title = 'Notice') {
         modal.innerHTML = `
             <div class="flex items-center gap-3 text-white">
                 <span class="material-symbols-outlined text-primary text-2xl">info</span>
-                <h3 class="font-bold text-lg font-headline-sm">${title}</h3>
+                <h3 class="font-bold text-lg font-headline-sm">${escapeHtml(title)}</h3>
             </div>
-            <p class="text-white/80 text-sm leading-relaxed">${message}</p>
+            <p class="text-white/80 text-sm leading-relaxed">${escapeHtml(message)}</p>
             <div class="flex justify-end mt-2">
                 <button id="alert-ok-btn" class="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/50 px-6 py-2 rounded-xl text-sm font-bold transition-colors">
                     OK
@@ -51,9 +53,9 @@ export function showCustomConfirm(message, title = 'Confirm') {
         modal.innerHTML = `
             <div class="flex items-center gap-3 text-white">
                 <span class="material-symbols-outlined text-secondary text-2xl">help</span>
-                <h3 class="font-bold text-lg font-headline-sm">${title}</h3>
+                <h3 class="font-bold text-lg font-headline-sm">${escapeHtml(title)}</h3>
             </div>
-            <p class="text-white/80 text-sm leading-relaxed">${message}</p>
+            <p class="text-white/80 text-sm leading-relaxed">${escapeHtml(message)}</p>
             <div class="flex justify-end gap-3 mt-2">
                 <button id="confirm-cancel-btn" class="bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 px-5 py-2 rounded-xl text-sm font-bold transition-colors">
                     Cancel

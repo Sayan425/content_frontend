@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { showCustomAlert } from './notifications.js';
+import { escapeHtml } from '../utils/escape-html.js';
 
 export function initHomeAnalytics() {
     let rawPosts = [];
@@ -613,17 +614,17 @@ export function initHomeAnalytics() {
             }
 
             html += `
-                <a href="${post.post_url || '#'}" onclick="window.open(this.href, 'newwindow', 'width=1000, height=800'); return false;" class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-primary/50 transition-all shadow-lg group flex flex-col cursor-pointer hover:-translate-y-1">
+                <a href="${escapeHtml(post.post_url || '#')}" onclick="window.open(this.href, 'newwindow', 'width=1000, height=800'); return false;" class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-primary/50 transition-all shadow-lg group flex flex-col cursor-pointer hover:-translate-y-1">
                     <div class="h-32 bg-surface-container relative flex items-center justify-center border-b border-white/10">
-                        <img src="${logoUrl}" class="w-10 h-10 opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 drop-shadow-md" alt="${post.platform} logo">
+                        <img src="${logoUrl}" class="w-10 h-10 opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 drop-shadow-md" alt="${escapeHtml(post.platform)} logo">
                         <div class="absolute top-2 right-2 w-7 h-7 rounded-full bg-background/80 backdrop-blur border border-white/10 flex items-center justify-center font-bold text-[10px] text-white">#${i + 1}</div>
                     </div>
                     <div class="p-4 flex flex-col gap-3 flex-1">
                         <div class="text-[10px] text-white/40 font-mono-label flex justify-between items-center">
-                            <span class="uppercase">${post.platform}</span>
+                            <span class="uppercase">${escapeHtml(post.platform)}</span>
                             <span>${new Date(post.posted_at).toLocaleDateString()}</span>
                         </div>
-                        <p class="text-sm text-white font-medium line-clamp-2 leading-snug">${post.caption}</p>
+                        <p class="text-sm text-white font-medium line-clamp-2 leading-snug">${escapeHtml(post.caption)}</p>
                         <div class="mt-auto pt-3 border-t border-white/5 grid grid-cols-2 gap-y-2 gap-x-1">
                             <div class="flex items-center gap-1.5 text-white/60">
                                 <span class="material-symbols-outlined text-[14px]">visibility</span>

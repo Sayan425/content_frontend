@@ -134,16 +134,21 @@ function renderAvatars(avatars) {
     avatarsContainer.innerHTML = '';
 
     avatars.forEach(avatar => {
+        // Escape DB-sourced strings before dropping them into the HTML template
+        const esc = (v) => String(v ?? '')
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
         const avatarHTML = `
-        <button onclick="localStorage.setItem('activeAvatarId', '${avatar.avatar_id}'); window.location.href='/analytics'" class="group flex flex-col items-center gap-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl p-2 transition-transform duration-300 hover:scale-105 max-w-[200px]">
+        <button data-avatar-id="${esc(avatar.avatar_id)}" class="avatar-select-btn group flex flex-col items-center gap-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl p-2 transition-transform duration-300 hover:scale-105 max-w-[200px]">
             <div class="w-32 h-32 md:w-44 md:h-44 rounded-[2.5rem] overflow-hidden border border-white/10 avatar-ring bg-surface-container-high relative shadow-[0_15px_40px_-10px_rgba(0,0,0,0.6)] group-hover:shadow-[0_20px_50px_-12px_rgba(208,188,255,0.4)] transition-all duration-500">
-                <img alt="${avatar.name} Avatar" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="${avatar.base_look || 'https://via.placeholder.com/160'}" />
+                <img alt="${esc(avatar.name)} Avatar" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="${esc(avatar.base_look || 'https://via.placeholder.com/160')}" />
                 <div class="absolute inset-0 bg-gradient-to-t from-background/90 via-background/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div class="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-[2.5rem]"></div>
             </div>
             <div class="text-center w-full">
-                <div class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface group-hover:text-primary transition-colors tracking-wide truncate px-2 text-shadow-sm">${avatar.name || 'Unnamed'}</div>
-                <div class="font-body-sm text-body-sm text-on-surface-variant mt-2.5 flex items-center justify-center gap-1.5 hover:text-primary transition-colors cursor-pointer bg-white/5 hover:bg-primary/20 backdrop-blur-md rounded-full py-1.5 px-4 mx-auto w-max shadow-sm border border-white/5" onclick="playAudio(event, '${avatar.demo_voice}', this)">
+                <div class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface group-hover:text-primary transition-colors tracking-wide truncate px-2 text-shadow-sm">${esc(avatar.name || 'Unnamed')}</div>
+                <div class="voice-preview-btn font-body-sm text-body-sm text-on-surface-variant mt-2.5 flex items-center justify-center gap-1.5 hover:text-primary transition-colors cursor-pointer bg-white/5 hover:bg-primary/20 backdrop-blur-md rounded-full py-1.5 px-4 mx-auto w-max shadow-sm border border-white/5" data-voice="${esc(avatar.demo_voice || '')}">
                     <svg class="audio-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
                     <span class="preview-text font-medium tracking-wide">Preview Voice</span>
                 </div>
@@ -151,6 +156,20 @@ function renderAvatars(avatars) {
         </button>
         `;
         avatarsContainer.insertAdjacentHTML('beforeend', avatarHTML);
+    });
+
+    // Bind listeners instead of inline onclick so DB values can't inject JS
+    avatarsContainer.querySelectorAll('.avatar-select-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            localStorage.setItem('activeAvatarId', btn.dataset.avatarId);
+            window.location.href = '/analytics';
+        });
+        const voiceBtn = btn.querySelector('.voice-preview-btn');
+        if (voiceBtn) {
+            voiceBtn.addEventListener('click', (e) => {
+                window.playAudio(e, voiceBtn.dataset.voice, voiceBtn);
+            });
+        }
     });
 
     // Append the "Generate" button at the end
