@@ -132,8 +132,10 @@ const r2ApiPlugin = () => ({
 
             const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
             
-            // Use the public r2.dev domain instead of the private API endpoint
-            const publicUrlBase = customPublicUrlBase || process.env.CLOUDFARE_PUBLIC_URL || 'https://pub-ec98e9f778e24a0aa8306ee739acdc03.r2.dev';
+            // Default to the avatars custom domain (avatar-details bucket) when
+            // the caller doesn't override it. Video/asset uploads pass their own
+            // customPublicUrlBase so they land on the right domain.
+            const publicUrlBase = customPublicUrlBase || process.env.CLOUDFARE_PUBLIC_URL || 'https://avatars.youravatarstudio.com';
             const publicUrl = `${publicUrlBase.replace(/\/$/, '')}/${filePath}`;
 
             res.setHeader('Content-Type', 'application/json');
@@ -156,7 +158,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/r2-assets': {
-        target: 'https://pub-2003936f6b0342a8afd9e538b2f27d12.r2.dev',
+        target: 'https://videos.youravatarstudio.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/r2-assets/, ''),
         configure: (proxy, options) => {
@@ -168,7 +170,7 @@ export default defineConfig({
       // Motion-graphics bucket (holds the .tsx composition files). Separate
       // bucket from /r2-assets, proxied in dev to avoid browser CORS on fetch.
       '/mg-assets': {
-        target: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev',
+        target: 'https://assets.youravatarstudio.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/mg-assets/, ''),
         configure: (proxy, options) => {

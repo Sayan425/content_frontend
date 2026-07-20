@@ -21,5 +21,5 @@ export const resolveAssetUrl = (url) => {
     return `/r2-assets/${cleanUrl}`;
   }
 
-  return `https://pub-2003936f6b0342a8afd9e538b2f27d12.r2.dev/${cleanUrl}`;
+  return `https://videos.youravatarstudio.com/${cleanUrl}`;
 };

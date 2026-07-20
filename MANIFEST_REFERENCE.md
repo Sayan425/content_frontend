@@ -156,4 +156,4 @@ Only render on `BasicTemplate` (scrapbook mode). Currently selectable in the edi
 └── videos/          ← video overlays
 ```
 
-Public base: `https://pub-2003936f6b0342a8afd9e538b2f27d12.r2.dev/`
+Public base: `https://videos.youravatarstudio.com/`

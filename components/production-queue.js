@@ -384,12 +384,12 @@ export function initProductionQueue() {
     const lookRefsChevron = document.getElementById('look-refs-chevron');
 
     const AI_PROVIDERS = [
-        { name: 'ChatGPT', kind: 'Image', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/ChatGPT%20logo.svg', url: 'https://chatgpt.com/' },
-        { name: 'Google Flow', kind: 'Image & Video', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/google%20flow%20logo.png', url: 'https://labs.google/flow/' },
-        { name: 'Higgsfield', kind: 'Video', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/higgsfield%20icon.jpg', url: 'https://higgsfield.ai/' },
-        { name: 'Midjourney', kind: 'Image', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/midjourney%20icon.webp', url: 'https://www.midjourney.com/' },
-        { name: 'Leonardo AI', kind: 'Image', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/leonardo%20ai%20icon.jpg', url: 'https://leonardo.ai/' },
-        { name: 'Runway', kind: 'Video', icon: 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons/runway%20ml%20icon.png', url: 'https://runwayml.com/' },
+        { name: 'ChatGPT', kind: 'Image', icon: 'https://assets.youravatarstudio.com/icons/ChatGPT%20logo.svg', url: 'https://chatgpt.com/' },
+        { name: 'Google Flow', kind: 'Image & Video', icon: 'https://assets.youravatarstudio.com/icons/google%20flow%20logo.png', url: 'https://labs.google/flow/' },
+        { name: 'Higgsfield', kind: 'Video', icon: 'https://assets.youravatarstudio.com/icons/higgsfield%20icon.jpg', url: 'https://higgsfield.ai/' },
+        { name: 'Midjourney', kind: 'Image', icon: 'https://assets.youravatarstudio.com/icons/midjourney%20icon.webp', url: 'https://www.midjourney.com/' },
+        { name: 'Leonardo AI', kind: 'Image', icon: 'https://assets.youravatarstudio.com/icons/leonardo%20ai%20icon.jpg', url: 'https://leonardo.ai/' },
+        { name: 'Runway', kind: 'Video', icon: 'https://assets.youravatarstudio.com/icons/runway%20ml%20icon.png', url: 'https://runwayml.com/' },
     ];
 
     if (addLookProvidersContainer) {
@@ -799,7 +799,7 @@ export function initProductionQueue() {
                             contentType: audioFile.type || 'audio/mpeg',
                             customPath: customPath,
                             customBucket: 'video-folder',
-                            customPublicUrlBase: 'https://pub-2003936f6b0342a8afd9e538b2f27d12.r2.dev'
+                            customPublicUrlBase: 'https://videos.youravatarstudio.com'
                         })
                     });
                     

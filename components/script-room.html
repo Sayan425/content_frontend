@@ -418,20 +418,32 @@ void main() {
                     <span class="material-symbols-outlined text-[16px]">content_copy</span>
                 </button>
             </div>
-            
 
         </div>
 
-        <div class="mt-8 flex justify-between items-center pt-4 border-t border-white/10">
-            <div class="flex gap-2">
+        <div id="generator-actions-row" class="mt-8 flex justify-between items-center pt-4 border-t border-white/10">
+            <div id="generator-actions-left" class="flex gap-2">
                 <button id="btn-regenerate" class="px-4 py-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-[16px]">refresh</span>
                     Regenerate
                 </button>
             </div>
-            <button id="btn-confirm-selection" class="px-6 py-2 rounded-lg bg-primary hover:bg-primary-hover text-on-primary font-bold text-sm transition-colors shadow-[0_0_15px_rgba(255,178,183,0.3)] disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                Write Your Own
-            </button>
+            <div class="flex items-center gap-4">
+                <!-- Refine with AI (only shown on the final script step) -->
+                <div id="refine-ai-wrap" class="relative hidden">
+                    <button id="btn-refine-ai" class="px-4 py-2 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary text-sm font-semibold transition-colors flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+                        Refine with AI
+                    </button>
+                    <div id="refine-ai-menu" class="hidden absolute right-0 bottom-full mb-2 z-50 bg-surface-container-high border border-white/10 rounded-xl shadow-2xl p-2 w-64">
+                        <p class="text-[11px] text-on-surface-variant px-2 pb-2">Open your script in an AI tool to make changes:</p>
+                        <div id="refine-ai-providers"></div>
+                    </div>
+                </div>
+                <button id="btn-confirm-selection" class="px-6 py-2 rounded-lg bg-primary hover:bg-primary-hover text-on-primary font-bold text-sm transition-colors shadow-[0_0_15px_rgba(255,178,183,0.3)] disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Write Your Own
+                </button>
+            </div>
         </div>
     </div>
 </div>

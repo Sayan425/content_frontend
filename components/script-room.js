@@ -3,7 +3,7 @@ import systemPrompts from '../system-prompts.json';
 import { showCustomAlert, showCustomConfirm } from './notifications.js';
 import { escapeHtml } from '../utils/escape-html.js';
 import { PROMPTS, OPENROUTER_MODEL } from './script-room-prompts.js';
-import { callOpenRouterJson } from '../utils/openrouter.js';
+import { callOpenRouterStructured } from '../utils/openrouter.js';
 
 export function initScriptRoom() {
     const avatarId = localStorage.getItem('activeAvatarId');
@@ -904,6 +904,7 @@ export function initScriptRoom() {
     let currentSelectedHook = null;
     let previousHooks = [];
     let currentSelectedPersona = null;
+    let previousPersonas = [];
     let currentSelectedCTA = null;
 
     // Back button listener
@@ -936,6 +937,19 @@ export function initScriptRoom() {
         if (btnConfirmSelection) {
             btnConfirmSelection.classList.toggle('hidden', generatorStep !== 5 && (generatorStep === 5 && isEditorMode ? false : false));
         }
+        // Refine with AI only makes sense once the final script exists (step 5)
+        const refineWrapEl = document.getElementById('refine-ai-wrap');
+        if (refineWrapEl) refineWrapEl.classList.toggle('hidden', generatorStep !== 5);
+
+        // On step 5 the Regenerate button is hidden, so center the remaining
+        // Refine + Finish pair instead of leaving them pinned to the right.
+        const actionsRowEl = document.getElementById('generator-actions-row');
+        const actionsLeftEl = document.getElementById('generator-actions-left');
+        if (actionsRowEl) {
+            actionsRowEl.classList.toggle('justify-center', generatorStep === 5);
+            actionsRowEl.classList.toggle('justify-between', generatorStep !== 5);
+        }
+        if (actionsLeftEl) actionsLeftEl.classList.toggle('hidden', generatorStep === 5);
 
         if (generatorStep === 1) {
             generatorModalIcon.textContent = 'psychology';
@@ -1166,20 +1180,17 @@ export function initScriptRoom() {
     // --- Real AI generation via OpenRouter. The prompts live in
     // --- components/script-room-prompts.js so they can be edited directly.
 
+    // Structured outputs guarantee the shape, so we read the schema's wrapped
+    // property directly (result.takes, result.structures, ...).
+
     async function generateTakesFromGroq(topic, prevTakes = []) {
-        const result = await callOpenRouterJson(PROMPTS.takes(topic, prevTakes), OPENROUTER_MODEL);
-        if (!Array.isArray(result) || result.length === 0) {
-            throw new Error('The AI did not return a list of takes. Please try again.');
-        }
-        return result.slice(0, 5).map(t => String(typeof t === 'object' ? (t.take || t.text || JSON.stringify(t)) : t));
+        const result = await callOpenRouterStructured(PROMPTS.takes(topic, prevTakes), OPENROUTER_MODEL);
+        return (result.takes || []).slice(0, 5).map(String);
     }
 
     async function generateStructuresFromGroq(topic, take, prevStructures = []) {
-        const result = await callOpenRouterJson(PROMPTS.structures(topic, take, prevStructures), OPENROUTER_MODEL);
-        if (!Array.isArray(result) || result.length === 0) {
-            throw new Error('The AI did not return a list of structures. Please try again.');
-        }
-        return result.slice(0, 3).map(s => ({
+        const result = await callOpenRouterStructured(PROMPTS.structures(topic, take, prevStructures), OPENROUTER_MODEL);
+        return (result.structures || []).slice(0, 4).map(s => ({
             name: String(s.name || 'Untitled Structure'),
             description: String(s.description || ''),
             flow: Array.isArray(s.flow) ? s.flow.map(String) : ['Hook', 'Body', 'CTA'],
@@ -1187,22 +1198,16 @@ export function initScriptRoom() {
     }
 
     async function generateHooksFromOpenAI(topic, take, structure, prevHooks = []) {
-        const result = await callOpenRouterJson(PROMPTS.hooks(topic, take, structure, prevHooks), OPENROUTER_MODEL);
-        if (!Array.isArray(result) || result.length === 0) {
-            throw new Error('The AI did not return a list of hooks. Please try again.');
-        }
-        return result.slice(0, 3).map(h => ({
-            hook: String(h.hook || h.text || h),
+        const result = await callOpenRouterStructured(PROMPTS.hooks(topic, take, structure, prevHooks), OPENROUTER_MODEL);
+        return (result.hooks || []).slice(0, 5).map(h => ({
+            hook: String(h.hook || ''),
             psychology: String(h.psychology || 'Curiosity'),
         }));
     }
 
-    async function generatePersonasFromOpenAI(topic, take, structure, hook) {
-        const result = await callOpenRouterJson(PROMPTS.personas(topic, take, structure, hook), OPENROUTER_MODEL);
-        if (!Array.isArray(result) || result.length === 0) {
-            throw new Error('The AI did not return a list of personas. Please try again.');
-        }
-        return result.slice(0, 4).map(p => String(typeof p === 'object' ? (p.persona || p.name || JSON.stringify(p)) : p));
+    async function generatePersonasFromOpenAI(topic, take, structure, hook, prevPersonas = []) {
+        const result = await callOpenRouterStructured(PROMPTS.personas(topic, take, structure, hook, prevPersonas), OPENROUTER_MODEL);
+        return (result.personas || []).slice(0, 4).map(String);
     }
 
     async function runHooksGeneration() {
@@ -1283,8 +1288,9 @@ export function initScriptRoom() {
         if (container) container.innerHTML = '';
         
         try {
-            const personas = await generatePersonasFromOpenAI(currentTakesTopic, currentSelectedTake, currentSelectedStructure, currentSelectedHook);
-            
+            const personas = await generatePersonasFromOpenAI(currentTakesTopic, currentSelectedTake, currentSelectedStructure, currentSelectedHook, previousPersonas);
+            previousPersonas.push(...personas);
+
             if (container) {
                 personas.forEach((persona, idx) => {
                     const btn = document.createElement('button');
@@ -1360,26 +1366,24 @@ export function initScriptRoom() {
     }
 
     async function generateScriptFromOpenAI(topic, take, format, hook, persona, cta) {
-        const result = await callOpenRouterJson(PROMPTS.script(topic, take, format, hook, persona, cta), OPENROUTER_MODEL);
-        if (!result || typeof result !== 'object' || !result.script) {
+        const result = await callOpenRouterStructured(PROMPTS.script(topic, take, format, hook, persona, cta), OPENROUTER_MODEL);
+        const fullScript = (result && result.full_script || '').trim();
+        if (!fullScript) {
             throw new Error('The AI did not return a script. Please try again.');
         }
 
-        // Fill any pieces the model omitted so the UI never breaks
-        const script = result.script;
-        if (!script.full_script) {
-            script.full_script = [script.hook, script.body, script.outro].filter(Boolean).join('\n\n');
-        }
-        const wordCount = script.full_script.split(/\s+/).filter(Boolean).length;
-        result.meta = result.meta || {};
-        result.delivery = {
-            word_count: result.delivery?.word_count || wordCount,
-            estimated_runtime_seconds: result.delivery?.estimated_runtime_seconds || Math.round(wordCount / 2.8),
-            rehook_locations: result.delivery?.rehook_locations || [],
-            key_delivery_note: result.delivery?.key_delivery_note || '',
-            bolded_line: result.delivery?.bolded_line || '',
+        // Use the model's word_count / runtime, but fall back to a local count
+        // if they come back missing or zero (models occasionally miscount).
+        const localWords = fullScript.split(/\s+/).filter(Boolean).length;
+        const wordCount = result.delivery?.word_count || localWords;
+        const runtime = result.delivery?.estimated_runtime_seconds || Math.round(wordCount / 2.8);
+        return {
+            script: { full_script: fullScript },
+            delivery: {
+                word_count: wordCount,
+                estimated_runtime_seconds: runtime,
+            },
         };
-        return result;
     }
 
     async function runScriptGeneration() {
@@ -1577,7 +1581,8 @@ export function initScriptRoom() {
         previousTakes = [];
         previousStructures = [];
         previousHooks = [];
-        
+        previousPersonas = [];
+
         if (customCtaInput) {
             customCtaInput.value = '';
         }
@@ -1705,10 +1710,11 @@ export function initScriptRoom() {
                 let flowHTML = struct.flow.map(step => `<span class="text-white/80">${escapeHtml(step)}</span>`).join('<span class="text-secondary/50 mx-2 font-bold text-[16px]">➔</span>');
 
                 btn.innerHTML = `
-                    <div class="font-bold text-secondary mb-3 flex items-center gap-2">
+                    <div class="font-bold text-secondary mb-1 flex items-center gap-2">
                         <span class="text-secondary/50 font-mono-label mr-2">0${idx+1}</span>
                         ${escapeHtml(struct.name)}
                     </div>
+                    ${struct.description ? `<div class="text-[12px] text-white/60 mb-3 leading-snug">${escapeHtml(struct.description)}</div>` : ''}
                     <div class="px-2 py-1 leading-relaxed text-sm bg-black/20 rounded-lg">
                         ${flowHTML}
                     </div>
@@ -1966,6 +1972,99 @@ export function initScriptRoom() {
                 } catch (e) {
                     console.error('Failed to copy', e);
                 }
+            }
+        });
+    }
+
+    // --- Refine with AI: open the script (plus all its creative context) in an
+    // --- external AI tool with a pre-filled prompt so the user can request
+    // --- changes. Injectable tools get the prompt in the URL; the rest get it
+    // --- copied to the clipboard.
+    const REFINE_ICON_BASE = 'https://assets.youravatarstudio.com/icons';
+    const REFINE_AI_PROVIDERS = [
+        { name: 'ChatGPT', icon: `${REFINE_ICON_BASE}/ChatGPT%20logo.svg`, url: (p) => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+        { name: 'Claude', icon: `${REFINE_ICON_BASE}/claude%20icon.png`, url: (p) => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
+        { name: 'Perplexity', icon: `${REFINE_ICON_BASE}/perplexity%20icon.webp`, url: (p) => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+        { name: 'Gemini', icon: `${REFINE_ICON_BASE}/gemini%20icon.jpg`, copy: true, url: () => 'https://gemini.google.com/app' },
+        { name: 'DeepSeek', icon: `${REFINE_ICON_BASE}/deepseek%20icon.png`, copy: true, url: () => 'https://chat.deepseek.com/' },
+    ];
+
+    function buildRefinePrompt() {
+        const scriptText = scriptOutputTextarea ? (scriptOutputTextarea.innerText || scriptOutputTextarea.textContent).trim() : '';
+        const structureName = currentSelectedStructure
+            ? (typeof currentSelectedStructure === 'object' ? currentSelectedStructure.name : currentSelectedStructure)
+            : 'N/A';
+        const structureFlow = (currentSelectedStructure && typeof currentSelectedStructure === 'object' && Array.isArray(currentSelectedStructure.flow))
+            ? currentSelectedStructure.flow.join(' -> ')
+            : '';
+        const hookText = currentSelectedHook
+            ? (typeof currentSelectedHook === 'object' ? currentSelectedHook.hook : currentSelectedHook)
+            : 'N/A';
+
+        return `I'm working on a script for a short-form video (TikTok / Instagram Reels / YouTube Shorts). Here is everything about it. I'll tell you what I need at the very bottom.
+
+TOPIC:
+${currentTakesTopic || 'N/A'}
+
+TAKE (the core angle):
+${currentSelectedTake || 'N/A'}
+
+HOOK (the opening line):
+${hookText}
+
+STORYTELLING FORMAT:
+${structureName}${structureFlow ? ` (${structureFlow})` : ''}
+
+CREATOR PERSONA (the voice it is written in):
+${currentSelectedPersona || 'N/A'}
+
+CURRENT SCRIPT:
+${scriptText || '(empty)'}
+
+------------------------------
+WHAT I NEED:
+[Type what you want here — for example: refine it, make it funnier, shorten it, tighten the hook, or judge and critique it.]`;
+    }
+
+    const btnRefineAi = document.getElementById('btn-refine-ai');
+    const refineAiMenu = document.getElementById('refine-ai-menu');
+    const refineAiProviders = document.getElementById('refine-ai-providers');
+
+    if (refineAiProviders) {
+        refineAiProviders.innerHTML = REFINE_AI_PROVIDERS.map((p, i) => `
+            <button data-idx="${i}" class="refine-ai-option w-full text-left px-3 py-2 rounded-lg text-sm text-on-surface hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-2">
+                <img src="${escapeHtml(p.icon)}" alt="${escapeHtml(p.name)}" class="w-5 h-5 rounded object-cover bg-white/5 shrink-0" />
+                <span class="flex-1">${escapeHtml(p.name)}</span>
+                ${p.copy ? '<span class="text-[10px] text-on-surface-variant">copies prompt</span>' : ''}
+            </button>
+        `).join('');
+
+        refineAiProviders.querySelectorAll('.refine-ai-option').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const provider = REFINE_AI_PROVIDERS[parseInt(btn.dataset.idx)];
+                const prompt = buildRefinePrompt();
+                if (provider.copy) {
+                    try {
+                        await navigator.clipboard.writeText(prompt);
+                        await showCustomAlert(`Your prompt is copied to clipboard. Paste it into ${provider.name}, then add the change you want.`, 'Prompt Copied');
+                    } catch (err) {
+                        console.warn('Could not copy prompt to clipboard:', err);
+                    }
+                }
+                window.open(provider.url(prompt), '_blank', 'noopener,noreferrer');
+                if (refineAiMenu) refineAiMenu.classList.add('hidden');
+            });
+        });
+    }
+
+    if (btnRefineAi && refineAiMenu) {
+        btnRefineAi.addEventListener('click', (e) => {
+            e.stopPropagation();
+            refineAiMenu.classList.toggle('hidden');
+        });
+        document.addEventListener('click', (e) => {
+            if (!refineAiMenu.classList.contains('hidden') && !refineAiMenu.contains(e.target) && !btnRefineAi.contains(e.target)) {
+                refineAiMenu.classList.add('hidden');
             }
         });
     }

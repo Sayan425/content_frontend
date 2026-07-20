@@ -1,7 +1,11 @@
 // Thin OpenRouter chat-completions client used by the Script Room generator.
-// Reads the key from VITE_OPENROUTER_API_KEY, retries on 429 rate limits, and
-// parses the model's JSON reply (stripping ```json fences if the model adds
-// them despite instructions).
+//
+// We use OpenRouter's *structured outputs* (response_format: json_schema with
+// strict: true). The model is forced to return JSON that exactly matches the
+// schema we send, so there is no fragile text-parsing here — the reply is
+// guaranteed-valid JSON and we just JSON.parse it. `require_parameters: true`
+// makes OpenRouter only route to providers that actually support this, so we
+// fail loudly rather than silently getting free-form text back.
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -20,32 +24,13 @@ async function fetchWithRetry(url, options, maxRetries = 4) {
     return fetch(url, options);
 }
 
-// Pull a JSON value out of the model's text reply. Models sometimes wrap JSON
-// in markdown fences or add a sentence around it, so fall back to slicing out
-// the outermost {...} or [...] block before giving up.
-function parseModelJson(text) {
-    const cleaned = String(text).replace(/```json/gi, '```').replace(/```/g, '').trim();
-    try {
-        return JSON.parse(cleaned);
-    } catch (_) {
-        const firstBrace = Math.min(...['{', '['].map(ch => {
-            const idx = cleaned.indexOf(ch);
-            return idx === -1 ? Infinity : idx;
-        }));
-        const lastBrace = Math.max(cleaned.lastIndexOf('}'), cleaned.lastIndexOf(']'));
-        if (firstBrace !== Infinity && lastBrace > firstBrace) {
-            return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
-        }
-        throw new Error('The AI reply was not valid JSON. Please try regenerating.');
-    }
-}
-
 /**
- * Send one prompt to OpenRouter and get back parsed JSON.
- * @param {{system: string, user: string}} prompt - from script-room-prompts.js
+ * Send one prompt to OpenRouter with a strict JSON schema and get back the
+ * parsed object (already matching the schema).
+ * @param {{system: string, user: string, schemaName: string, schema: object}} prompt
  * @param {string} model - OpenRouter model id
  */
-export async function callOpenRouterJson(prompt, model) {
+export async function callOpenRouterStructured(prompt, model) {
     const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
     if (!apiKey) {
         throw new Error('VITE_OPENROUTER_API_KEY is not set in your environment.');
@@ -59,11 +44,21 @@ export async function callOpenRouterJson(prompt, model) {
         },
         body: JSON.stringify({
             model,
+            // Only route to providers that actually honour response_format.
+            provider: { require_parameters: true },
             messages: [
                 { role: 'system', content: prompt.system },
                 { role: 'user', content: prompt.user },
             ],
             temperature: 0.9,
+            response_format: {
+                type: 'json_schema',
+                json_schema: {
+                    name: prompt.schemaName,
+                    strict: true,
+                    schema: prompt.schema,
+                },
+            },
         }),
     });
 
@@ -77,9 +72,13 @@ export async function callOpenRouterJson(prompt, model) {
     }
 
     const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
+    const message = data?.choices?.[0]?.message;
+    const content = message?.content || message?.reasoning;
     if (!content) {
         throw new Error('OpenRouter returned an empty reply. Please try again.');
     }
-    return parseModelJson(content);
+
+    // With strict structured outputs the content is guaranteed-valid JSON that
+    // matches our schema — a plain parse is all that's needed.
+    return JSON.parse(content);
 }

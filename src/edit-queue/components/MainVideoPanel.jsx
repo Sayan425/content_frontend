@@ -450,7 +450,7 @@ export function MainVideoPanel({ config, setConfig, editId }) {
                                     // Dynamically extract the avatar folder and runpod ID from videoUrl
                                     let customBucket = 'video-folder';
                                     let customPath = '';
-                                    let customPublicUrlBase = 'https://pub-2003936f6b0342a8afd9e538b2f27d12.r2.dev';
+                                    let customPublicUrlBase = 'https://videos.youravatarstudio.com';
 
                                     if (config.videoUrl) {
                                         try {

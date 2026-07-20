@@ -18,7 +18,7 @@ import { supabase } from '../../lib/supabase';
 
 // The motion-graphics bucket differs from the general asset bucket, so it is
 // not covered by the existing assetResolver / `/r2-assets` proxy.
-const R2_MG_BASE = 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev';
+const R2_MG_BASE = 'https://assets.youravatarstudio.com';
 const MG_DIR = 'editing-assets/motion-graphics';
 
 // In dev we go through the `/mg-assets` Vite proxy to avoid browser CORS on the

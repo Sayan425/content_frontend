@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabase';
 
-export const ICON_BASE = 'https://pub-345e8414642f4b00859c994c81be94de.r2.dev/icons';
+export const ICON_BASE = 'https://assets.youravatarstudio.com/icons';
 
 export const MEDIA_AI_PROVIDERS = [
     { name: 'ChatGPT', kind: 'Image', icon: `${ICON_BASE}/ChatGPT%20logo.svg`, url: 'https://chatgpt.com/' },

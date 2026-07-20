@@ -233,7 +233,12 @@ createAvatarForm.addEventListener('submit', async (e) => {
                     fileName: file.name,
                     contentType: file.type || 'application/octet-stream',
                     avatarName: avatarName,
-                    userId: currentUser.id
+                    userId: currentUser.id,
+                    // Avatar looks/voice belong in the avatar-details bucket.
+                    // Pass these explicitly so the link never depends on the
+                    // server's ambiguous default bucket/domain.
+                    customBucket: 'avatar-details',
+                    customPublicUrlBase: 'https://avatars.youravatarstudio.com'
                 })
             });
             const data = await res.json();
