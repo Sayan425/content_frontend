@@ -5,6 +5,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import dotenv from 'dotenv';
 import path from 'path';
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const htmlRewritePlugin = () => ({
@@ -154,7 +156,7 @@ const r2ApiPlugin = () => ({
 });
 
 export default defineConfig({
-  plugins: [react(), r2ApiPlugin(), htmlRewritePlugin()],
+  plugins: [react(), r2ApiPlugin(), htmlRewritePlugin(), cloudflare()],
   server: {
     proxy: {
       '/r2-assets': {
