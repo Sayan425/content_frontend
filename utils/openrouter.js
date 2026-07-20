@@ -7,11 +7,13 @@
 // makes OpenRouter only route to providers that actually support this, so we
 // fail loudly rather than silently getting free-form text back.
 
+import { apiFetch } from './api-fetch.js';
+
 const OPENROUTER_URL = '/api/openrouter';
 
 async function fetchWithRetry(url, options, maxRetries = 4) {
     for (let i = 0; i < maxRetries; i++) {
-        const response = await fetch(url, options);
+        const response = await apiFetch(url, options);
         if (response.status === 429) {
             const retryAfter = response.headers.get('Retry-After');
             const delayMs = retryAfter ? parseInt(retryAfter) * 1000 : (Math.pow(2, i) * 1000 + Math.random() * 1000);
@@ -21,7 +23,7 @@ async function fetchWithRetry(url, options, maxRetries = 4) {
         }
         return response;
     }
-    return fetch(url, options);
+    return apiFetch(url, options);
 }
 
 /**

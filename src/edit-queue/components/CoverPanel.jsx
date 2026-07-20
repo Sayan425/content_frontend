@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiFetch';
 import { showCustomAlert } from '../../../components/notifications.js';
 import { MediaAiPicker } from './MediaAiPicker';
 
@@ -62,7 +63,7 @@ export function CoverPanel({ config, editId }) {
                 }
             }
 
-            const res = await fetch('/api/get-r2-upload-url', {
+            const res = await apiFetch('/api/get-r2-upload-url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

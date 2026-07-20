@@ -32,7 +32,11 @@ export async function onRequestPost(context) {
       filePath = `${safeAvatarName}/${Date.now()}_${safeFileName}`;
     }
 
+    const ALLOWED_BUCKETS = ['video-folder', 'avatar-details'];
     const bucketName = customBucket || 'avatar-details';
+    if (!ALLOWED_BUCKETS.includes(bucketName)) {
+      return new Response(JSON.stringify({ error: 'Bucket not allowed' }), { status: 400 });
+    }
     const endpointUrl = new URL(env.CLOUDFARE_ENDPOINT);
     const url = `${endpointUrl.origin}/${bucketName}/${filePath}`;
 

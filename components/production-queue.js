@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient.js';
+import { apiFetch } from '../utils/api-fetch.js';
 import { showCustomAlert } from './notifications.js';
 
 export function initProductionQueue() {
@@ -791,7 +792,7 @@ export function initProductionQueue() {
                     const safeAvatarName = (selectedAvatarName || 'Unnamed').replace(/[^a-zA-Z0-9_-]/g, '_');
                     const customPath = `${safeAvatarName}_Videos/${finalContentId}/custom_voiceover/`;
 
-                    const res = await fetch('/api/get-r2-upload-url', {
+                    const res = await apiFetch('/api/get-r2-upload-url', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

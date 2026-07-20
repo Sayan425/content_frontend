@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiFetch';
 import { markLocalSave } from '../utils/localSaveTracker';
 import { showCustomAlert } from '../../../components/notifications.js';
 import * as Styles from './Subtitles/StyleVariations';
@@ -466,7 +467,7 @@ export function MainVideoPanel({ config, setConfig, editId }) {
                                     }
 
                                     // 1. Get secure presigned upload URL from Vite local proxy
-                                    const res = await fetch('/api/get-r2-upload-url', {
+                                    const res = await apiFetch('/api/get-r2-upload-url', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({

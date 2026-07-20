@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiFetch';
 import { markLocalSave } from '../utils/localSaveTracker';
 import { showCustomConfirm, showCustomAlert } from '../../../components/notifications.js';
 import { RangeInput } from './RangeInput';
@@ -444,7 +445,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                 }
             }
 
-            const res = await fetch('/api/get-r2-upload-url', {
+            const res = await apiFetch('/api/get-r2-upload-url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -539,7 +540,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
             );
             if (!usedElsewhere) {
                 try {
-                    const res = await fetch('/api/delete-r2-object', {
+                    const res = await apiFetch('/api/delete-r2-object', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ publicUrl: mediaUrl, customBucket: 'video-folder' })
@@ -877,7 +878,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                                         }
                                                     }
 
-                                                    const res = await fetch('/api/get-r2-upload-url', {
+                                                    const res = await apiFetch('/api/get-r2-upload-url', {
                                                         method: 'POST',
                                                         headers: { 'Content-Type': 'application/json' },
                                                         body: JSON.stringify({

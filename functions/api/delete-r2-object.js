@@ -16,7 +16,11 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ error: 'Could not derive object key from URL' }), { status: 400 });
     }
 
+    const ALLOWED_BUCKETS = ['video-folder', 'avatar-details'];
     const bucketName = customBucket || 'video-folder';
+    if (!ALLOWED_BUCKETS.includes(bucketName)) {
+      return new Response(JSON.stringify({ error: 'Bucket not allowed' }), { status: 400 });
+    }
     const endpointUrl = new URL(env.CLOUDFARE_ENDPOINT);
     const url = `${endpointUrl.origin}/${bucketName}/${key}`;
 

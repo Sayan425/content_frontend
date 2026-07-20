@@ -1,3 +1,5 @@
+import { apiFetch } from '../../lib/apiFetch';
+
 export const generateMotionGraphicCode = async (prompt, currentCode = '') => {
 
     const systemMessage = `You are an expert React and Remotion animator. 
@@ -27,7 +29,7 @@ Ensure you return a single top-level JSX element, which is usually absolute posi
         ? `Current code:\n\n${currentCode}\n\nUser request: ${prompt}\n\nPlease update the code based on the user request and return ONLY the new raw function body.`
         : `User request: ${prompt}\n\nPlease write the function body. Return ONLY raw code, no markdown blocks.`;
 
-    const response = await fetch("/api/groq", {
+    const response = await apiFetch("/api/groq", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
