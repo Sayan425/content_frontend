@@ -7,7 +7,7 @@
 // makes OpenRouter only route to providers that actually support this, so we
 // fail loudly rather than silently getting free-form text back.
 
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_URL = '/api/openrouter';
 
 async function fetchWithRetry(url, options, maxRetries = 4) {
     for (let i = 0; i < maxRetries; i++) {
@@ -31,15 +31,9 @@ async function fetchWithRetry(url, options, maxRetries = 4) {
  * @param {string} model - OpenRouter model id
  */
 export async function callOpenRouterStructured(prompt, model) {
-    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-    if (!apiKey) {
-        throw new Error('VITE_OPENROUTER_API_KEY is not set in your environment.');
-    }
-
     const response = await fetchWithRetry(OPENROUTER_URL, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({

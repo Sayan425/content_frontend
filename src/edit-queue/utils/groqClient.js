@@ -1,8 +1,4 @@
 export const generateMotionGraphicCode = async (prompt, currentCode = '') => {
-    const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-    if (!apiKey) {
-        throw new Error("VITE_GROQ_API_KEY is not set in your environment.");
-    }
 
     const systemMessage = `You are an expert React and Remotion animator. 
 Your task is to write the raw JavaScript/JSX body of a React functional component to act as a Motion Graphic overlay in a video editor.
@@ -31,10 +27,9 @@ Ensure you return a single top-level JSX element, which is usually absolute posi
         ? `Current code:\n\n${currentCode}\n\nUser request: ${prompt}\n\nPlease update the code based on the user request and return ONLY the new raw function body.`
         : `User request: ${prompt}\n\nPlease write the function body. Return ONLY raw code, no markdown blocks.`;
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const response = await fetch("/api/groq", {
         method: "POST",
         headers: {
-            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
