@@ -48,8 +48,8 @@ export async function loadSidebar(containerId = 'sidebar-container') {
                 avatarItem.addEventListener('click', (e) => {
                     e.preventDefault();
                     localStorage.setItem('activeAvatarId', avatar.avatar_id);
-                    // Redirect to dashboard or just reload
-                    window.location.href = '/dashboard';
+                    // Reload the current page to reflect the new active avatar
+                    window.location.reload();
                 });
                 dropdownList.appendChild(avatarItem);
             });

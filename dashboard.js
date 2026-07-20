@@ -162,7 +162,7 @@ function renderAvatars(avatars) {
     avatarsContainer.querySelectorAll('.avatar-select-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             localStorage.setItem('activeAvatarId', btn.dataset.avatarId);
-            window.location.href = '/analytics';
+            window.location.href = '/workspace';
         });
         const voiceBtn = btn.querySelector('.voice-preview-btn');
         if (voiceBtn) {
