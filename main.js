@@ -4,7 +4,7 @@ import { supabase } from './supabaseClient.js';
 // Redirect if already logged in
 supabase.auth.getSession().then(({ data: { session } }) => {
   if (session) {
-    window.location.href = '/dashboard.html';
+    window.location.href = '/dashboard';
   }
 });
 
@@ -114,7 +114,7 @@ loginForm.addEventListener('submit', async (e) => {
     showToast('Successfully logged in as ' + data.user.email, 'success');
     console.log('Session:', data.session);
     setTimeout(() => {
-      window.location.href = '/dashboard.html';
+      window.location.href = '/dashboard';
     }, 1000);
   } catch (error) {
     showToast(error.message, 'error');
@@ -199,7 +199,7 @@ forgotForm.addEventListener('submit', async (e) => {
 if (googleBtn) {
   googleBtn.addEventListener('click', async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/dashboard.html' } });
+      const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/dashboard' } });
       if (error) throw error;
     } catch (error) {
       showToast(error.message, 'error');

@@ -101,7 +101,7 @@ async function init() {
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error || !session) {
-        window.location.href = '/index.html'; // Redirect to login
+        window.location.href = '/'; // Redirect to login
         return;
     }
     
@@ -304,7 +304,7 @@ createAvatarForm.addEventListener('submit', async (e) => {
 // Logout
 btnLogout.addEventListener('click', async () => {
     await supabase.auth.signOut();
-    window.location.href = '/index.html';
+    window.location.href = '/';
 });
 
 // Run Init
