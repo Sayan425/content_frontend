@@ -1,6 +1,6 @@
 /**
  * Normalizes a parsed manifest to the canonical formats documented in
- * MANIFEST_REFERENCE.md, so the rest of the editor can rely on one shape:
+ * docs/MANIFEST_REFERENCE.md, so the rest of the editor can rely on one shape:
  *  - position.x / position.y  -> percent strings ("50%")
  *  - position.scale           -> number (percent, 100 = normal)
  *  - position.rotation        -> number (degrees)

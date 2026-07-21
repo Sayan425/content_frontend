@@ -1,5 +1,4 @@
 import { supabase } from '../supabaseClient.js';
-import systemPrompts from '../system-prompts.json';
 import { showCustomAlert, showCustomConfirm } from './notifications.js';
 import { escapeHtml } from '../utils/escape-html.js';
 import { PROMPTS, OPENROUTER_MODEL } from './script-room-prompts.js';

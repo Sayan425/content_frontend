@@ -14,7 +14,7 @@ export const ANIM_FRAMES = 15;
  * @param relativeFrame     frames since the overlay appeared
  * @param durationInFrames  overlay lifetime in frames
  * @param fps               video fps
- * @param animationIn/out   names from MANIFEST_REFERENCE.md ('fade', 'pop', ...)
+ * @param animationIn/out   names from docs/MANIFEST_REFERENCE.md ('fade', 'pop', ...)
  * @param baseScale         user Scale control (1 = 100%)
  * @param userOpacity       user Opacity control (0..1)
  */

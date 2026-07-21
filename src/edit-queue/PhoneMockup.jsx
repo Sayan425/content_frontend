@@ -70,7 +70,7 @@ export function PhoneMockup({ config, setConfig, editId }) {
       }
 
       // Canonicalize position formats and float-noise durations
-      // (see MANIFEST_REFERENCE.md).
+      // (see docs/MANIFEST_REFERENCE.md).
       normalizeManifest(manifestData);
       
       // Download every asset into RAM once (video, BGM, overlay media) so the
