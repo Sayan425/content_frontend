@@ -121,23 +121,17 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
-        /* Skeleton building blocks: shimmering placeholder shapes */
-        .sk {
-            position: relative;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 0.75rem;
+        /* Simple loading spinner shown while a tool loads */
+        .app-spinner {
+            width: 28px;
+            height: 28px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-top-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            animation: app-spin 0.7s linear infinite;
         }
-        .sk::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            transform: translateX(-100%);
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
-            animation: sk-shimmer 1.5s ease-in-out infinite;
-        }
-        @keyframes sk-shimmer {
-            100% { transform: translateX(100%); }
+        @keyframes app-spin {
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -265,80 +259,13 @@
         <!-- Sidebar Container (Dynamically loaded) -->
         <div id="sidebar-container"></div>
 
-        <!-- Global Skeleton Loader -->
-        <div id="global-skeleton-loader" class="hidden absolute top-0 right-0 bottom-0 left-[240px] z-50 bg-background/50 backdrop-blur-sm flex items-start justify-center p-8 transition-opacity duration-300">
-            <!-- Per-page skeleton shapes are injected here by workspace.js -->
-            <div id="skeleton-content" class="w-full h-full mt-4 overflow-hidden"></div>
-        </div>
-
         <!-- Main Content Area -->
         <main id="main-content" class="ml-[240px] flex-1 p-8 overflow-y-auto transition-all duration-300">
-            <div class="max-w-5xl mx-auto opacity-40 select-none pointer-events-none mt-12">
-                <h1 class="font-headline-xl text-headline-xl text-on-surface mb-6">Your Workspace</h1>
-                <div class="grid grid-cols-3 gap-6 mb-8">
-                    <div class="h-32 bg-surface-container border border-white/5 rounded-xl"></div>
-                    <div class="h-32 bg-surface-container border border-white/5 rounded-xl"></div>
-                    <div class="h-32 bg-surface-container border border-white/5 rounded-xl"></div>
-                </div>
-                <div class="h-64 bg-surface-container border border-white/5 rounded-xl mb-6"></div>
-                <div class="grid grid-cols-2 gap-6">
-                    <div class="h-48 bg-surface-container border border-white/5 rounded-xl"></div>
-                    <div class="h-48 bg-surface-container border border-white/5 rounded-xl"></div>
-                </div>
+            <div class="w-full h-full flex items-center justify-center">
+                <div class="app-spinner"></div>
             </div>
         </main>
     </div>
-
-    <!-- Fetch Interceptor for Global Loader -->
-    <script>
-        let activeSupabaseRequests = 0;
-        const originalFetch = window.fetch;
-        window.fetch = async function(...args) {
-            const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
-            // Only blank the page for data *reads* (page loads). Saves (PATCH/POST)
-            // and anything inside the edit-queue editor must never hide the UI,
-            // otherwise every auto-save flashes the skeleton mid-edit.
-            const method = (args[1]?.method || args[0]?.method || 'GET').toUpperCase();
-            const inEditor = window.location.pathname.startsWith('/edit-queue');
-            // The curtain is only allowed briefly after a page navigation
-            // (workspace.js sets this window). Background reads never show it.
-            const navWindowOpen = window.__skeletonAllowedUntil && Date.now() < window.__skeletonAllowedUntil;
-            const isSupabaseDataReq = !inEditor && navWindowOpen && method === 'GET' &&
-                (url.includes('supabase.co/rest/v1/') || url.includes('supabase.co/graphql/v1/'));
-            
-            if (isSupabaseDataReq) {
-                if (activeSupabaseRequests === 0) {
-                    const loader = document.getElementById('global-skeleton-loader');
-                    const main = document.getElementById('main-content');
-                    if(loader) loader.classList.remove('hidden');
-                    if(main) main.classList.add('opacity-0');
-                }
-                activeSupabaseRequests++;
-            }
-            
-            try {
-                return await originalFetch.apply(this, args);
-            } finally {
-                if (isSupabaseDataReq) {
-                    activeSupabaseRequests--;
-                    if (activeSupabaseRequests <= 0) {
-                        activeSupabaseRequests = 0;
-                        setTimeout(() => {
-                            if (activeSupabaseRequests === 0) {
-                                const loader = document.getElementById('global-skeleton-loader');
-                                const main = document.getElementById('main-content');
-                                if(loader) loader.classList.add('hidden');
-                                if(main) {
-                                    main.classList.remove('opacity-0');
-                                    main.classList.add('transition-opacity', 'duration-500');
-                                }
-                            }
-                        }, 200); // Small delay to prevent flashing
-                    }
-                }
-            }
-        };
-    </script>
 
     <!-- Application Script -->
     <script type="module" src="/workspace.js?v=11"></script>
