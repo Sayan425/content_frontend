@@ -371,6 +371,12 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 8px rgba(76, 215, 246, 0.2);
 }
 
+.btn-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Footer */
 .footer-text {
   text-align: center;

@@ -89,7 +89,7 @@ function showView(viewToShow) {
 
 linkShowSignup.addEventListener('click', (e) => {
   e.preventDefault();
-  showView(viewSignup);
+  showBetaModal();
 });
 
 linkShowLoginFromSignup.addEventListener('click', (e) => {
@@ -171,9 +171,8 @@ forgotForm.addEventListener('submit', async (e) => {
 
 // 4. Handle Google OAuth (disabled during beta)
 if (googleBtn) {
-  googleBtn.addEventListener('click', () => {
-    showToast('Google sign-in coming soon.', 'success');
-  });
+  googleBtn.disabled = true;
+  googleBtn.title = 'Google sign-in coming soon.';
 }
 
 // ---- Password Visibility Toggle ----
