@@ -68,6 +68,17 @@ const btnForgotSubmit = document.getElementById('btn-forgot-submit');
 
 const googleBtn = document.getElementById('btn-google');
 
+const betaModalOverlay = document.getElementById('beta-modal-overlay');
+const btnBetaModalClose = document.getElementById('btn-beta-modal-close');
+
+function showBetaModal() {
+  betaModalOverlay.classList.remove('hidden');
+}
+
+btnBetaModalClose.addEventListener('click', () => {
+  window.location.href = 'https://yourAvatarStudio.com/contact-us';
+});
+
 // ---- View Switching Logic ----
 function showView(viewToShow) {
   viewLogin.classList.add('hidden');
@@ -124,47 +135,10 @@ loginForm.addEventListener('submit', async (e) => {
   }
 });
 
-// 2. Handle Sign Up
-signupForm.addEventListener('submit', async (e) => {
+// 2. Handle Sign Up (disabled during beta)
+signupForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  const email = signupEmail.value;
-  const password = signupPassword.value;
-  const confirmPassword = signupConfirmPassword.value;
-
-  if (password !== confirmPassword) {
-    showToast("Passwords do not match!", 'error');
-    return;
-  }
-
-  const selectedRole = document.querySelector('input[name="signup-role"]:checked')?.value || 'creator';
-
-  const originalText = btnSignupSubmit.textContent;
-  btnSignupSubmit.textContent = 'Creating Account...';
-  btnSignupSubmit.disabled = true;
-
-  try {
-    const { data, error } = await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: {
-        data: { role: selectedRole }
-      }
-    });
-    if (error) throw error;
-    
-    if (data?.user) {
-      await supabase.from('users').update({ role: selectedRole }).eq('user_id', data.user.id);
-    }
-
-    showToast('Sign up successful! Please check your email.', 'success');
-    showView(viewLogin);
-    signupForm.reset();
-  } catch (error) {
-    showToast(error.message, 'error');
-  } finally {
-    btnSignupSubmit.textContent = originalText;
-    btnSignupSubmit.disabled = false;
-  }
+  showBetaModal();
 });
 
 // 3. Handle Forgot Password
@@ -195,15 +169,10 @@ forgotForm.addEventListener('submit', async (e) => {
   }
 });
 
-// 4. Handle Google OAuth
+// 4. Handle Google OAuth (disabled during beta)
 if (googleBtn) {
-  googleBtn.addEventListener('click', async () => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/dashboard' } });
-      if (error) throw error;
-    } catch (error) {
-      showToast(error.message, 'error');
-    }
+  googleBtn.addEventListener('click', () => {
+    showToast('Google sign-in coming soon.', 'success');
   });
 }
 
