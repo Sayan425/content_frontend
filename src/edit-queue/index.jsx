@@ -24,6 +24,16 @@ export function mountEditQueue(containerId = 'react-root') {
   currentRoot.render(<EditQueueApp />);
 }
 
+// Tear down the editor when navigating away, so the Remotion player stops
+// and its audio/video no longer plays in the background.
+export function unmountEditQueue() {
+  if (currentRoot) {
+    currentRoot.unmount();
+    currentRoot = null;
+  }
+  window.__EDIT_QUEUE_MOUNTED__ = false;
+}
+
 // Support for standalone loading if react-root exists and we're not using the mount function directly
 if (document.getElementById('react-root') && !window.__EDIT_QUEUE_MOUNTED__) {
   window.__EDIT_QUEUE_MOUNTED__ = true;

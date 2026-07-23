@@ -1,5 +1,9 @@
 import { loadSidebar } from './components/sidebar.js?v=10';
 
+// Holds the loaded edit-queue module so we can unmount the editor (and stop
+// its audio/video) when navigating to another tool.
+let editQueueModule = null;
+
 // Inject the "How this works" button into the scrollable content area so it
 // scrolls with the page (rather than being pinned to the viewport). The
 // content area's innerHTML is replaced on every tool switch, so re-mount it.
@@ -104,14 +108,20 @@ async function initWorkspace() {
     const container = document.getElementById('main-content');
     
     const renderTool = (toolName) => {
+        // Leaving the video editor: tear down the React app so the Remotion
+        // player stops and its audio/video no longer plays in the background.
+        if (toolName !== 'edit-queue' && editQueueModule) {
+            try { editQueueModule.unmountEditQueue(); } catch (e) { console.error(e); }
+        }
+
         // Remove padding for full-bleed apps like edit-queue, add it back for others
         if (toolName === 'edit-queue') {
             container.classList.remove('p-8', 'overflow-y-auto');
             container.classList.add('overflow-hidden');
             container.innerHTML = '<div id="react-root" class="w-full h-full flex items-center justify-center"><p class="text-on-surface-variant animate-pulse">Loading Edit Suite...</p></div>';
-            mountHowItWorks();
+            // No "How this works" button on the video editor.
             import('/src/edit-queue/index.jsx')
-                .then(module => module.mountEditQueue('react-root'))
+                .then(module => { editQueueModule = module; module.mountEditQueue('react-root'); })
                 .catch(err => {
                     console.error('Failed to load React app:', err);
                     container.innerHTML = `<div class="w-full h-full flex flex-col items-center justify-center text-error"><span class="material-symbols-outlined text-4xl mb-2">error</span><p>Failed to load Edit Suite. Check console.</p><p class="text-xs mt-2 opacity-70">${err.message}</p></div>`;
