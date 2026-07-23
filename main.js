@@ -79,6 +79,33 @@ btnBetaModalClose.addEventListener('click', () => {
   window.location.href = 'https://yourAvatarStudio.com/contact-us';
 });
 
+// ---- How this works video modal ----
+const howBtn = document.getElementById('btn-how-it-works');
+const howModal = document.getElementById('how-modal');
+const howModalClose = document.getElementById('how-modal-close');
+const howModalIframe = document.getElementById('how-modal-iframe');
+const howVideoSrc = 'https://www.youtube.com/embed/s2HM4W1QCTw?autoplay=1&rel=0';
+
+function openHowModal() {
+  if (!howModal) return;
+  howModalIframe.src = howVideoSrc;
+  howModal.classList.remove('hidden');
+}
+function closeHowModal() {
+  if (!howModal) return;
+  howModal.classList.add('hidden');
+  howModalIframe.src = ''; // stop playback
+}
+
+if (howBtn) howBtn.addEventListener('click', openHowModal);
+if (howModalClose) howModalClose.addEventListener('click', closeHowModal);
+if (howModal) {
+  howModal.querySelector('.how-modal-backdrop').addEventListener('click', closeHowModal);
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && howModal && !howModal.classList.contains('hidden')) closeHowModal();
+});
+
 // ---- View Switching Logic ----
 function showView(viewToShow) {
   viewLogin.classList.add('hidden');
