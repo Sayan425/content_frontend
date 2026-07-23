@@ -256,12 +256,6 @@
     </div>
     <!-- STITCH_SHADER_END -->
 
-    <!-- How this works (top-right of every workspace page) -->
-    <button type="button" id="btn-how-it-works" title="Watch a quick walkthrough" class="fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-2 rounded border border-white/10 text-on-surface-variant hover:text-white hover:border-white/30 transition-colors bg-surface/60 backdrop-blur-md text-sm">
-        <span class="material-symbols-outlined text-[18px]">play_circle</span>
-        How this works
-    </button>
-
     <!-- How this works video modal -->
     <div id="how-modal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-6">
         <div id="how-modal-backdrop" class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
@@ -282,7 +276,8 @@
             const src = 'https://www.youtube.com/embed/s2HM4W1QCTw?autoplay=1&rel=0';
             const open = () => { iframe.src = src; modal.classList.remove('hidden'); modal.classList.add('flex'); };
             const close = () => { modal.classList.add('hidden'); modal.classList.remove('flex'); iframe.src = ''; };
-            if (btn) btn.addEventListener('click', open);
+            // Button is injected into #main-content per tool render, so delegate the click.
+            document.addEventListener('click', (e) => { if (e.target.closest('#btn-how-it-works')) open(); });
             if (closeBtn) closeBtn.addEventListener('click', close);
             if (backdrop) backdrop.addEventListener('click', close);
             document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
@@ -294,7 +289,7 @@
         <div id="sidebar-container"></div>
 
         <!-- Main Content Area -->
-        <main id="main-content" class="ml-[240px] flex-1 p-8 overflow-y-auto transition-all duration-300">
+        <main id="main-content" class="relative ml-[240px] flex-1 p-8 overflow-y-auto transition-all duration-300">
             <div class="w-full h-full flex items-center justify-center">
                 <div class="app-spinner"></div>
             </div>

@@ -77,46 +77,13 @@
     <!-- Atmospheric background elements -->
     <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/5 blur-[120px] rounded-full pointer-events-none"></div>
     
-    <!-- Top-right Actions -->
-    <div class="fixed top-6 right-6 z-20 flex items-center gap-3">
-        <button type="button" id="btn-how-it-works" title="Watch a quick walkthrough" class="flex items-center gap-2 px-4 py-2 rounded border border-white/10 text-on-surface-variant hover:text-white hover:border-white/30 transition-colors bg-background/50 backdrop-blur-sm">
-            <span class="material-symbols-outlined text-[18px]">play_circle</span>
-            How this works
-        </button>
-        <button id="btn-logout" class="px-4 py-2 rounded border border-white/10 text-on-surface-variant hover:text-white hover:border-white/30 transition-colors bg-background/50 backdrop-blur-sm">Logout</button>
-    </div>
-
-    <!-- How this works video modal -->
-    <div id="how-modal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-6">
-        <div id="how-modal-backdrop" class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
-        <div class="relative w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden border border-white/10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]">
-            <button type="button" id="how-modal-close" aria-label="Close" class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/55 hover:bg-black/80 text-white flex items-center justify-center border border-white/15 hover:border-white/35 transition-colors">
-                <span class="material-symbols-outlined text-[20px]">close</span>
-            </button>
-            <iframe id="how-modal-iframe" class="w-full h-full block" src="" title="How this works" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-        </div>
-    </div>
-    <script>
-        (function () {
-            const btn = document.getElementById('btn-how-it-works');
-            const modal = document.getElementById('how-modal');
-            const backdrop = document.getElementById('how-modal-backdrop');
-            const closeBtn = document.getElementById('how-modal-close');
-            const iframe = document.getElementById('how-modal-iframe');
-            const src = 'https://www.youtube.com/embed/s2HM4W1QCTw?autoplay=1&rel=0';
-            const open = () => { iframe.src = src; modal.classList.remove('hidden'); modal.classList.add('flex'); };
-            const close = () => { modal.classList.add('hidden'); modal.classList.remove('flex'); iframe.src = ''; };
-            if (btn) btn.addEventListener('click', open);
-            if (closeBtn) closeBtn.addEventListener('click', close);
-            if (backdrop) backdrop.addEventListener('click', close);
-            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
-        })();
-    </script>
+    <!-- Logout Button -->
+    <button id="btn-logout" class="fixed top-6 right-6 z-20 px-4 py-2 rounded border border-white/10 text-on-surface-variant hover:text-white hover:border-white/30 transition-colors bg-background/50 backdrop-blur-sm">Logout</button>
 
     <div class="z-10 flex flex-col items-center w-full max-w-[1440px] px-container-margin min-h-screen justify-center py-24">
         <!-- Brand / Logo -->
         <div class="text-center mb-8">
-            <img src="/logos/horizontal-logo.png" alt="Your Avatar Studio" class="h-20 md:h-24 w-auto mx-auto drop-shadow-[0_0_24px_rgba(208,188,255,0.3)]" />
+            <img src="/logos/horizontal-logo.png" alt="Your Avatar Studio" class="h-40 md:h-48 w-auto mx-auto drop-shadow-[0_0_24px_rgba(208,188,255,0.3)]" />
         </div>
         
         <!-- Heading -->

@@ -1,5 +1,20 @@
 import { loadSidebar } from './components/sidebar.js?v=10';
 
+// Inject the "How this works" button into the scrollable content area so it
+// scrolls with the page (rather than being pinned to the viewport). The
+// content area's innerHTML is replaced on every tool switch, so re-mount it.
+function mountHowItWorks() {
+    const main = document.getElementById('main-content');
+    if (!main || document.getElementById('btn-how-it-works')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'btn-how-it-works';
+    btn.title = 'Watch a quick walkthrough';
+    btn.className = 'absolute top-6 right-6 z-40 flex items-center gap-2 px-4 py-2 rounded border border-white/10 text-on-surface-variant hover:text-white hover:border-white/30 transition-colors bg-surface/60 backdrop-blur-md text-sm';
+    btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">play_circle</span> How this works';
+    main.appendChild(btn);
+}
+
 async function loadComponent(url, containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -21,6 +36,9 @@ async function loadComponent(url, containerId) {
             }
             oldScript.parentNode.replaceChild(newScript, oldScript);
         });
+
+        // Keep the "How this works" button present after the content swap
+        mountHowItWorks();
 
         // Initialize component specific logic
         if (url.includes('idea-labs.html')) {
@@ -91,6 +109,7 @@ async function initWorkspace() {
             container.classList.remove('p-8', 'overflow-y-auto');
             container.classList.add('overflow-hidden');
             container.innerHTML = '<div id="react-root" class="w-full h-full flex items-center justify-center"><p class="text-on-surface-variant animate-pulse">Loading Edit Suite...</p></div>';
+            mountHowItWorks();
             import('/src/edit-queue/index.jsx')
                 .then(module => module.mountEditQueue('react-root'))
                 .catch(err => {

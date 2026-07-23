@@ -75,9 +75,17 @@ function showBetaModal() {
   betaModalOverlay.classList.remove('hidden');
 }
 
+const btnBetaModalContact = document.getElementById('btn-beta-modal-contact');
+
 btnBetaModalClose.addEventListener('click', () => {
-  window.location.href = 'https://yourAvatarStudio.com/contact-us';
+  betaModalOverlay.classList.add('hidden');
 });
+
+if (btnBetaModalContact) {
+  btnBetaModalContact.addEventListener('click', () => {
+    window.location.href = 'https://yourAvatarStudio.com/contact-us';
+  });
+}
 
 // ---- How this works video modal ----
 const howBtn = document.getElementById('btn-how-it-works');
