@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Your Avatar Studio: Sign In</title>
+    <link rel="icon" type="image/png" href="/logos/favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Inter:wght@400;600;700&family=Geist:wght@500;600&display=swap" rel="stylesheet">
@@ -11,6 +12,12 @@
   <body>
     <div id="app">
       <div id="toast-container"></div>
+
+      <!-- How this works -->
+      <a href="https://www.youtube.com/watch?v=s2HM4W1QCTw" target="_blank" rel="noopener noreferrer" class="how-it-works-btn" title="Watch a quick walkthrough">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"></polygon></svg>
+        <span>How this works</span>
+      </a>
 
       <!-- BETA GATE MODAL -->
       <div id="beta-modal-overlay" class="hidden">
@@ -22,18 +29,7 @@
 
       <div class="login-container">
         <div class="branding">
-          <div class="logo-icon">
-            <svg viewBox="0 0 24 24" fill="url(#brand-gradient)" stroke="none">
-              <defs>
-                <linearGradient id="brand-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#d0bcff" />
-                  <stop offset="100%" stop-color="#4cd7f6" />
-                </linearGradient>
-              </defs>
-              <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"></path>
-            </svg>
-          </div>
-          <h1>Studio AI</h1>
+          <img src="/logos/vertical-logo.png" alt="Your Avatar Studio" class="brand-logo-vertical" />
           <p>Crafting the future of creative flow.</p>
         </div>
 

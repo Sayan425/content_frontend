@@ -23,6 +23,21 @@ export function initProfileSettings() {
     
     const togglesContainer = document.getElementById('approval-toggles-container');
 
+    // Logout
+    const btnLogout = document.getElementById('btn-profile-logout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            btnLogout.disabled = true;
+            try {
+                await supabase.auth.signOut();
+            } catch (error) {
+                console.error('Logout failed:', error);
+            } finally {
+                window.location.href = '/';
+            }
+        });
+    }
+
     async function loadData() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
