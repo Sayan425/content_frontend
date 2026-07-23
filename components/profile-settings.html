@@ -121,7 +121,7 @@ void main() {
 
 <div class="flex-1 relative z-10 w-full max-w-7xl mx-auto space-y-8">
     <!-- Header Area -->
-    <div class="flex items-center justify-between gap-6 mb-8 flex-wrap pr-44">
+    <div class="flex items-center justify-between gap-6 mb-8 flex-wrap">
         <div class="flex flex-col gap-1">
             <h2 class="font-headline-lg text-headline-lg text-white flex items-center gap-3">
                 <div class="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-inner">
@@ -133,12 +133,6 @@ void main() {
                 Manage your credentials, platform integrations, and approval workflows.
             </p>
         </div>
-
-        <!-- Logout -->
-        <button id="btn-profile-logout" type="button" class="flex items-center gap-2 px-5 py-3 rounded-xl border border-error/30 text-error hover:text-white hover:bg-error/20 hover:border-error/50 transition-all duration-200 font-semibold text-sm shadow-lg active:scale-95">
-            <span class="material-symbols-outlined text-[20px]">logout</span>
-            Log Out
-        </button>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-12">
@@ -175,7 +169,15 @@ void main() {
                     <label class="text-xs font-mono-label uppercase text-white/50 tracking-wider">Twitter / X</label>
                     <input type="url" id="social-twitter" class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-primary transition-colors" placeholder="https://x.com/yourhandle">
                 </div>
-                
+
+            </div>
+
+            <!-- Logout -->
+            <div class="mt-6 pt-6 border-t border-white/10 flex justify-center">
+                <button id="btn-profile-logout" type="button" class="flex items-center gap-2 px-6 py-3 rounded-xl border border-error/30 text-error hover:text-white hover:bg-error/20 hover:border-error/50 transition-all duration-200 font-semibold text-sm active:scale-95">
+                    <span class="material-symbols-outlined text-[20px]">logout</span>
+                    Log Out
+                </button>
             </div>
         </div>
 

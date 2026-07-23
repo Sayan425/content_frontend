@@ -14,10 +14,21 @@
       <div id="toast-container"></div>
 
       <!-- How this works -->
-      <a href="https://www.youtube.com/watch?v=s2HM4W1QCTw" target="_blank" rel="noopener noreferrer" class="how-it-works-btn" title="Watch a quick walkthrough">
+      <button type="button" id="btn-how-it-works" class="how-it-works-btn" title="Watch a quick walkthrough">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"></polygon></svg>
         <span>How this works</span>
-      </a>
+      </button>
+
+      <!-- How this works video modal -->
+      <div id="how-modal" class="how-modal hidden">
+        <div class="how-modal-backdrop"></div>
+        <div class="how-modal-content">
+          <button type="button" id="how-modal-close" class="how-modal-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+          <iframe id="how-modal-iframe" src="" title="How this works" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+      </div>
 
       <!-- BETA GATE MODAL -->
       <div id="beta-modal-overlay" class="hidden">
