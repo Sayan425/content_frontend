@@ -22,20 +22,12 @@ export async function initEditSuite() {
             supabase.from('edit_queue')
                 .select('*')
                 .eq('owner_user_id', userId)
-                .in('status', ['processing', 'queued'])
+                .eq('status', 'queued')
                 .order('created_at', { ascending: false }),
             supabase.from('edit_queue')
-                .select(`
-                    *,
-                    content_pipeline!inner (
-                        current_stage,
-                        approval_status
-                    )
-                `)
+                .select('*')
                 .eq('owner_user_id', userId)
-                .eq('status', 'approved')
-                .eq('content_pipeline.current_stage', 'edit')
-                .eq('content_pipeline.approval_status', 'approved')
+                .in('status', ['pending_approval', 'approved', 'processing'])
                 .order('created_at', { ascending: false })
         ]);
 

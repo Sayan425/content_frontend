@@ -294,8 +294,18 @@ The edit queue stitches these together in `segment_index` order.
 | `manifest` | jsonb | YES | — | JSON object describing the current edit state — cuts, transitions, overlays, timing. |
 | `subtitle` | jsonb | YES | — | JSON object containing subtitle data for the video. |
 | `status` | text | NO | 'queued' | Current state of the edit job. |
+| `output_video_url` | text | YES | — | Final rendered MP4 URL on R2. Set by the render worker when `status` becomes `completed`. |
+| `render_error` | text | YES | — | Error message from the last failed render attempt. Set by the render worker when `status` becomes `failed`; cleared on the next successful claim. |
 
-**Allowed values for `status`:** `queued`, `processing`, `pending_approval`, `approved`
+**Allowed values for `status`:** `queued`, `processing`, `pending_approval`, `approved`, `completed`, `failed`
+
+**What each status means and who sets it:**
+- `queued` — row just created (raw video ready for editing); no frontend code writes this, an external process inserts the row in this state once production finishes. Shown in the Edit Suite's **Awaiting Editing** section ([edit-suite.js](../components/edit-suite.js)).
+- `pending_approval` — user clicked "Finalize and Render" in the editor and the avatar's `approval_settings.edit` requires review. Set by [EditorSidebar.jsx](../src/edit-queue/EditorSidebar.jsx). Shown in **Queued for Rendering**.
+- `approved` — ready for the render worker to pick up: either finalized without needing approval, or an approver signed off a `pending_approval` row. Shown in **Queued for Rendering**.
+- `processing` — the standalone render worker (VPS, outside this repo) has claimed the row and is actively rendering it. Never set by frontend code. Shown in **Queued for Rendering**.
+- `completed` — render finished and the output was uploaded to R2 (`output_video_url` populated). Set by the render worker. No longer shown anywhere in Edit Suite — surfaces on Completed Videos instead.
+- `failed` — the render worker's last attempt errored (`render_error` populated). Row does not auto-retry; needs manual re-approval or intervention.
 
 **How `manifest` works:**
 - Stores the editing instructions as a JSON object
@@ -311,6 +321,7 @@ The edit queue stitches these together in `segment_index` order.
 - `content_id` is both PK and FK — strict 1:1 with `content_pipeline`.
 - `topic` and `script` are duplicated here from other tables for query convenience — avoids joins during editing.
 - Unlike `production_queue`, there is no segment concept here — editing always produces one final video.
+- `processing` here means "the render worker is rendering this" — unrelated to `production_queue.status`'s own `processing` value, which is a different table entirely.
 
 **Connections:**
 - 1:1 with `content_pipeline` via `content_id`
