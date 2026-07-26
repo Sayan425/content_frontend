@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@remotion/cli": "^4.0.497",
     "@vitejs/plugin-react": "^6.0.2",
     "vite": "^8.0.12"
   },
