@@ -12,7 +12,7 @@ export function PhoneMockup({ config, setConfig, editId }) {
   const videoWidth = 1080;
   const videoHeight = 1920;
   
-  const [durationInFrames, setDurationInFrames] = useState(1702); // Fallback to 68s at 25fps
+  const [durationInFrames, setDurationInFrames] = useState(1632); // Fallback to 68s at 24fps
   const [loading, setLoading] = useState(!config);
   // One-time buffer: true until the main video is fully downloaded into RAM.
   // The Player is only mounted after this, so playback can never stall on
@@ -23,8 +23,8 @@ export function PhoneMockup({ config, setConfig, editId }) {
   useEffect(() => {
     const handleSeek = (e) => {
       if (playerRef.current && e.detail && e.detail.timeInSeconds !== undefined) {
-        // Find fps from config if possible, else default to 25
-        const fps = 25; 
+        // Find fps from config if possible, else default to 24
+        const fps = 24;
         const frame = Math.floor(e.detail.timeInSeconds * fps);
         playerRef.current.seekTo(frame);
         playerRef.current.pause(); // Auto pause so they can see the start of the overlay
@@ -99,7 +99,7 @@ export function PhoneMockup({ config, setConfig, editId }) {
       try {
         const resolvedVideo = resolveAssetUrl(manifestData.videoUrl);
         const metadata = await getVideoMetadata(resolvedVideo);
-        const frames = Math.ceil(metadata.durationInSeconds * 25);
+        const frames = Math.ceil(metadata.durationInSeconds * 24);
         setDurationInFrames(frames);
       } catch (metadataError) {
         console.warn("Failed to fetch video metadata, using fallback duration:", metadataError);
@@ -197,7 +197,7 @@ export function PhoneMockup({ config, setConfig, editId }) {
               durationInFrames={durationInFrames}
               compositionWidth={videoWidth}
               compositionHeight={videoHeight}
-              fps={25}
+              fps={24}
               style={{
                 width: '100%',
                 height: '100%',
