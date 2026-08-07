@@ -34,17 +34,10 @@ export function initScriptRoom() {
     let regenerateCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }; // Rate limit tracking for regeneration per step
 
     const sanitizeInput = (str) => {
-        if (!str) return '';
-        return str.replace(/[&<>'"]/g, 
-            tag => ({ 
-                '&': '&amp;', 
-                '<': '&lt;', 
-                '>': '&gt;', 
-                "'": '&#39;', 
-                '"': '&quot;' 
-            }[tag] || tag)
-        );
+        if (str === null || str === undefined) return '';
+        return typeof str === 'string' ? str.trim() : str;
     };
+
 
 
     function openTopicModal() {
