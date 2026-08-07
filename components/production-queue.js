@@ -841,7 +841,7 @@ export function initProductionQueue() {
                         edit_settings: editSettingsPayload,
                         owner_avatar_id: selectedAvatarId,
                         content_id: finalContentId,
-                        custom_voiceover: customVoiceoverUrl,
+                        voiceover: customVoiceoverUrl,
                         segment_index: 1,
                         owner_user_id: userId
                     });
