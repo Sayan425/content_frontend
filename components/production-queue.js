@@ -38,6 +38,7 @@ export function initProductionQueue() {
     let selectedAvatarName = null;
     let selectedAvatarImage = null; // For runpod_queue image_link
     let selectedAvatarVoice = null; // For runpod_queue voice_link
+    let selectedAvatarDemoAudioScript = null; // For runpod_queue demo_audio_script
 
     // Input Validation to enable/disable queue button
     function validateForm() {
@@ -525,13 +526,14 @@ export function initProductionQueue() {
                 if (avatarContainer) {
                     let html = '';
                     
-                    const renderCard = (imgUrl, lookName, voiceId, id, avatarName) => `
+                    const renderCard = (imgUrl, lookName, voiceId, id, avatarName, demoAudioScript) => `
                         <div class="avatar-card cursor-pointer flex-shrink-0 w-[120px] rounded-xl border-2 border-white/10 bg-black/40 overflow-hidden group hover:border-white/30 hover:bg-black/60 transition-all duration-300 flex flex-col relative" 
                             data-id="${id}"
                             data-name="${lookName}"
                             data-avatar-name="${avatarName}"
                             data-img="${imgUrl}"
-                            data-voice="${voiceId || ''}">
+                            data-voice="${voiceId || ''}"
+                            data-demo-audio-script="${demoAudioScript || ''}">
                             
                             <div class="w-full h-[120px] relative overflow-hidden">
                                 <img src="${imgUrl}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="${lookName}">
@@ -562,7 +564,7 @@ export function initProductionQueue() {
                     // Base Look
                     const baseImg = avatar.base_look || 'https://via.placeholder.com/150';
                     const mainAvatarName = avatar.name || 'Unnamed';
-                    html += renderCard(baseImg, 'Default Look', avatar.demo_voice, avatar.avatar_id, mainAvatarName);
+                    html += renderCard(baseImg, 'Default Look', avatar.demo_voice, avatar.avatar_id, mainAvatarName, avatar.demo_audio_script);
 
                     // Other Looks (assumed to be array of objects: { name, image_url })
                     if (avatar.other_looks && Array.isArray(avatar.other_looks)) {
@@ -571,7 +573,7 @@ export function initProductionQueue() {
                             // Check all common keys for the image URL
                             const lookImg = look.image_url || look.image || look.img || look.url || look.link || look.link || look.look || look.base_look || 'https://placehold.co/150x150/131313/FFF?text=No+Image';
                             const lookName = look.name || `Look ${idx + 1}`;
-                            html += renderCard(lookImg, lookName, avatar.demo_voice, avatar.avatar_id, mainAvatarName);
+                            html += renderCard(lookImg, lookName, avatar.demo_voice, avatar.avatar_id, mainAvatarName, avatar.demo_audio_script);
                         });
                     }
 
@@ -602,6 +604,7 @@ export function initProductionQueue() {
                                 selectedAvatarName = null;
                                 selectedAvatarImage = null;
                                 selectedAvatarVoice = null;
+                                selectedAvatarDemoAudioScript = null;
                             } else {
                                 // Select this one
                                 card.classList.remove('border-white/10');
@@ -611,6 +614,7 @@ export function initProductionQueue() {
                                 selectedAvatarName = card.dataset.avatarName || card.dataset.name;
                                 selectedAvatarImage = card.dataset.img;
                                 selectedAvatarVoice = card.dataset.voice;
+                                selectedAvatarDemoAudioScript = card.dataset.demoAudioScript || '';
                             }
                             
                             validateForm();
@@ -831,7 +835,7 @@ export function initProductionQueue() {
 
                     // Archive the script in scripts_final
                     await supabase.from('scripts_final')
-                        .update({ status: 'archieved' })
+                        .update({ status: 'archived' })
                         .eq('content_id', finalContentId);
                 }
 
@@ -842,6 +846,7 @@ export function initProductionQueue() {
                         image_link: selectedAvatarImage || 'https://example.com/missing.png',
                         demo_voice: selectedAvatarVoice || 'elevenlabs_default',
                         script: finalScriptText,
+                        demo_audio_script: selectedAvatarDemoAudioScript || '',
                         status: needsApproval ? 'pending_approval' : 'approved',
                         edit_settings: editSettingsPayload,
                         owner_avatar_id: selectedAvatarId,
