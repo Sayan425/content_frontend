@@ -828,6 +828,11 @@ export function initProductionQueue() {
                             stage_updated_at: new Date() 
                         })
                         .eq('content_id', finalContentId);
+
+                    // Archive the script in scripts_final
+                    await supabase.from('scripts_final')
+                        .update({ status: 'archieved' })
+                        .eq('content_id', finalContentId);
                 }
 
                 // Insert into production_queue
@@ -837,7 +842,7 @@ export function initProductionQueue() {
                         image_link: selectedAvatarImage || 'https://example.com/missing.png',
                         demo_voice: selectedAvatarVoice || 'elevenlabs_default',
                         script: finalScriptText,
-                        status: needsApproval ? 'pending_approval' : 'queued',
+                        status: needsApproval ? 'pending_approval' : 'approved',
                         edit_settings: editSettingsPayload,
                         owner_avatar_id: selectedAvatarId,
                         content_id: finalContentId,
