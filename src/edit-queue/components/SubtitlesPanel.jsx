@@ -52,6 +52,42 @@ export function SubtitlesPanel({ config, setConfig, editId }) {
         autoSaveToSupabase(newConfig);
     };
 
+    // Seconds -> SRT timestamp, e.g. 12.34 becomes 00:00:12,340
+    const toSrtTime = (seconds) => {
+        const total = Math.max(0, Number(seconds) || 0);
+        const hrs = Math.floor(total / 3600);
+        const mins = Math.floor((total % 3600) / 60);
+        const secs = Math.floor(total % 60);
+        const ms = Math.round((total - Math.floor(total)) * 1000);
+        const pad = (n, size = 2) => String(n).padStart(size, '0');
+        return `${pad(hrs)}:${pad(mins)}:${pad(secs)},${pad(ms, 3)}`;
+    };
+
+    // Export as SRT: the standard subtitle format, readable in any text editor
+    // and accepted by video players and social platforms.
+    const buildSrt = () => subtitleData
+        .filter(block => (block.text || '').trim())
+        .map((block, i) => (
+            `${i + 1}\n${toSrtTime(block.start)} --> ${toSrtTime(block.end)}\n${block.text.trim()}`
+        ))
+        .join('\n\n') + '\n';
+
+    const handleDownload = () => {
+        const objectUrl = URL.createObjectURL(new Blob([buildSrt()], { type: 'text/plain;charset=utf-8' }));
+        try {
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = `subtitles-${editId || 'video'}.srt`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
+    };
+
+    const hasSubtitles = subtitleData.some(block => (block.text || '').trim());
+
     // Debounced auto-save of the manifest, matching the other editor panels.
     const autoSaveToSupabase = (newConfig) => {
         if (!editId) return;
@@ -80,6 +116,15 @@ export function SubtitlesPanel({ config, setConfig, editId }) {
                     <span className="material-symbols-outlined text-primary">subtitles</span>
                     Subtitles Editor
                 </h3>
+                <button
+                    onClick={handleDownload}
+                    disabled={!hasSubtitles}
+                    title="Download subtitles (.srt)"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/10 disabled:hover:border-white/20"
+                >
+                    <span className="material-symbols-outlined text-[16px]">download</span>
+                    SRT
+                </button>
             </div>
             
             <div className="flex-1 overflow-y-auto px-6 py-2">

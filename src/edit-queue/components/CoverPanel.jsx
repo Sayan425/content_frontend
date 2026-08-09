@@ -13,6 +13,7 @@ export function CoverPanel({ config, editId }) {
     const [coverUrl, setCoverUrl] = useState(null);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [downloading, setDownloading] = useState(false);
     const [showMediaAi, setShowMediaAi] = useState(false);
     const fileRef = React.useRef(null);
 
@@ -100,6 +101,34 @@ export function CoverPanel({ config, editId }) {
         }
     };
 
+    // Fetch into a blob first: the `download` attribute is ignored on
+    // cross-origin URLs, which would open the image instead of saving it.
+    const downloadCover = async () => {
+        if (!coverUrl || downloading) return;
+        setDownloading(true);
+        let objectUrl = null;
+        try {
+            const res = await fetch(coverUrl);
+            if (!res.ok) throw new Error(`Server responded ${res.status}`);
+            const blob = await res.blob();
+            objectUrl = URL.createObjectURL(blob);
+
+            const ext = (coverUrl.split('?')[0].match(/\.(jpe?g|png|webp)$/i) || [null, 'jpg'])[1];
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = `cover-${editId || 'video'}.${ext.toLowerCase()}`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            showCustomAlert(`Could not download the cover: ${err.message}`, 'Download Error');
+        } finally {
+            // Always release the blob so it is not held for the whole session.
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+            setDownloading(false);
+        }
+    };
+
     return (
         <div className="flex flex-col gap-6 p-6 h-full overflow-y-auto custom-scrollbar">
             <section className="bg-surface p-4 rounded-xl border border-white/5 shadow-sm">
@@ -112,7 +141,7 @@ export function CoverPanel({ config, editId }) {
                 </p>
 
                 {/* Current cover preview (9:16) */}
-                <div className="mx-auto w-[200px] aspect-[9/16] rounded-2xl overflow-hidden border border-white/10 bg-black/50 flex items-center justify-center relative">
+                <div className="mx-auto w-[280px] max-w-full aspect-[9/16] rounded-2xl overflow-hidden border border-white/10 bg-black/50 flex items-center justify-center relative">
                     {loading ? (
                         <span className="material-symbols-outlined text-3xl text-on-surface-variant animate-spin">progress_activity</span>
                     ) : coverUrl ? (
@@ -138,21 +167,32 @@ export function CoverPanel({ config, editId }) {
                     accept="image/*"
                     onChange={e => { const f = e.target.files[0]; if (f) uploadCover(f); e.target.value = ''; }}
                 />
-                <div className="flex gap-2 mt-5">
+                <div className="grid grid-cols-3 gap-2 mt-5">
                     <button
                         onClick={() => fileRef.current?.click()}
                         disabled={uploading}
-                        className="flex-1 h-16 bg-surface-container border border-dashed border-white/20 rounded-xl text-on-surface-variant hover:text-white hover:border-white/40 transition flex flex-col items-center justify-center gap-1 disabled:opacity-50"
+                        className="h-16 bg-surface-container border border-dashed border-white/20 rounded-xl text-on-surface-variant hover:text-white hover:border-white/40 transition flex flex-col items-center justify-center gap-1 disabled:opacity-50"
                     >
                         <span className="material-symbols-outlined text-[22px]">{uploading ? 'progress_activity' : 'upload'}</span>
                         <span className="text-[10px] font-bold uppercase tracking-wider">{coverUrl ? 'Replace Cover' : 'Upload Cover'}</span>
                     </button>
                     <button
                         onClick={() => setShowMediaAi(true)}
-                        className="flex-1 h-16 bg-primary/5 border border-dashed border-primary/30 rounded-xl text-primary/80 hover:text-primary hover:border-primary hover:bg-primary/10 transition flex flex-col items-center justify-center gap-1 group"
+                        className="h-16 bg-primary/5 border border-dashed border-primary/30 rounded-xl text-primary/80 hover:text-primary hover:border-primary hover:bg-primary/10 transition flex flex-col items-center justify-center gap-1 group"
                     >
                         <span className="material-symbols-outlined text-[22px] group-hover:rotate-12 transition-transform">auto_awesome</span>
                         <span className="text-[10px] font-bold uppercase tracking-wider">AI Gen</span>
+                    </button>
+                    <button
+                        onClick={downloadCover}
+                        disabled={!coverUrl || downloading}
+                        title="Download cover image"
+                        className="h-16 bg-surface-container border border-dashed border-white/20 rounded-xl text-on-surface-variant hover:text-white hover:border-white/40 transition flex flex-col items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-on-surface-variant disabled:hover:border-white/20"
+                    >
+                        <span className={`material-symbols-outlined text-[22px] ${downloading ? 'animate-spin' : ''}`}>
+                            {downloading ? 'progress_activity' : 'download'}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Download</span>
                     </button>
                 </div>
             </section>
