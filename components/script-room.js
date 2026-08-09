@@ -1526,16 +1526,11 @@ export function initScriptRoom() {
                 if (error) throw error;
             }
 
-            // Success feedback
+            // Success feedback (text only — keep the primary button styling)
             btnConfirmSelection.textContent = 'Saved Successfully!';
-            btnConfirmSelection.classList.remove('bg-primary', 'hover:bg-primary-hover');
-            btnConfirmSelection.classList.add('bg-green-600', 'text-white');
-            
+
             setTimeout(() => {
-                // Reset button style
                 btnConfirmSelection.textContent = originalBtnText;
-                btnConfirmSelection.classList.remove('bg-green-600', 'text-white');
-                btnConfirmSelection.classList.add('bg-primary', 'hover:bg-primary-hover');
                 btnConfirmSelection.disabled = false;
                 
                 loadSavedIdeas(); // Refresh the Idea Board to remove the used idea
