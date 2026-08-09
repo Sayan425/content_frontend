@@ -7,7 +7,9 @@ export function initManageAvatar() {
     const loadingEl = document.getElementById('manage-avatar-loading');
     const errorEl = document.getElementById('manage-avatar-error');
     const contentEl = document.getElementById('manage-avatar-content');
-    const looksGrid = document.getElementById('looks-grid');
+    const looksRow = document.getElementById('looks-row');
+    const looksEmpty = document.getElementById('looks-empty');
+    const searchLooks = document.getElementById('search-looks');
     const voicePlayer = document.getElementById('voice-player');
     const voiceEmpty = document.getElementById('voice-empty');
     const btnReplaceVoice = document.getElementById('btn-replace-voice');
@@ -160,64 +162,71 @@ export function initManageAvatar() {
     // ---- Looks ----
 
     function renderLooks() {
-        if (!looksGrid) return;
+        if (!looksRow) return;
 
-        const others = normalizeLooks(avatar.other_looks);
-        let html = '';
+        const term = searchLooks ? searchLooks.value.trim().toLowerCase() : '';
+        const matches = (name) => !term || name.toLowerCase().includes(term);
 
-        const baseUrl = avatar.base_look || '';
-        html += lookCard({
-            url: baseUrl || 'https://placehold.co/300x400/131313/FFF?text=No+Image',
-            name: 'Default Look',
-            index: -1,
-            isBase: true
-        });
-
-        others.forEach((look, idx) => {
-            html += lookCard({ url: look.url, name: look.name, index: idx, isBase: false });
-        });
-
-        html += `
-            <button type="button" id="btn-add-look" class="aspect-[3/4] rounded-2xl border border-dashed border-white/15 bg-black/20 hover:bg-white/5 hover:border-primary/50 flex flex-col items-center justify-center gap-2 transition-all group">
-                <div class="w-12 h-12 rounded-full bg-white/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
+        // Add Look always leads the row and is never filtered out.
+        let html = `
+            <button type="button" id="btn-add-look" class="cursor-pointer flex-shrink-0 w-[150px] h-[220px] rounded-2xl border border-dashed border-white/25 bg-white/5 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 flex flex-col items-center justify-center group">
+                <div class="w-12 h-12 rounded-full bg-white/10 group-hover:bg-primary/20 flex items-center justify-center mb-2 transition-colors">
                     <span class="material-symbols-outlined text-white/70 group-hover:text-primary text-[24px]">add</span>
                 </div>
                 <span class="text-xs font-medium text-white/70 group-hover:text-primary transition-colors">Add Look</span>
             </button>
         `;
 
-        looksGrid.innerHTML = html;
+        let visible = 0;
+
+        if (avatar.base_look && matches('Default Look')) {
+            html += lookCard({ url: avatar.base_look, name: 'Default Look', index: -1, isBase: true });
+            visible++;
+        }
+
+        normalizeLooks(avatar.other_looks).forEach((look, idx) => {
+            if (!matches(look.name)) return;
+            html += lookCard({ url: look.url, name: look.name, index: idx, isBase: false });
+            visible++;
+        });
+
+        looksRow.innerHTML = html;
+
+        // Only a search that matches nothing counts as empty; the Add Look
+        // tile alone is not a result.
+        if (looksEmpty) looksEmpty.classList.toggle('hidden', visible > 0 || !term);
+
         attachLookHandlers();
     }
 
     function lookCard({ url, name, index, isBase }) {
         const safeName = escapeHtml(name);
         return `
-            <div class="group relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 bg-surface-container shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 hover:border-primary/50">
+            <div class="group relative flex-shrink-0 w-[150px] h-[220px] rounded-2xl overflow-hidden border border-white/10 bg-surface-container shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 hover:border-primary/50">
                 <img src="${escapeHtml(url)}" alt="${safeName}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none"></div>
 
                 ${isBase ? `
-                    <div class="absolute top-3 left-3 bg-primary/90 text-on-primary px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide shadow-lg">
+                    <div class="absolute top-2.5 left-2.5 bg-primary/90 text-on-primary px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide shadow-lg">
                         Default
                     </div>
                 ` : ''}
 
-                <div class="absolute bottom-0 left-0 w-full p-3 flex flex-col gap-2">
-                    <span class="text-white text-[13px] font-bold leading-tight line-clamp-2" title="${safeName}">${safeName}</span>
-                    <div class="flex items-center" style="gap: 6px;">
+                <div class="absolute bottom-0 left-0 w-full p-2.5 flex flex-col gap-2">
+                    <span class="text-white text-[12px] font-bold leading-tight line-clamp-2" title="${safeName}">${safeName}</span>
+                    <div class="flex items-center" style="gap: 5px;">
                         <button type="button" data-look-index="${index}" title="Replace image" aria-label="Replace image"
-                            class="btn-replace-look flex-1 h-8 rounded-lg bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white flex items-center justify-center transition-all">
-                            <span class="material-symbols-outlined text-[16px]">swap_horiz</span>
+                            class="btn-replace-look flex-1 h-7 rounded-lg bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white flex items-center justify-center transition-all">
+                            <span class="material-symbols-outlined text-[15px]">swap_horiz</span>
                         </button>
                         ${isBase ? '' : `
                             <button type="button" data-look-index="${index}" title="Make default look" aria-label="Make default look"
-                                class="btn-make-default shrink-0 w-8 h-8 rounded-lg bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white flex items-center justify-center transition-all">
-                                <span class="material-symbols-outlined text-[16px]">star</span>
+                                class="btn-make-default shrink-0 w-7 h-7 rounded-lg bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white flex items-center justify-center transition-all">
+                                <span class="material-symbols-outlined text-[15px]">star</span>
                             </button>
                             <button type="button" data-look-index="${index}" title="Remove look" aria-label="Remove look"
-                                class="btn-remove-look shrink-0 w-8 h-8 rounded-lg bg-white/10 hover:bg-error border border-white/20 hover:border-error text-white flex items-center justify-center transition-all">
-                                <span class="material-symbols-outlined text-[16px]">delete</span>
+                                class="btn-remove-look shrink-0 w-7 h-7 rounded-lg bg-white/10 hover:bg-error border border-white/20 hover:border-error text-white flex items-center justify-center transition-all">
+                                <span class="material-symbols-outlined text-[15px]">delete</span>
                             </button>
                         `}
                     </div>
@@ -230,17 +239,17 @@ export function initManageAvatar() {
         const btnAdd = document.getElementById('btn-add-look');
         if (btnAdd) btnAdd.addEventListener('click', () => openLookModal('add', -1));
 
-        looksGrid.querySelectorAll('.btn-replace-look').forEach(btn => {
+        looksRow.querySelectorAll('.btn-replace-look').forEach(btn => {
             btn.addEventListener('click', () => {
                 openLookModal('replace', parseInt(btn.getAttribute('data-look-index'), 10));
             });
         });
 
-        looksGrid.querySelectorAll('.btn-make-default').forEach(btn => {
+        looksRow.querySelectorAll('.btn-make-default').forEach(btn => {
             btn.addEventListener('click', () => makeDefault(parseInt(btn.getAttribute('data-look-index'), 10)));
         });
 
-        looksGrid.querySelectorAll('.btn-remove-look').forEach(btn => {
+        looksRow.querySelectorAll('.btn-remove-look').forEach(btn => {
             btn.addEventListener('click', () => removeLook(parseInt(btn.getAttribute('data-look-index'), 10)));
         });
     }
@@ -299,6 +308,8 @@ export function initManageAvatar() {
     }
 
     if (scriptInput) scriptInput.addEventListener('input', updateScriptCount);
+
+    if (searchLooks) searchLooks.addEventListener('input', renderLooks);
 
     if (btnSaveScript) {
         btnSaveScript.addEventListener('click', async () => {
