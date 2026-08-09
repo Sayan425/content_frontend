@@ -182,15 +182,57 @@ Strict rules:
 
 Here is what I want the motion graphic to be: `;
 
+// The rules block above, minus the trailing "what I want" line, so the edit
+// prompt can restate the same constraints around the existing code.
+const AI_CODE_RULES = AI_CODE_PROMPT.replace(/\n\nHere is what I want the motion graphic to be: $/, '');
+
+// Prompt for changing an existing graphic: same constraints, plus the current
+// code, with the user's requested edits typed at the end.
+const buildAiEditPrompt = (currentCode) => `${AI_CODE_RULES}
+
+Here is the current code for the motion graphic:
+
+\`\`\`jsx
+${(currentCode || '').trim()}
+\`\`\`
+
+Keep everything else about the graphic the same and apply only the changes requested. Reply with the COMPLETE updated code, not just the changed lines.
+
+The edits I want are: `;
+
+// Beyond this encoded length a ?q= prompt risks being truncated by the browser
+// or the receiving site, so it goes to the clipboard instead.
+const MAX_PROMPT_IN_URL = 6000;
+
 // Services that accept a pre-filled prompt straight from the URL open with it
 // injected; the rest (copy: true) get the prompt copied to the clipboard and
 // the site opened for pasting. (ICON_BASE / media providers live in MediaAiPicker.)
 const AI_PROVIDERS = [
-    { name: 'ChatGPT', icon: `${ICON_BASE}/ChatGPT%20logo.svg`, url: () => `https://chatgpt.com/?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
-    { name: 'Claude', icon: `${ICON_BASE}/claude%20icon.png`, url: () => `https://claude.ai/new?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
-    { name: 'Perplexity', icon: `${ICON_BASE}/perplexity%20icon.webp`, url: () => `https://www.perplexity.ai/search?q=${encodeURIComponent(AI_CODE_PROMPT)}` },
-    { name: 'Gemini', icon: `${ICON_BASE}/gemini%20icon.jpg`, copy: true, url: () => 'https://gemini.google.com/app' },
-    { name: 'DeepSeek', icon: `${ICON_BASE}/deepseek%20icon.png`, copy: true, url: () => 'https://chat.deepseek.com/' },
+    {
+        name: 'ChatGPT', icon: `${ICON_BASE}/ChatGPT%20logo.svg`,
+        baseUrl: 'https://chatgpt.com/',
+        url: (prompt = AI_CODE_PROMPT) => `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`,
+    },
+    {
+        name: 'Claude', icon: `${ICON_BASE}/claude%20icon.png`,
+        baseUrl: 'https://claude.ai/new',
+        url: (prompt = AI_CODE_PROMPT) => `https://claude.ai/new?q=${encodeURIComponent(prompt)}`,
+    },
+    {
+        name: 'Perplexity', icon: `${ICON_BASE}/perplexity%20icon.webp`,
+        baseUrl: 'https://www.perplexity.ai/',
+        url: (prompt = AI_CODE_PROMPT) => `https://www.perplexity.ai/search?q=${encodeURIComponent(prompt)}`,
+    },
+    {
+        name: 'Gemini', icon: `${ICON_BASE}/gemini%20icon.jpg`, copy: true,
+        baseUrl: 'https://gemini.google.com/app',
+        url: () => 'https://gemini.google.com/app',
+    },
+    {
+        name: 'DeepSeek', icon: `${ICON_BASE}/deepseek%20icon.png`, copy: true,
+        baseUrl: 'https://chat.deepseek.com/',
+        url: () => 'https://chat.deepseek.com/',
+    },
 ];
 
 const isHexColor = (v) =>
@@ -392,12 +434,23 @@ export function OverlaysPanel({ config, setConfig, editId }) {
 
     const selectedOverlay = selectedOverlayIndex !== '' ? overlays[selectedOverlayIndex] : null;
 
+    // Long code pushes the edit prompt past what a URL can carry, so the menu
+    // warns that those providers will receive it via the clipboard instead.
+    const editPromptTooLongForUrl = (() => {
+        const code = selectedOverlay?.props?.code !== undefined
+            ? selectedOverlay?.props?.code
+            : selectedOverlay?.props?.html;
+        if (code === undefined || code === null) return false;
+        return encodeURIComponent(buildAiEditPrompt(code)).length > MAX_PROMPT_IN_URL;
+    })();
+
     // ---- Add Overlay flow ----
     const [addMode, setAddMode] = useState(false);
     const [addType, setAddType] = useState('Image');
     const [addText, setAddText] = useState('');
     const [addHtml, setAddHtml] = useState('');
     const [showAiMenu, setShowAiMenu] = useState(false);
+    const [showEditAiMenu, setShowEditAiMenu] = useState(false);
 
     const openAiProvider = async (provider) => {
         if (provider.copy) {
@@ -409,6 +462,26 @@ export function OverlaysPanel({ config, setConfig, editId }) {
         }
         window.open(provider.url(), '_blank', 'noopener,noreferrer');
         setShowAiMenu(false);
+    };
+
+    // Same provider menu, but for editing an existing graphic. The prompt
+    // carries the current code, which can be long, so anything over a safe URL
+    // length goes to the clipboard rather than a ?q= parameter.
+    const openAiEditProvider = async (provider, currentCode) => {
+        const prompt = buildAiEditPrompt(currentCode);
+        const tooLongForUrl = encodeURIComponent(prompt).length > MAX_PROMPT_IN_URL;
+
+        if (provider.copy || tooLongForUrl) {
+            try {
+                await navigator.clipboard.writeText(prompt);
+            } catch (err) {
+                console.warn('Could not copy prompt to clipboard:', err);
+            }
+        }
+
+        const target = (provider.copy || tooLongForUrl) ? provider.baseUrl : provider.url(prompt);
+        window.open(target, '_blank', 'noopener,noreferrer');
+        setShowEditAiMenu(false);
     };
     const [addMediaUrl, setAddMediaUrl] = useState('');
     const [addStart, setAddStart] = useState(0);
@@ -792,6 +865,39 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                             <label className="text-sm font-medium text-on-surface-variant">
                                                 {selectedOverlay.props?.code !== undefined ? 'Frame-based Code' : 'HTML / CSS Code'}
                                             </label>
+                                            <div className="relative">
+                                                <p className="text-xs text-on-surface-variant">
+                                                    Click{' '}
+                                                    <button
+                                                        onClick={() => setShowEditAiMenu(v => !v)}
+                                                        className="text-primary font-semibold underline hover:text-primary-hover"
+                                                    >here</button>
+                                                    {' '}to edit this code with AI — the current code is included, describe your changes at the end of the prompt.
+                                                </p>
+                                                {showEditAiMenu && (
+                                                    <div className="absolute left-0 top-full mt-2 z-50 bg-surface-container-high border border-white/10 rounded-xl shadow-2xl p-2 w-64">
+                                                        <p className="text-[11px] text-on-surface-variant px-2 pb-2">Choose an AI service:</p>
+                                                        {AI_PROVIDERS.map(p => (
+                                                            <button
+                                                                key={p.name}
+                                                                onClick={() => openAiEditProvider(
+                                                                    p,
+                                                                    selectedOverlay.props?.code !== undefined
+                                                                        ? selectedOverlay.props.code
+                                                                        : selectedOverlay.props.html
+                                                                )}
+                                                                className="w-full text-left px-3 py-2 rounded-lg text-sm text-on-surface hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-2"
+                                                            >
+                                                                <img src={p.icon} alt={p.name} className="w-5 h-5 rounded object-cover bg-white/5 shrink-0" />
+                                                                <span className="flex-1">{p.name}</span>
+                                                                {(p.copy || editPromptTooLongForUrl) && (
+                                                                    <span className="text-[10px] text-on-surface-variant">copies prompt</span>
+                                                                )}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             <textarea
                                                 value={selectedOverlay.props?.code !== undefined ? selectedOverlay.props.code : selectedOverlay.props.html}
                                                 onChange={e => updateOverlayProp(selectedOverlay.props?.code !== undefined ? 'code' : 'html', e.target.value)}
