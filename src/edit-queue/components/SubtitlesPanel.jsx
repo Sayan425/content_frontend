@@ -52,32 +52,32 @@ export function SubtitlesPanel({ config, setConfig, editId }) {
         autoSaveToSupabase(newConfig);
     };
 
-    // Seconds -> SRT timestamp, e.g. 12.34 becomes 00:00:12,340
-    const toSrtTime = (seconds) => {
-        const total = Math.max(0, Number(seconds) || 0);
-        const hrs = Math.floor(total / 3600);
-        const mins = Math.floor((total % 3600) / 60);
-        const secs = Math.floor(total % 60);
-        const ms = Math.round((total - Math.floor(total)) * 1000);
-        const pad = (n, size = 2) => String(n).padStart(size, '0');
-        return `${pad(hrs)}:${pad(mins)}:${pad(secs)},${pad(ms, 3)}`;
+    // Seconds -> clock time, e.g. 72.4 becomes 00:01:12
+    const toClockTime = (seconds) => {
+        const total = Math.max(0, Math.floor(Number(seconds) || 0));
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`;
     };
 
-    // Export as SRT: the standard subtitle format, readable in any text editor
-    // and accepted by video players and social platforms.
-    const buildSrt = () => subtitleData
-        .filter(block => (block.text || '').trim())
-        .map((block, i) => (
-            `${i + 1}\n${toSrtTime(block.start)} --> ${toSrtTime(block.end)}\n${block.text.trim()}`
-        ))
-        .join('\n\n') + '\n';
+    const filledBlocks = () => subtitleData.filter(block => (block.text || '').trim());
 
-    const handleDownload = () => {
-        const objectUrl = URL.createObjectURL(new Blob([buildSrt()], { type: 'text/plain;charset=utf-8' }));
+    // One line per cue, timings in front, so the file reads cleanly as a
+    // document rather than as player markup.
+    const buildTimedText = () => filledBlocks()
+        .map(block => `[${toClockTime(block.start)} - ${toClockTime(block.end)}] ${block.text.trim()}`)
+        .join('\n') + '\n';
+
+    // Just the words, as flowing paragraphs.
+    const buildPlainText = () => filledBlocks()
+        .map(block => block.text.trim())
+        .join('\n') + '\n';
+
+    const downloadText = (contents, suffix) => {
+        const objectUrl = URL.createObjectURL(new Blob([contents], { type: 'text/plain;charset=utf-8' }));
         try {
             const link = document.createElement('a');
             link.href = objectUrl;
-            link.download = `subtitles-${editId || 'video'}.srt`;
+            link.download = `subtitles-${suffix}-${editId || 'video'}.txt`;
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -116,15 +116,26 @@ export function SubtitlesPanel({ config, setConfig, editId }) {
                     <span className="material-symbols-outlined text-primary">subtitles</span>
                     Subtitles Editor
                 </h3>
-                <button
-                    onClick={handleDownload}
-                    disabled={!hasSubtitles}
-                    title="Download subtitles (.srt)"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/10 disabled:hover:border-white/20"
-                >
-                    <span className="material-symbols-outlined text-[16px]">download</span>
-                    SRT
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => downloadText(buildTimedText(), 'with-timestamps')}
+                        disabled={!hasSubtitles}
+                        title="Download subtitles with timestamps"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/10 disabled:hover:border-white/20"
+                    >
+                        <span className="material-symbols-outlined text-[16px]">schedule</span>
+                        With Timestamps
+                    </button>
+                    <button
+                        onClick={() => downloadText(buildPlainText(), 'text-only')}
+                        disabled={!hasSubtitles}
+                        title="Download subtitles as plain text"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/10 disabled:hover:border-white/20"
+                    >
+                        <span className="material-symbols-outlined text-[16px]">notes</span>
+                        Text Only
+                    </button>
+                </div>
             </div>
             
             <div className="flex-1 overflow-y-auto px-6 py-2">
