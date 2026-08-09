@@ -8,6 +8,13 @@ import { DynamicGraphicRenderer } from './motion_graphics/DynamicGraphicRenderer
 import { resolveAssetUrl } from '../utils/assetResolver';
 
 /**
+ * Overlay videos are B-roll layered over the narration, so their own audio is
+ * always muted. Wrapping OffthreadVideo keeps that guarantee in one place
+ * instead of relying on every call site remembering the prop.
+ */
+const MutedVideo = (props) => <OffthreadVideo {...props} muted />;
+
+/**
  * Shared overlay renderer used by every template, so Image, Video, Text, and
  * Motion Graphic overlays all appear in all templates. Only the *media* look
  * (Image/Video) changes per template via `mediaMode`:
@@ -94,7 +101,10 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
         ].join(', '),
     };
 
-    const MediaTag = isVideo ? OffthreadVideo : Img;
+    // Video overlays are B-roll behind the narration, so their own audio is
+    // always silenced rather than competing with the voiceover. `muted` is
+    // only valid on OffthreadVideo, never on Img.
+    const MediaTag = isVideo ? MutedVideo : Img;
 
     return (
         <AbsoluteFill style={{
@@ -191,7 +201,7 @@ const FullBleedMedia = ({ overlay, index, durationInFrames, isVideo, kenBurns, r
             ...regionStyle,
         }}>
             {isVideo
-                ? <OffthreadVideo src={src} style={mediaStyle} />
+                ? <MutedVideo src={src} style={mediaStyle} />
                 : <Img src={src} style={mediaStyle} />}
         </div>
     );
