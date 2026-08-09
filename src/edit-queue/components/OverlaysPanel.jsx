@@ -865,14 +865,14 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                                             <label className="text-sm font-medium text-on-surface-variant">
                                                 {selectedOverlay.props?.code !== undefined ? 'Frame-based Code' : 'HTML / CSS Code'}
                                             </label>
-                                            <div className="relative">
+                                            <div className="relative mb-4">
                                                 <p className="text-xs text-on-surface-variant">
-                                                    Click{' '}
+                                                    Edit this code with{' '}
                                                     <button
                                                         onClick={() => setShowEditAiMenu(v => !v)}
                                                         className="text-primary font-semibold underline hover:text-primary-hover"
-                                                    >here</button>
-                                                    {' '}to edit this code with AI — the current code is included, describe your changes at the end of the prompt.
+                                                    >AI</button>
+                                                    {' '}— the current code is included. Describe your changes at the end of the prompt.
                                                 </p>
                                                 {showEditAiMenu && (
                                                     <div className="absolute left-0 top-full mt-2 z-50 bg-surface-container-high border border-white/10 rounded-xl shadow-2xl p-2 w-64">
