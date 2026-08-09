@@ -12,6 +12,8 @@
 /edit-suite/*        /workspace       200
 /completed-videos    /workspace       200
 /completed-videos/*  /workspace       200
+/manage-avatar       /workspace       200
+/manage-avatar/*     /workspace       200
 /analytics           /workspace       200
 /analytics/*         /workspace       200
 /profile-settings    /workspace       200

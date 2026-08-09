@@ -65,6 +65,10 @@ async function loadComponent(url, containerId) {
             import('./components/completed-videos.js').then(module => {
                 if (module.initCompletedVideos) module.initCompletedVideos();
             }).catch(err => console.error('Failed to load completed-videos.js:', err));
+        } else if (url.includes('manage-avatar.html')) {
+            import('./components/manage-avatar.js').then(module => {
+                if (module.initManageAvatar) module.initManageAvatar();
+            }).catch(err => console.error('Failed to load manage-avatar.js:', err));
         } else if (url.includes('kanban-board.html')) {
             import('./components/kanban-board.js').then(module => {
                 if (module.initKanbanBoard) module.initKanbanBoard();
@@ -100,7 +104,7 @@ async function initWorkspace() {
     // pathParts[1] would be the content_id, which components can read from window.location.pathname
     
     // Validate tool
-    const validTools = ['workspace', 'idea-labs', 'script-room', 'production-queue', 'edit-queue', 'avatar-studio', 'edit-suite', 'completed-videos', 'analytics', 'profile-settings'];
+    const validTools = ['workspace', 'idea-labs', 'script-room', 'production-queue', 'edit-queue', 'avatar-studio', 'edit-suite', 'completed-videos', 'manage-avatar', 'analytics', 'profile-settings'];
     if (!validTools.includes(tool)) {
         tool = 'analytics';
     }
@@ -142,6 +146,8 @@ async function initWorkspace() {
             loadComponent('/components/edit-suite.html', 'main-content');
         } else if (toolName === 'completed-videos') {
             loadComponent('/components/completed-videos.html', 'main-content');
+        } else if (toolName === 'manage-avatar') {
+            loadComponent('/components/manage-avatar.html', 'main-content');
         } else if (toolName === 'workspace') {
             loadComponent('/components/kanban-board.html?v=6', 'main-content');
         } else if (toolName === 'analytics') {
@@ -160,6 +166,7 @@ async function initWorkspace() {
             else if (toolName === 'production-queue' || toolName === 'avatar-studio') activeId = 'nav-avatar-studio';
             else if (toolName === 'edit-suite' || toolName === 'edit-queue') activeId = 'nav-edit-suite';
             else if (toolName === 'completed-videos') activeId = 'nav-completed-videos';
+            else if (toolName === 'manage-avatar') activeId = 'nav-manage-avatar';
             else if (toolName === 'analytics') activeId = 'nav-analytics';
             else if (toolName === 'profile-settings') activeId = 'nav-profile-settings';
             

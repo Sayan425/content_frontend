@@ -1,0 +1,172 @@
+<div class="flex flex-col h-full w-full min-w-0 mx-auto animate-fade-in relative z-10 text-on-surface">
+    <!-- Header Area -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 pt-4">
+        <div class="flex flex-col gap-2">
+            <h2 class="font-headline-lg text-headline-lg text-white flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[24px] text-primary">manage_accounts</span>
+                </div>
+                Manage Avatar
+            </h2>
+            <p class="text-on-surface-variant text-sm max-w-2xl">
+                Update your avatar's looks, voice and demo script. Changes apply to every new video made with this avatar.
+            </p>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="manage-avatar-loading" class="flex flex-col items-center justify-center py-32 text-center">
+        <span class="material-symbols-outlined animate-spin text-[40px] text-primary/50 mb-4">autorenew</span>
+        <span class="text-white/60 text-sm animate-pulse">Loading your avatar...</span>
+    </div>
+
+    <!-- Error State -->
+    <div id="manage-avatar-error" class="hidden"></div>
+
+    <!-- Main Content -->
+    <div id="manage-avatar-content" class="hidden flex-col gap-6 pb-20">
+
+        <!-- Identity Card -->
+        <section class="bg-surface-container-high border border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
+            <div class="flex items-center gap-5">
+                <div class="w-16 h-16 rounded-2xl overflow-hidden border border-white/20 shadow-lg shrink-0 bg-black/40">
+                    <img id="identity-avatar-img" alt="" class="w-full h-full object-cover" />
+                </div>
+                <div class="flex flex-col gap-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <h3 id="identity-avatar-name" class="font-bold text-white text-xl truncate"></h3>
+                        <span class="material-symbols-outlined text-[16px] text-white/30" title="Avatar name cannot be changed">lock</span>
+                    </div>
+                    <p class="text-on-surface-variant text-[13px] leading-relaxed">
+                        The avatar name is fixed because your stored images and audio live in a folder named after it.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Looks Card -->
+        <section class="bg-surface-container-high border border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
+            <div class="flex items-start justify-between gap-4 mb-5">
+                <div class="flex flex-col gap-1">
+                    <h3 class="font-bold text-white text-base flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-[20px]">face</span>
+                        Looks
+                    </h3>
+                    <p class="text-on-surface-variant text-[13px]">
+                        The default look is used unless you pick another one while creating a video.
+                    </p>
+                </div>
+            </div>
+
+            <div id="looks-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+        </section>
+
+        <!-- Voice Card -->
+        <section class="bg-surface-container-high border border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
+            <div class="flex flex-col gap-1 mb-5">
+                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-[20px]">graphic_eq</span>
+                    Demo Voice
+                </h3>
+                <p class="text-on-surface-variant text-[13px]">
+                    The reference recording that defines how your avatar sounds.
+                </p>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <div id="voice-empty" class="hidden flex-col items-center justify-center py-8 rounded-xl border border-dashed border-white/15 bg-black/20 text-center">
+                    <span class="material-symbols-outlined text-[32px] text-white/20 mb-2">music_off</span>
+                    <span class="text-white/50 text-sm">No demo voice uploaded yet.</span>
+                </div>
+                <audio id="voice-player" controls class="w-full hidden" style="color-scheme: dark;"></audio>
+                <div class="flex flex-wrap items-center" style="gap: 10px;">
+                    <button type="button" id="btn-replace-voice" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-60 disabled:cursor-wait">
+                        <span class="material-symbols-outlined text-[18px]">upload</span>
+                        <span class="btn-label">Upload New Voice</span>
+                    </button>
+                    <span class="text-on-surface-variant text-[12px]">MP3 or WAV, up to 20 MB.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Demo Script Card -->
+        <section class="bg-surface-container-high border border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
+            <div class="flex flex-col gap-1 mb-5">
+                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-[20px]">record_voice_over</span>
+                    Demo Script
+                </h3>
+                <p class="text-on-surface-variant text-[13px]">
+                    The words spoken in the demo voice recording above.
+                </p>
+            </div>
+
+            <textarea id="demo-script-input" rows="6" placeholder="Write the script that matches your demo voice recording."
+                class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-[15px] leading-relaxed custom-scrollbar resize-y focus:border-primary/50 focus:outline-none transition-all placeholder:text-white/25"></textarea>
+
+            <div class="flex items-center justify-between gap-4 mt-4">
+                <span id="demo-script-count" class="text-on-surface-variant text-[12px]"></span>
+                <button type="button" id="btn-save-script" class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-on-primary font-bold text-sm transition-colors shadow-[0_0_15px_rgba(255,178,183,0.3)] disabled:cursor-not-allowed flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">save</span>
+                    <span class="btn-label">Save Script</span>
+                </button>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<!-- Add / Replace Look Modal -->
+<div id="modal-manage-look" class="fixed inset-0 z-50 hidden opacity-0 transition-opacity duration-300">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="manage-look-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-6">
+        <div class="rounded-3xl w-full max-w-[440px] shadow-2xl border border-white/10 overflow-hidden" style="background: var(--md-sys-color-surface-container-highest, #2b2930);">
+
+            <div class="px-6 py-4 border-b border-white/5 flex items-start justify-between gap-3">
+                <div>
+                    <h3 id="manage-look-title" class="text-white font-bold text-base flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
+                        Add a New Look
+                    </h3>
+                    <p class="text-xs text-on-surface-variant mt-1">
+                        Already have an image? Upload it below. Otherwise create one in a tool first, then come back.
+                    </p>
+                </div>
+                <button id="btn-close-manage-look" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-white/70 text-[18px]">close</span>
+                </button>
+            </div>
+
+            <!-- Upload -->
+            <div class="p-4 border-b border-white/5 flex flex-col gap-3">
+                <div class="flex flex-col gap-2">
+                    <label for="manage-look-name" class="text-[12px] text-on-surface-variant font-medium">Look name</label>
+                    <input type="text" id="manage-look-name" placeholder="e.g. Balcony Look" maxlength="60"
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-primary/50 outline-none transition-all">
+                </div>
+                <button type="button" id="btn-pick-look-file" class="w-full px-4 py-3 rounded-xl bg-primary hover:bg-primary-hover text-on-primary font-bold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait">
+                    <span class="material-symbols-outlined text-[18px]">upload</span>
+                    <span class="btn-label">Choose Image &amp; Upload</span>
+                </button>
+                <p class="text-[11px] text-on-surface-variant text-center">JPG, PNG or WEBP, up to 10 MB.</p>
+            </div>
+
+            <!-- AI Provider List -->
+            <div class="px-4 pt-3 pb-1">
+                <span class="text-[11px] text-outline uppercase tracking-wider font-bold">Create an image first</span>
+            </div>
+            <div class="p-3 pt-2 grid grid-cols-1 gap-1.5 max-h-[34vh] overflow-y-auto custom-scrollbar" id="manage-look-providers"></div>
+
+            <!-- Reference Images -->
+            <div class="border-t border-white/5 px-4 py-3" id="manage-look-refs-section" style="display:none;">
+                <button id="btn-toggle-manage-refs" class="w-full flex items-center gap-2 text-left group">
+                    <span class="material-symbols-outlined text-primary text-[18px]">face</span>
+                    <span class="flex-1 text-sm text-white font-medium">Need reference images of your character?</span>
+                    <span class="material-symbols-outlined text-sm text-on-surface-variant transition-transform" id="manage-refs-chevron">expand_more</span>
+                </button>
+                <div id="manage-look-refs-grid" class="mt-3 grid grid-cols-4 gap-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1" style="display:none;"></div>
+            </div>
+
+        </div>
+    </div>
+</div>
