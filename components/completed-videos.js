@@ -102,10 +102,15 @@ export function initCompletedVideos() {
                     <div class="absolute bottom-0 left-0 w-full p-5 flex flex-col gap-3 z-10">
                         <h3 class="font-bold text-white text-base leading-tight line-clamp-3 group-hover:text-primary transition-colors" title="${topic}">${topic}</h3>
                         
-                        <button type="button" data-video-url="${videoUrl}" class="btn-watch-video w-full py-2.5 rounded-xl bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white text-sm font-bold flex items-center justify-center gap-2 backdrop-blur-sm transition-all shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:shadow-[0_0_20px_rgba(208,188,255,0.4)] group/btn">
-                            <span class="material-symbols-outlined text-[18px] group-hover/btn:scale-110 transition-transform">play_arrow</span>
-                            Watch Video
-                        </button>
+                        <div class="flex items-center" style="gap: 8px;">
+                            <button type="button" data-video-url="${videoUrl}" class="btn-watch-video flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white text-sm font-bold flex items-center justify-center gap-2 backdrop-blur-sm transition-all shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:shadow-[0_0_20px_rgba(208,188,255,0.4)] group/btn">
+                                <span class="material-symbols-outlined text-[18px] group-hover/btn:scale-110 transition-transform">play_arrow</span>
+                                Watch Video
+                            </button>
+                            <button type="button" data-video-url="${videoUrl}" data-video-topic="${topic}" title="Download video" aria-label="Download video" class="btn-download-video shrink-0 w-[42px] h-[42px] rounded-xl bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white flex items-center justify-center backdrop-blur-sm transition-all shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:shadow-[0_0_20px_rgba(208,188,255,0.4)] disabled:opacity-60 disabled:cursor-wait group/dl">
+                                <span class="material-symbols-outlined text-[18px] group-hover/dl:scale-110 transition-transform">download</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -124,6 +129,71 @@ export function initCompletedVideos() {
                 }
             });
         });
+
+        document.querySelectorAll('.btn-download-video').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const el = e.currentTarget;
+                downloadVideo(el.getAttribute('data-video-url'), el.getAttribute('data-video-topic'), el);
+            });
+        });
+    }
+
+    // Turn a topic into a filename that is legal on Windows, macOS and Linux.
+    function toFileName(topic) {
+        const cleaned = String(topic || 'video')
+            .replace(/[\\/:*?"<>|]/g, '')   // characters no OS allows in a filename
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 80)
+            .trim();                        // re-trim in case slice left a trailing space
+        return `${cleaned || 'video'}.mp4`;
+    }
+
+    // Fetch the video into a blob so the browser saves it straight to Downloads.
+    // The `download` attribute alone is ignored on cross-origin URLs (the video
+    // lives on the R2 domain), which would just open it in a new tab instead.
+    async function downloadVideo(url, topic, btn) {
+        if (!url || url === '#') {
+            await showCustomAlert('Video URL not available yet.', 'Notice');
+            return;
+        }
+        if (btn.disabled) return; // already downloading this one
+
+        const icon = btn.querySelector('.material-symbols-outlined');
+        const originalIcon = icon ? icon.textContent : 'download';
+        btn.disabled = true;
+        if (icon) {
+            icon.textContent = 'progress_activity';
+            icon.classList.add('animate-spin');
+        }
+
+        let objectUrl = null;
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Server responded ${response.status}`);
+
+            const blob = await response.blob();
+            objectUrl = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = toFileName(topic);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error('Error downloading video:', error);
+            await showCustomAlert('Could not download the video. Please try again.', 'Error');
+        } finally {
+            // Always release the blob, otherwise the memory stays held for the
+            // whole session and stacks up with every download.
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+            btn.disabled = false;
+            if (icon) {
+                icon.textContent = originalIcon;
+                icon.classList.remove('animate-spin');
+            }
+        }
     }
 
     if (searchInput) {
