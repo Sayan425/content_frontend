@@ -107,7 +107,7 @@ export function initCompletedVideos() {
                                 <span class="material-symbols-outlined text-[18px] group-hover/btn:scale-110 transition-transform">play_arrow</span>
                                 Watch Video
                             </button>
-                            <button type="button" data-video-url="${videoUrl}" data-video-topic="${topic}" title="Download video" aria-label="Download video" class="btn-download-video shrink-0 w-[42px] h-[42px] rounded-xl bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white flex items-center justify-center backdrop-blur-sm transition-all shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:shadow-[0_0_20px_rgba(208,188,255,0.4)] disabled:opacity-60 disabled:cursor-wait group/dl">
+                            <button type="button" data-video-url="${videoUrl}" data-video-topic="${topic}" data-cover-url="${escapeHtml(video.cover_image || '')}" title="Download video and cover" aria-label="Download video and cover" class="btn-download-video shrink-0 w-[42px] h-[42px] rounded-xl bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white flex items-center justify-center backdrop-blur-sm transition-all shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:shadow-[0_0_20px_rgba(208,188,255,0.4)] disabled:opacity-60 disabled:cursor-wait group/dl">
                                 <span class="material-symbols-outlined text-[18px] group-hover/dl:scale-110 transition-transform">download</span>
                             </button>
                         </div>
@@ -133,26 +133,46 @@ export function initCompletedVideos() {
         document.querySelectorAll('.btn-download-video').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const el = e.currentTarget;
-                downloadVideo(el.getAttribute('data-video-url'), el.getAttribute('data-video-topic'), el);
+                downloadVideo(
+                    el.getAttribute('data-video-url'),
+                    el.getAttribute('data-video-topic'),
+                    el,
+                    el.getAttribute('data-cover-url')
+                );
             });
         });
     }
 
     // Turn a topic into a filename that is legal on Windows, macOS and Linux.
-    function toFileName(topic) {
+    function toFileName(topic, extension = 'mp4') {
         const cleaned = String(topic || 'video')
             .replace(/[\\/:*?"<>|]/g, '')   // characters no OS allows in a filename
             .replace(/\s+/g, ' ')
             .trim()
             .slice(0, 80)
             .trim();                        // re-trim in case slice left a trailing space
-        return `${cleaned || 'video'}.mp4`;
+        return `${cleaned || 'video'}.${extension}`;
+    }
+
+    // Save one already-fetched blob to disk, releasing the object URL after.
+    function saveBlob(blob, fileName) {
+        const objectUrl = URL.createObjectURL(blob);
+        try {
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
     }
 
     // Fetch the video into a blob so the browser saves it straight to Downloads.
     // The `download` attribute alone is ignored on cross-origin URLs (the video
     // lives on the R2 domain), which would just open it in a new tab instead.
-    async function downloadVideo(url, topic, btn) {
+    async function downloadVideo(url, topic, btn, coverUrl) {
         if (!url || url === '#') {
             await showCustomAlert('Video URL not available yet.', 'Notice');
             return;
@@ -167,27 +187,28 @@ export function initCompletedVideos() {
             icon.classList.add('animate-spin');
         }
 
-        let objectUrl = null;
         try {
             const response = await fetch(url);
             if (!response.ok) throw new Error(`Server responded ${response.status}`);
+            saveBlob(await response.blob(), toFileName(topic));
 
-            const blob = await response.blob();
-            objectUrl = URL.createObjectURL(blob);
-
-            const link = document.createElement('a');
-            link.href = objectUrl;
-            link.download = toFileName(topic);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+            // The cover is a bonus alongside the video, so a failure here is
+            // logged but never turns a successful video download into an error.
+            if (coverUrl && coverUrl !== '#') {
+                try {
+                    const coverRes = await fetch(coverUrl);
+                    if (coverRes.ok) {
+                        const ext = (coverUrl.split('?')[0].match(/\.(jpe?g|png|webp)$/i) || [null, 'jpg'])[1];
+                        saveBlob(await coverRes.blob(), toFileName(topic, ext.toLowerCase()));
+                    }
+                } catch (coverError) {
+                    console.error('Error downloading cover image:', coverError);
+                }
+            }
         } catch (error) {
             console.error('Error downloading video:', error);
             await showCustomAlert('Could not download the video. Please try again.', 'Error');
         } finally {
-            // Always release the blob, otherwise the memory stays held for the
-            // whole session and stacks up with every download.
-            if (objectUrl) URL.revokeObjectURL(objectUrl);
             btn.disabled = false;
             if (icon) {
                 icon.textContent = originalIcon;
