@@ -43,11 +43,8 @@ function showToast(message, type = 'success') {
 
 // ---- DOM Elements ----
 const viewLogin = document.getElementById('view-login');
-const viewSignup = document.getElementById('view-signup');
 const viewForgot = document.getElementById('view-forgot');
 
-const linkShowSignup = document.getElementById('link-show-signup');
-const linkShowLoginFromSignup = document.getElementById('link-show-login-from-signup');
 const linkForgotPassword = document.getElementById('link-forgot-password');
 const linkShowLoginFromForgot = document.getElementById('link-show-login-from-forgot');
 
@@ -56,36 +53,9 @@ const loginEmail = document.getElementById('login-email');
 const loginPassword = document.getElementById('login-password');
 const btnLoginSubmit = document.getElementById('btn-login-submit');
 
-const signupForm = document.getElementById('signup-form');
-const signupEmail = document.getElementById('signup-email');
-const signupPassword = document.getElementById('signup-password');
-const signupConfirmPassword = document.getElementById('signup-confirm-password');
-const btnSignupSubmit = document.getElementById('btn-signup-submit');
-
 const forgotForm = document.getElementById('forgot-form');
 const forgotEmail = document.getElementById('forgot-email');
 const btnForgotSubmit = document.getElementById('btn-forgot-submit');
-
-const googleBtn = document.getElementById('btn-google');
-
-const betaModalOverlay = document.getElementById('beta-modal-overlay');
-const btnBetaModalClose = document.getElementById('btn-beta-modal-close');
-
-function showBetaModal() {
-  betaModalOverlay.classList.remove('hidden');
-}
-
-const btnBetaModalContact = document.getElementById('btn-beta-modal-contact');
-
-btnBetaModalClose.addEventListener('click', () => {
-  betaModalOverlay.classList.add('hidden');
-});
-
-if (btnBetaModalContact) {
-  btnBetaModalContact.addEventListener('click', () => {
-    window.location.href = 'https://yourAvatarStudio.com/contact-us';
-  });
-}
 
 // ---- How this works video modal ----
 const howBtn = document.getElementById('btn-how-it-works');
@@ -117,20 +87,9 @@ document.addEventListener('keydown', (e) => {
 // ---- View Switching Logic ----
 function showView(viewToShow) {
   viewLogin.classList.add('hidden');
-  viewSignup.classList.add('hidden');
   viewForgot.classList.add('hidden');
   viewToShow.classList.remove('hidden');
 }
-
-linkShowSignup.addEventListener('click', (e) => {
-  e.preventDefault();
-  showBetaModal();
-});
-
-linkShowLoginFromSignup.addEventListener('click', (e) => {
-  e.preventDefault();
-  showView(viewLogin);
-});
 
 linkForgotPassword.addEventListener('click', (e) => {
   e.preventDefault();
@@ -170,13 +129,7 @@ loginForm.addEventListener('submit', async (e) => {
   }
 });
 
-// 2. Handle Sign Up (disabled during beta)
-signupForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  showBetaModal();
-});
-
-// 3. Handle Forgot Password
+// 2. Handle Forgot Password
 forgotForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = forgotEmail.value;
@@ -203,12 +156,6 @@ forgotForm.addEventListener('submit', async (e) => {
     btnForgotSubmit.disabled = false;
   }
 });
-
-// 4. Handle Google OAuth (disabled during beta)
-if (googleBtn) {
-  googleBtn.disabled = true;
-  googleBtn.title = 'Google sign-in coming soon.';
-}
 
 // ---- Password Visibility Toggle ----
 const toggleButtons = document.querySelectorAll('.password-toggle');
