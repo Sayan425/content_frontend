@@ -123,17 +123,17 @@ export function SubtitlesPanel({ config, setConfig, editId }) {
                         title="Download subtitles with timestamps"
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/10 disabled:hover:border-white/20"
                     >
-                        <span className="material-symbols-outlined text-[16px]">schedule</span>
+                        <span className="material-symbols-outlined text-[16px]">download</span>
                         With Timestamps
                     </button>
                     <button
-                        onClick={() => downloadText(buildPlainText(), 'text-only')}
+                        onClick={() => downloadText(buildPlainText(), 'without-timestamps')}
                         disabled={!hasSubtitles}
-                        title="Download subtitles as plain text"
+                        title="Download subtitles without timestamps"
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-primary border border-white/20 hover:border-primary text-white text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/10 disabled:hover:border-white/20"
                     >
-                        <span className="material-symbols-outlined text-[16px]">notes</span>
-                        Text Only
+                        <span className="material-symbols-outlined text-[16px]">download</span>
+                        Without Timestamps
                     </button>
                 </div>
             </div>
