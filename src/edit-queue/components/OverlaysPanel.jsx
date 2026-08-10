@@ -1276,7 +1276,7 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                             value={selectedOverlay.position?.scale !== undefined ? selectedOverlay.position.scale : 100}
                             onChange={v => updateOverlay('position.scale', v)}
                             min={0}
-                            max={300}
+                            max={500}
                             step={1}
                         />
                         <RangeInput
