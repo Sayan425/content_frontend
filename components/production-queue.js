@@ -83,21 +83,11 @@ export function initProductionQueue() {
         validateForm();
     });
 
-    const settingAnimationStyle = document.getElementById('setting-animation-style');
-    const settingTimeBetween = document.getElementById('setting-time-between');
-    const toggleFullscreenAnimation = document.getElementById('toggle-fullscreen-animation');
+    const settingBRollAnimation = document.getElementById('setting-b-roll-animation');
+    const settingTimeBetweenOverlays = document.getElementById('setting-time-between-overlays');
     const toggleCharacterInCover = document.getElementById('toggle-character-in-cover');
-    const animationStyleOptions = document.getElementById('animation-style-options');
-
-    if (toggleFullscreenAnimation && animationStyleOptions) {
-        toggleFullscreenAnimation.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                animationStyleOptions.classList.remove('hidden');
-            } else {
-                animationStyleOptions.classList.add('hidden');
-            }
-        });
-    }
+    const settingCreativeDirection = document.getElementById('setting-creative-direction');
+    const settingCoverDirection = document.getElementById('setting-cover-direction');
 
     // Handle URL parameters for direct actions
     const urlParams = new URLSearchParams(window.location.search);
@@ -727,11 +717,12 @@ export function initProductionQueue() {
                 const editSettingsPayload = {
                     templateId: settingTemplate.value,
                     subtitleStyle: settingSubtitle.value,
-                    animationStyle: toggleFullscreenAnimation?.checked ? (settingAnimationStyle?.value || '') : '',
-                    timeBetweenTemplates: parseInt(settingTimeBetween?.value) || 5,
-                    enablefullscreenanimation: toggleFullscreenAnimation?.checked || false,
+                    overlays: overlayOptions,
+                    "b-roll-animation": settingBRollAnimation?.value || 'none',
+                    timeBetweenOverlays: parseInt(settingTimeBetweenOverlays?.value) || 5,
                     includeCharacterInCoverImage: toggleCharacterInCover?.checked ?? true,
-                    overlays: overlayOptions
+                    creativeDirection: settingCreativeDirection?.value?.trim() || '',
+                    coverDirection: settingCoverDirection?.value?.trim() || ''
                 };
 
                 // Check production approval settings

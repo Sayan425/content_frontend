@@ -234,26 +234,24 @@
                         </div>
                     </div>
 
-                    <!-- Full Screen Animation Toggle + Animation Style -->
+                    <!-- B-roll Style Select -->
                     <div class="flex flex-col gap-2">
-                        <div class="flex items-center justify-between">
-                            <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5 cursor-pointer" for="toggle-fullscreen-animation">
-                                <span class="material-symbols-outlined text-[14px]">fullscreen</span> Enable Full Screen Animation
-                            </label>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="toggle-fullscreen-animation" class="sr-only peer" />
-                                <div class="w-9 h-5 bg-black/50 rounded-full peer peer-checked:bg-primary transition-colors border border-white/20"></div>
-                                <div class="absolute left-[2px] top-[2px] w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4 shadow-sm"></div>
-                            </label>
-                        </div>
-                        <div id="animation-style-options" class="hidden transition-all duration-300">
-                            <select id="setting-animation-style" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full cursor-pointer appearance-none">
-                                <option value="BoxAnimation">Box Animation</option>
-                                <option value="Standard">Standard Jump Cuts</option>
-                                <option value="Cinematic">Cinematic Story</option>
-                                <option value="Vlog">High-Energy Vlog</option>
-                            </select>
-                        </div>
+                        <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px]">movie</span> B-roll Style
+                        </label>
+                        <select id="setting-b-roll-animation" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full cursor-pointer appearance-none">
+                            <option value="none" selected>None</option>
+                            <option value="Magazine">Magazine</option>
+                            <option value="Newspaper">Newspaper</option>
+                            <option value="Financial Terminal">Financial Terminal</option>
+                            <option value="Sketchbook">Sketchbook</option>
+                            <option value="Whiteboard">Whiteboard</option>
+                            <option value="Documentary">Documentary</option>
+                            <option value="Investigation">Investigation</option>
+                            <option value="Brutalist">Brutalist</option>
+                            <option value="Comic Book">Comic Book</option>
+                            <option value="Retro Vintage">Retro Vintage</option>
+                        </select>
                     </div>
 
                     <!-- Floating Overlays (Multi-Checkbox) -->
@@ -326,12 +324,12 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
-                        <!-- Time Between Templates -->
+                        <!-- Time Between Overlays -->
                         <div class="flex flex-col gap-2">
                             <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
-                                <span class="material-symbols-outlined text-[14px]">timer</span> Time Between Templates (s)
+                                <span class="material-symbols-outlined text-[14px]">timer</span> Time Between Overlays (s)
                             </label>
-                            <input type="number" id="setting-time-between" value="5" min="0" max="30" step="1" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full">
+                            <input type="number" id="setting-time-between-overlays" value="5" min="0" max="30" step="1" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full">
                         </div>
 
                         <!-- Include Character in Cover Image -->
@@ -348,6 +346,22 @@
                                 </label>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Creative Direction -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px]">palette</span> Creative Direction
+                        </label>
+                        <textarea id="setting-creative-direction" rows="2" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full resize-y placeholder:text-white/20" placeholder="e.g., Premium editorial style with fast pacing, clean visual hierarchy..."></textarea>
+                    </div>
+
+                    <!-- Cover Direction -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px]">image</span> Cover Direction
+                        </label>
+                        <textarea id="setting-cover-direction" rows="2" class="bg-surface-container-high border border-white/10 text-on-surface rounded-lg p-3 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm w-full resize-y placeholder:text-white/20" placeholder="e.g., Bold, high-contrast cover with the character prominently featured..."></textarea>
                     </div>
 
                 </div>
