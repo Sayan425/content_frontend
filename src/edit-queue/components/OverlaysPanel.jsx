@@ -5,6 +5,7 @@ import { markLocalSave } from '../utils/localSaveTracker';
 import { showCustomConfirm, showCustomAlert } from '../../../components/notifications.js';
 import { RangeInput } from './RangeInput';
 import { ICON_BASE, MediaAiPicker } from './MediaAiPicker';
+import { ScriptTimingModal } from './ScriptTimingModal';
 
 function useAudioEffects() {
   const [effects, setEffects] = useState([]);
@@ -371,7 +372,19 @@ export function OverlaysPanel({ config, setConfig, editId }) {
     const saveTimeoutRef = useRef(null);
     const fileInputRef = useRef(null);
     const [showMediaAi, setShowMediaAi] = useState(false);
+    const [scriptModalOpen, setScriptModalOpen] = useState(false);
+    const [scriptModalTarget, setScriptModalTarget] = useState('selected'); // 'selected' | 'add'
     const audioEffects = useAudioEffects();
+
+    const handleScriptRangeSelect = (start, duration) => {
+        if (scriptModalTarget === 'selected' && selectedOverlayIndex !== '') {
+            updateOverlay('startInSeconds', start);
+            updateOverlay('durationInSeconds', duration);
+        } else if (scriptModalTarget === 'add') {
+            setAddStart(start);
+            setAddDuration(duration);
+        }
+    };
 
     const overlays = config?.overlays || [];
     
@@ -798,6 +811,20 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                         </div>
                     )}
 
+                    <div className="flex items-center justify-between mt-2">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Timing</label>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setScriptModalTarget('add');
+                                setScriptModalOpen(true);
+                            }}
+                            className="flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-md px-2 py-0.5 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-[14px]">description</span>
+                            Select from script
+                        </button>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                         <NumberInput
                             label="Start (seconds)"
@@ -1040,10 +1067,24 @@ export function OverlaysPanel({ config, setConfig, editId }) {
 
                     {/* Timing */}
                     <section className="bg-surface p-4 rounded-xl border border-white/5 shadow-sm">
-                        <h4 className="text-on-surface font-semibold mb-4 text-sm flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary text-[18px]">schedule</span>
-                            Timing
-                        </h4>
+                        <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-on-surface font-semibold text-sm flex items-center gap-2 m-0">
+                                <span className="material-symbols-outlined text-primary text-[18px]">schedule</span>
+                                Timing
+                            </h4>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setScriptModalTarget('selected');
+                                    setScriptModalOpen(true);
+                                }}
+                                className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg px-2.5 py-1 transition-all cursor-pointer font-medium"
+                                title="Select timing from video script"
+                            >
+                                <span className="material-symbols-outlined text-sm">description</span>
+                                Select from script
+                            </button>
+                        </div>
                         <div className="flex gap-4">
                             <div className="flex-1">
                                 <NumberInput
@@ -1311,6 +1352,14 @@ export function OverlaysPanel({ config, setConfig, editId }) {
 
             {/* Media generation provider picker (off-platform — just redirects) */}
             <MediaAiPicker open={showMediaAi} onClose={() => setShowMediaAi(false)} editId={editId} />
+
+            {/* Script timing range selector modal */}
+            <ScriptTimingModal
+                isOpen={scriptModalOpen}
+                onClose={() => setScriptModalOpen(false)}
+                subtitleData={config?.subtitleData}
+                onSelectRange={handleScriptRangeSelect}
+            />
         </div>
     );
 }
