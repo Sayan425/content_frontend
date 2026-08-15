@@ -22,13 +22,19 @@ export const BasicTemplate = ({ config }) => {
     const { fps, durationInFrames } = useVideoConfig();
 
     const targetVolume = config.bgmVolume !== undefined ? config.bgmVolume : TEMPLATE_DEFAULTS.bgmVolume;
-
-    const volume = interpolate(
-        frame,
-        [0, TEMPLATE_DEFAULTS.bgmFadeSeconds * fps, durationInFrames - (TEMPLATE_DEFAULTS.bgmFadeSeconds * fps), durationInFrames],
-        [0, targetVolume, targetVolume, 0],
-        { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+    const fadeFrames = Math.min(
+        TEMPLATE_DEFAULTS.bgmFadeSeconds * fps,
+        Math.max(0, Math.floor(durationInFrames / 2))
     );
+
+    const volume = fadeFrames > 0 && durationInFrames > fadeFrames * 2
+        ? interpolate(
+            frame,
+            [0, fadeFrames, durationInFrames - fadeFrames, durationInFrames],
+            [0, targetVolume, targetVolume, 0],
+            { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+        )
+        : targetVolume;
 
     return (
         <AbsoluteFill style={{ backgroundColor: 'black' }}>

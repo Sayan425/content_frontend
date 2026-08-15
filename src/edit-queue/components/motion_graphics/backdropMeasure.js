@@ -31,7 +31,10 @@ export function useMeasuredBackdropStyle({ backdrop, ready, outerRef, innerRef, 
   const showBg = bd.background === true;
   const showBorder = bd.border === true;
   const backdropOn = showBg || showBorder;
-  const pad = bd.padding !== undefined ? bd.padding : 24;
+  const parseNum = (val, fallback) => (typeof val === 'number' && isFinite(val) ? val : (parseInt(val, 10) || fallback));
+  const pad = parseNum(bd.padding, 24);
+  const borderWidth = parseNum(bd.borderWidth, 4);
+  const radius = parseNum(bd.radius, 16);
 
   const [box, setBox] = useState(null);
 
@@ -101,9 +104,9 @@ export function useMeasuredBackdropStyle({ backdrop, ready, outerRef, innerRef, 
       ? hexToRgba(bd.backgroundColor || '#000000', (bd.backgroundOpacity !== undefined ? bd.backgroundOpacity : 60) / 100)
       : 'transparent',
     border: showBorder
-      ? `${bd.borderWidth !== undefined ? bd.borderWidth : 4}px solid ${bd.borderColor || '#ffffff'}`
+      ? `${borderWidth}px solid ${bd.borderColor || '#ffffff'}`
       : 'none',
-    borderRadius: `${bd.radius !== undefined ? bd.radius : 16}px`,
+    borderRadius: `${radius}px`,
     zIndex: -1,
   };
 }
