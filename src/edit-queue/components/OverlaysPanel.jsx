@@ -567,12 +567,15 @@ export function OverlaysPanel({ config, setConfig, editId }) {
             position: { x: '50%', y: '50%', scale: 100, rotation: 0 },
             startInSeconds: parseFloat(addStart) || 0,
             durationInSeconds: parseFloat(addDuration) || 4,
+            animationIn: 'none',
+            animationOut: 'none',
+            borderPreset: 'none',
         };
 
         let overlay = null;
         if (addType === 'Text') {
             if (!addText.trim()) return showCustomAlert('Please enter the text first.', 'Add Overlay');
-            overlay = { ...base, type: 'Text', props: { text: addText.trim() }, animationIn: 'pop' };
+            overlay = { ...base, type: 'Text', props: { text: addText.trim() } };
         } else if (addType === 'MotionGraphic') {
             if (!addHtml.trim()) return showCustomAlert('Please paste your code first.', 'Add Overlay');
             overlay = { ...base, type: 'MotionGraphic', props: { code: addHtml } };
@@ -582,7 +585,6 @@ export function OverlaysPanel({ config, setConfig, editId }) {
                 ...base,
                 type: addType, // 'Image' | 'Video'
                 props: { src: addMediaUrl, url: addMediaUrl },
-                ...(addType === 'Image' ? { animationIn: 'fade', borderPreset: 'photographic' } : {})
             };
         }
 

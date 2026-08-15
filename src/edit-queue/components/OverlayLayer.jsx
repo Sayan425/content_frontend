@@ -51,8 +51,8 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
         relativeFrame: frame,
         durationInFrames,
         fps,
-        animationIn: overlay.animationIn || (isVideo ? 'pop' : 'fade'),
-        animationOut: overlay.animationOut || 'fade',
+        animationIn: overlay.animationIn || 'none',
+        animationOut: overlay.animationOut || 'none',
         baseScale,
         userOpacity: normalizeOpacity(overlay.opacity),
     });
@@ -72,7 +72,7 @@ const ScrapbookMedia = ({ overlay, index, durationInFrames, isVideo }) => {
         ? { position: 'relative', overflow: 'hidden', padding: '26px', boxSizing: 'border-box', backgroundColor: '#000' }
         : isStructural
         ? { backgroundColor: 'transparent' }
-        : getBorderPresetStyle(overlay.borderPreset || 'photographic');
+        : getBorderPresetStyle(overlay.borderPreset || 'none');
 
 
     // "Infinite Lined Borders": concentric rings drawn with a repeating radial
