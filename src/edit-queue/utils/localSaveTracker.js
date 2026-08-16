@@ -12,8 +12,8 @@ export function markLocalSave() {
   lastLocalSaveAt = Date.now();
 }
 
-// Realtime echoes arrive well under a second after the write; 3s gives slack
+// Realtime echoes arrive well under a second after the write; 1.5s gives slack
 // for slow connections without masking real external updates for long.
-export function isRecentLocalSave(windowMs = 3000) {
+export function isRecentLocalSave(windowMs = 1500) {
   return Date.now() - lastLocalSaveAt < windowMs;
 }

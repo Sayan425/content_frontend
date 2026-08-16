@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/apiFetch';
 import { markLocalSave } from '../utils/localSaveTracker';
+import { queueAutoSave } from '../utils/autoSaveManager';
 import { showCustomAlert } from '../../../components/notifications.js';
 import * as Styles from './Subtitles/StyleVariations';
 import { RangeInput } from './RangeInput';
@@ -294,17 +295,7 @@ export function MainVideoPanel({ config, setConfig, editId }) {
   }, []);
 
   const autoSaveToSupabase = (newConfig) => {
-    if (!editId) return;
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        markLocalSave();
-        const { error } = await supabase.from('edit_queue').update({ manifest: newConfig }).eq('content_id', editId);
-        if (error) console.error('Supabase update returned an error:', error);
-      } catch (err) {
-        console.error('Failed to auto-save to Supabase:', err);
-      }
-    }, 500);
+    queueAutoSave(editId, newConfig, 500);
   };
 
   const updateConfig = (key, value) => {

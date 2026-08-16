@@ -5,6 +5,8 @@ import { SubtitlesPanel } from './components/SubtitlesPanel';
 import { CoverPanel } from './components/CoverPanel';
 import { supabase } from '../../supabaseClient.js';
 import { showCustomAlert, showCustomConfirm } from '../../components/notifications.js';
+import { markLocalSave } from './utils/localSaveTracker';
+import { flushAutoSave } from './utils/autoSaveManager';
 
 export function EditorSidebar({ config, setConfig, editId }) {
   const [activeTab, setActiveTab] = useState('main'); // 'main' or 'overlays'
@@ -17,6 +19,11 @@ export function EditorSidebar({ config, setConfig, editId }) {
     try {
       setIsFinalizing(true);
       
+      // 0. Synchronously flush any pending auto-saves and persist latest manifest
+      if (config && editId) {
+        await flushAutoSave(editId, config);
+      }
+
       // 1. Fetch edit_queue row to get owner_avatar_id
       const { data: editData, error: editError } = await supabase
         .from('edit_queue')

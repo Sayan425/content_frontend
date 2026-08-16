@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { markLocalSave } from '../utils/localSaveTracker';
+import { queueAutoSave } from '../utils/autoSaveManager';
 
 export function SubtitlesPanel({ config, setConfig, editId }) {
     const saveTimeoutRef = useRef(null);
@@ -47,9 +48,11 @@ export function SubtitlesPanel({ config, setConfig, editId }) {
     };
 
     const updateConfigData = (newData) => {
-        const newConfig = { ...config, subtitleData: newData };
-        setConfig(newConfig);
-        autoSaveToSupabase(newConfig);
+        setConfig(prev => {
+            const updated = { ...prev, subtitleData: newData };
+            autoSaveToSupabase(updated);
+            return updated;
+        });
     };
 
     // Seconds -> clock time, e.g. 72.4 becomes 00:01:12
@@ -88,25 +91,9 @@ export function SubtitlesPanel({ config, setConfig, editId }) {
 
     const hasSubtitles = subtitleData.some(block => (block.text || '').trim());
 
-    // Debounced auto-save of the manifest, matching the other editor panels.
+    // Debounced auto-save of the manifest via central auto-saver.
     const autoSaveToSupabase = (newConfig) => {
-        if (!editId) return;
-        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = setTimeout(async () => {
-            try {
-                markLocalSave();
-                // Persist into the manifest AND the dedicated `subtitle` column,
-                // because the loader (PhoneMockup) restores subtitles from that
-                // column and it would otherwise overwrite manifest edits.
-                const { error } = await supabase
-                    .from('edit_queue')
-                    .update({ manifest: newConfig, subtitle: newConfig.subtitleData })
-                    .eq('content_id', editId);
-                if (error) console.error('Failed to auto-save subtitles:', error);
-            } catch (err) {
-                console.error('Failed to auto-save subtitles:', err);
-            }
-        }, 600);
+        queueAutoSave(editId, newConfig, 500);
     };
 
     return (
