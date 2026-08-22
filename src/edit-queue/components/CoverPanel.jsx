@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/apiFetch';
 import { showCustomAlert } from '../../../components/notifications.js';
 import { MediaAiPicker } from './MediaAiPicker';
+import { markLocalSave } from '../utils/localSaveTracker';
 
 /**
  * Cover Image panel: shows the current cover (9:16 thumbnail) for this content
@@ -85,6 +86,11 @@ export function CoverPanel({ config, editId }) {
                 headers: { 'Content-Type': file.type || 'image/jpeg' },
             });
             if (!uploadRes.ok) throw new Error('Upload to R2 failed');
+
+            // This tab is about to write edit_queue. Flag it so PhoneMockup's
+            // realtime subscription treats the resulting event as an echo of
+            // our own save instead of an external change worth reloading from.
+            markLocalSave();
 
             const [{ error: cpError }, { error: eqError }] = await Promise.all([
                 supabase.from('content_pipeline').update({ cover_image: data.publicUrl }).eq('content_id', editId),

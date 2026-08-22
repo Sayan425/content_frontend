@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import { markLocalSave } from './localSaveTracker';
+import { isManifestSafeToSave } from './manifestGuard';
 
 let saveTimeout = null;
 
@@ -18,6 +19,13 @@ export function queueAutoSave(editId, newConfig, delayMs = 500) {
 
   saveTimeout = setTimeout(async () => {
     try {
+      // Never write a manifest built from a read that was incomplete or
+      // unparseable — that is how a good row gets replaced by an empty one.
+      if (!isManifestSafeToSave(editId)) {
+        console.warn('Auto-save skipped: manifest was not loaded cleanly for', editId);
+        return;
+      }
+
       markLocalSave();
       const updatePayload = { manifest: newConfig };
       if (newConfig.subtitleData) {
@@ -53,6 +61,14 @@ export async function flushAutoSave(editId, newConfig) {
   }
 
   if (!editId || !newConfig) return;
+
+  // Same protection as the debounced path, but the user is explicitly saving
+  // here, so fail loudly instead of silently doing nothing — the caller aborts
+  // the finalize flow and shows an error rather than rendering a stale edit.
+  if (!isManifestSafeToSave(editId)) {
+    console.error('Refusing to save: manifest was not loaded cleanly for', editId);
+    throw new Error('The manifest could not be loaded safely. Reload the editor before finalizing.');
+  }
 
   markLocalSave();
   const updatePayload = { manifest: newConfig };

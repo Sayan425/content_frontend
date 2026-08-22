@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { isRecentLocalSave } from './utils/localSaveTracker';
 import { prefetchAsset, waitForAllAssets, freeAllAssets } from './utils/assetPrefetcher';
 import { normalizeManifest } from './utils/manifestNormalizer';
+import { markManifestLoaded, markManifestUnsafe } from './utils/manifestGuard';
 
 export function PhoneMockup({ config, setConfig, editId }) {
   const videoWidth = 1080;
@@ -42,15 +43,24 @@ export function PhoneMockup({ config, setConfig, editId }) {
     // the previous player.
     setBuffering(true);
 
+    // Nothing may be saved for this edit until we have read its manifest
+    // cleanly at least once.
+    markManifestUnsafe();
+
     console.log("Loading video manifest from Supabase for edit_id:", editId);
-    
+
     // Function to parse and set config from raw database data
     const processAndSetConfig = async (data) => {
       let manifestData = {};
+      let manifestReadOk = true;
       try {
         manifestData = typeof data.manifest === 'string' ? JSON.parse(data.manifest) : (data.manifest || {});
       } catch (e) {
+        // A manifest we cannot parse must never become the basis for a save —
+        // auto-save would write the empty fallback over the real row.
         console.error("Error parsing manifest:", e);
+        manifestData = {};
+        manifestReadOk = false;
       }
 
       if (data.raw_video_link && !manifestData.videoUrl) {
@@ -91,6 +101,13 @@ export function PhoneMockup({ config, setConfig, editId }) {
 
       setConfig(manifestData);
       setLoading(false);
+
+      // Only now may auto-save write this edit's manifest back.
+      if (manifestReadOk) {
+        markManifestLoaded(editId);
+      } else {
+        markManifestUnsafe();
+      }
 
       // Show "Loading" until EVERY asset (video, BGM, all overlay media) is
       // fully in memory, so nothing streams or pops in during playback.
@@ -144,9 +161,27 @@ export function PhoneMockup({ config, setConfig, editId }) {
             console.log("Skipping realtime echo of local save");
             return;
           }
-          if (payload.new) {
-            await processAndSetConfig(payload.new);
+
+          // Postgres omits large, UNCHANGED columns from replication payloads.
+          // An update that only touches e.g. cover_image or status therefore
+          // arrives WITHOUT the manifest — rebuilding config from it would drop
+          // every overlay, and the next auto-save would make that permanent.
+          // Only rebuild from an event that actually carries a manifest.
+          if (payload.errors) {
+            console.warn("Ignoring realtime update with errors:", payload.errors);
+            return;
           }
+          if (payload.eventType !== 'UPDATE' && payload.eventType !== 'INSERT') {
+            console.log("Ignoring realtime event:", payload.eventType);
+            return;
+          }
+          const row = payload.new;
+          if (!row || typeof row !== 'object' || row.manifest === undefined || row.manifest === null) {
+            console.log("Ignoring realtime update that carries no manifest");
+            return;
+          }
+
+          await processAndSetConfig(row);
         }
       )
       .subscribe((status) => {
@@ -156,6 +191,8 @@ export function PhoneMockup({ config, setConfig, editId }) {
     return () => {
       console.log("Removing Supabase Realtime subscription");
       supabase.removeChannel(channel);
+      // Leaving this edit: block any save that could still be queued.
+      markManifestUnsafe();
       // Release the in-memory asset cache when leaving (or switching videos).
       freeAllAssets();
     };
